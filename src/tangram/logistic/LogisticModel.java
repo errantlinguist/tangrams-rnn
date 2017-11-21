@@ -34,6 +34,45 @@ import weka.core.Instance;
 import weka.core.Instances;
 
 public class LogisticModel {
+	
+	private class WordClassifierTrainer implements Supplier<Entry<String,Logistic>> {
+
+		private final String word;
+
+		private final double weight;
+
+		private final Supplier<? extends Collection<Referent>> exampleSupplier;
+
+		private WordClassifierTrainer(final String word, final Supplier<? extends Collection<Referent>> exampleSupplier, final double weight) {
+			this.word = word;
+			this.exampleSupplier = exampleSupplier;
+			this.weight = weight;
+		}
+
+		@Override
+		public Entry<String,Logistic> get() {
+			Logistic logistic = new Logistic();
+			final Collection<Referent> examples = exampleSupplier.get();
+			Instances dataset = new Instances("Dataset", atts, examples.size());
+			dataset.setClass(TARGET);
+			
+			for (Referent ref : examples) {
+				Instance instance = toInstance(ref);
+				double totalWeight = weight * (ref.target ? 19 : 1);
+				instance.setWeight(totalWeight);
+				dataset.add(instance);
+			}
+			
+			try {
+				logistic.buildClassifier(dataset);
+			} catch (Exception e) {
+				throw new WordClassifierTrainingException(word, e);
+			}
+			
+			return Pair.of(word, logistic);
+		}
+
+	}
 
 	private final ConcurrentMap<String, Logistic> wordModels;
 
@@ -110,45 +149,6 @@ public class LogisticModel {
 		vocab.prune(Parameters.DISCOUNT);
 		return train(vocab.getUpdatedWordsSince(oldVocab), Parameters.UPDATE_WEIGHT);
 	}
-	
-	private class WordClassifierTrainer implements Supplier<Entry<String,Logistic>> {
-
-		private final String word;
-
-		private final double weight;
-
-		private final Supplier<? extends Collection<Referent>> exampleSupplier;
-
-		private WordClassifierTrainer(final String word, final Supplier<? extends Collection<Referent>> exampleSupplier, final double weight) {
-			this.word = word;
-			this.exampleSupplier = exampleSupplier;
-			this.weight = weight;
-		}
-
-		@Override
-		public Entry<String,Logistic> get() {
-			Logistic logistic = new Logistic();
-			final Collection<Referent> examples = exampleSupplier.get();
-			Instances dataset = new Instances("Dataset", atts, examples.size());
-			dataset.setClass(TARGET);
-			
-			for (Referent ref : examples) {
-				Instance instance = toInstance(ref);
-				double totalWeight = weight * (ref.target ? 19 : 1);
-				instance.setWeight(totalWeight);
-				dataset.add(instance);
-			}
-			
-			try {
-				logistic.buildClassifier(dataset);
-			} catch (Exception e) {
-				throw new WordClassifierTrainingException(word, e);
-			}
-			
-			return Pair.of(word, logistic);
-		}
-
-	}
 
 	/**
 	 * Trains models for the specified words
@@ -160,7 +160,7 @@ public class LogisticModel {
 		// Train a model for each word
 		final Stream<CompletableFuture<Void>> wordClassifierTrainingJobs = words.stream().map(word -> CompletableFuture.supplyAsync(new WordClassifierTrainer(word, () -> trainingSet.getExamples(word), weight), asynchronousJobExecutor).thenAccept(wordClassifier -> wordModels.put(wordClassifier.getKey(), wordClassifier.getValue())));
 		// Train the discount model
-		CompletableFuture<Void> discountClassifierTrainingJob = CompletableFuture.supplyAsync(new WordClassifierTrainer("__OUT_OF_VOCABULARY__", () -> trainingSet.getDiscountExamples(vocab.getWords()), weight), asynchronousJobExecutor).thenAccept(wordClassifier -> discountModel = wordClassifier.getValue());
+		final CompletableFuture<Void> discountClassifierTrainingJob = CompletableFuture.supplyAsync(new WordClassifierTrainer("__OUT_OF_VOCABULARY__", () -> trainingSet.getDiscountExamples(vocab.getWords()), weight), asynchronousJobExecutor).thenAccept(wordClassifier -> discountModel = wordClassifier.getValue());
 		return CompletableFuture.allOf(Stream.concat(wordClassifierTrainingJobs, Stream.of(discountClassifierTrainingJob)).toArray(CompletableFuture[]::new));
 	}
 
