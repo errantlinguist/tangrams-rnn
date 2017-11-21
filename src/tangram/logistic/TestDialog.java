@@ -2,6 +2,7 @@ package tangram.logistic;
 
 import java.io.PrintWriter;
 import java.nio.file.Paths;
+import java.util.concurrent.CompletableFuture;
 
 import tangram.data.*;
 
@@ -14,7 +15,8 @@ public class TestDialog {
 				PrintWriter pw = new PrintWriter("C:/data/tangram/dialogs/" + testing.name + ".html");
 				pw.println("<table>");
 				LogisticModel model = new LogisticModel();
-				model.train(training);
+				final CompletableFuture<Void> trainingJob = model.train(training);
+				trainingJob.join();
 				for (Round round : new RoundSet(set).rounds) {
 					for (Utterance utt : round.utts) {
 						for (String word : utt.fullText) {

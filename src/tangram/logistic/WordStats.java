@@ -2,6 +2,7 @@ package tangram.logistic;
 
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 
@@ -54,7 +55,8 @@ public class WordStats {
 		WordStats stats = new WordStats();
 		SessionSet set = new SessionSet(Paths.get("C:/data/tangram"));
 		LogisticModel model = new LogisticModel();
-		model.train(set);
+		final CompletableFuture<Void> trainingJob = model.train(set);
+		trainingJob.join();
 		Vocabulary vocab = model.getVocabulary();
 		for (Round round : new RoundSet(set).rounds) {
 			for (String word : round.getWords()) {

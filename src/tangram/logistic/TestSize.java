@@ -4,6 +4,7 @@ import java.io.PrintWriter;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import tangram.data.Referent;
 import tangram.data.SessionSet;
@@ -13,7 +14,8 @@ public class TestSize {
 	public static void main(String[] args) throws Exception {
 		SessionSet set = new SessionSet(Paths.get("C:/data/tangram"));
 		LogisticModel model = new LogisticModel();
-		model.train(set);
+		final CompletableFuture<Void> trainingJob = model.train(set);
+		trainingJob.join();
 		
 		List<String> wlist = Arrays.asList(new String[]{"large", "big", "small"});
 		
