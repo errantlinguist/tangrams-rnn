@@ -4,6 +4,7 @@
   <artifactId>Tangram-RNN</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <properties>
+    <java.version>1.8</java.version>
     <nd4j.backend>nd4j-native-platform</nd4j.backend>
     <!-- 
     <nd4j.backend>nd4j-cuda-7.5-platform</nd4j.backend>
@@ -87,10 +88,10 @@
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.3</version>
+        <version>3.7.0</version>
         <configuration>
-          <source/>
-          <target/>
+          <source>${java.version}</source>
+          <target>${java.version}</target>
         </configuration>
       </plugin>
     </plugins>
