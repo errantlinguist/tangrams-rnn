@@ -1,6 +1,8 @@
 package tangram.data;
 
 public class Utterance {
+	
+	private static final String[] EMPTY_TOKEN_ARRAY = new String[0];
 
 	public Integer round;
 	public String[] fullText;
@@ -12,7 +14,12 @@ public class Utterance {
 		String[] cols = line.split("\t");
 		round = Integer.parseInt(cols[0]);
 		fullText = cols[4].toLowerCase().split(" ");
-		refText = cols[5].toLowerCase().split(" ");
+		try {
+			refText = cols[5].toLowerCase().split(" ");
+		} catch (ArrayIndexOutOfBoundsException e) {
+			refText = EMPTY_TOKEN_ARRAY;
+		}
+		
 		speaker = cols[1];
 	}
 

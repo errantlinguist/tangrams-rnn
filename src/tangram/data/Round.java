@@ -5,11 +5,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 
-import com.beust.jcommander.Parameter;
-
 public class Round {
 
-	public Integer n;
+	public int n = -1;
 	public List<Utterance> utts = new ArrayList<>();
 	public List<Referent> referents = new ArrayList<>();
 	public Referent target;

@@ -1,8 +1,7 @@
 package tangram.logistic;
 
-import java.awt.Color;
-import java.io.File;
 import java.io.PrintWriter;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
@@ -12,7 +11,7 @@ import tangram.data.SessionSet;
 public class TestSize {
 
 	public static void main(String[] args) throws Exception {
-		SessionSet set = new SessionSet(new File("C:/data/tangram"));
+		SessionSet set = new SessionSet(Paths.get("C:/data/tangram"));
 		LogisticModel model = new LogisticModel();
 		model.train(set);
 		

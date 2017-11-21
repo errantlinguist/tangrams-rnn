@@ -1,17 +1,20 @@
 package tangram.data;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.function.Predicate;
+
 
 public class SessionSet {
 	
 	public List<Session> sessions = new ArrayList<>(); 
 	
-	public SessionSet(File dir) throws IOException {
-		for (File subdir : dir.listFiles()) {
-			if (subdir.isDirectory() && new File(subdir, "events.tsv").exists() && new File(subdir, "extracted-referring-tokens.tsv").exists()) {
+	public SessionSet(Path dir) throws IOException {
+		for (final Iterator<Path> subdirIter = Files.list(dir).filter(Files::isDirectory).iterator(); subdirIter.hasNext();) {
+			final Path subdir = subdirIter.next();
+			if (Files.isRegularFile(subdir.resolve("events.tsv")) && Files.isRegularFile(subdir.resolve("extracted-referring-tokens.tsv"))) {
 				//System.out.println(subdir);
 				Session session = new Session(subdir);
 				sessions.add(session);

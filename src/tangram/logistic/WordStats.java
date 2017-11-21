@@ -1,10 +1,9 @@
 package tangram.logistic;
 
-import java.io.File;
+import java.nio.file.Paths;
 import java.util.*;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
-import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
 
 import tangram.data.*;
 
@@ -53,7 +52,7 @@ public class WordStats {
 	
 	public static void main(String[] args) throws Exception {
 		WordStats stats = new WordStats();
-		SessionSet set = new SessionSet(new File("C:/data/tangram"));
+		SessionSet set = new SessionSet(Paths.get("C:/data/tangram"));
 		LogisticModel model = new LogisticModel();
 		model.train(set);
 		Vocabulary vocab = model.getVocabulary();

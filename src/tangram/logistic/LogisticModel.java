@@ -1,12 +1,9 @@
 package tangram.logistic;
 
-import java.io.File;
-import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.*;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
-
-import com.beust.jcommander.Parameter;
 
 import tangram.data.Parameters;
 import tangram.data.Referent;
@@ -235,7 +232,7 @@ public class LogisticModel {
 	}
 	
 	public static void main(String[] args) throws Exception {
-		SessionSet set = new SessionSet(new File("C:/data/tangram"));
+		SessionSet set = new SessionSet(Paths.get("/home/tshore/Projects/tangrams-restricted/Data/Ready"));
 		System.out.println(set.size() + " sessions");
 		run(set);
 		Parameters.ONLY_GIVER = true;

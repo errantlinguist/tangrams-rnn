@@ -2,16 +2,16 @@ package tangram.logistic;
 
 import java.awt.Color;
 import java.io.*;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
 import tangram.data.*;
-import weka.classifiers.functions.Logistic;
 
 public class TestColor {
 
 	public static void main(String[] args) throws Exception {
-		SessionSet set = new SessionSet(new File("C:/data/tangram"));
+		SessionSet set = new SessionSet(Paths.get("C:/data/tangram"));
 		LogisticModel model = new LogisticModel();
 		model.train(set);
 		

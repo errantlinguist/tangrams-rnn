@@ -1,14 +1,14 @@
 package tangram.logistic;
 
-import java.io.File;
 import java.io.PrintWriter;
+import java.nio.file.Paths;
 
 import tangram.data.*;
 
 public class TestDialog {
 
 	public static void main(String[] args) throws Exception {
-		SessionSet set = new SessionSet(new File("C:/data/tangram"));
+		SessionSet set = new SessionSet(Paths.get("C:/data/tangram"));
 		set.crossValidate((training,testing) -> {
 			try {
 				PrintWriter pw = new PrintWriter("C:/data/tangram/dialogs/" + testing.name + ".html");
