@@ -5,7 +5,7 @@
 	<artifactId>Tangram-RNN</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<properties>
-		<java.version>1.8</java.version>
+		<javac.version>1.8</javac.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<mainClass>tangram.logistic.LogisticModel</mainClass>
 	</properties>
@@ -69,8 +69,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.7.0</version>
 				<configuration>
-					<source>${java.version}</source>
-					<target>${java.version}</target>
+					<source>${javac.version}</source>
+					<target>${javac.version}</target>
 				</configuration>
 			</plugin>
 			<plugin>
