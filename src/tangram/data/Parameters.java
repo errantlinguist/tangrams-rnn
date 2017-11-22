@@ -1,5 +1,9 @@
 package tangram.data;
 
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 public class Parameters {
 	
 	// Only build model for words with more or equal number of instances than this
@@ -21,7 +25,22 @@ public class Parameters {
 	public static double UPDATE_WEIGHT = 1.0;
 
 	public static String getSetting() {
-		return DISCOUNT + "\t" + ONLY_REFLANG + "\t" + ONLY_GIVER + "\t" + UPDATE_MODEL + "\t" + UPDATE_WEIGHT;
+		return Stream.of(DISCOUNT, ONLY_REFLANG, ONLY_GIVER, UPDATE_MODEL, UPDATE_WEIGHT).map(Object::toString).collect(ROW_CELL_JOINER);
+	}
+	
+	private static final String HEADER;
+	
+	private static final Collector<CharSequence,?,String> ROW_CELL_JOINER = Collectors.joining("\t");
+	
+	static {
+		HEADER = Stream.of("DISCOUNT", "ONLY_REFLANG", "ONLY_GIVER", "UPDATE_MODEL", "UPDATE_WEIGHT").collect(ROW_CELL_JOINER);
+	}
+
+	/**
+	 * @return the header
+	 */
+	public static String getHeader() {
+		return HEADER;
 	}
 	
 }

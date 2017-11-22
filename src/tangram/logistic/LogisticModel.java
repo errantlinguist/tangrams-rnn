@@ -19,6 +19,8 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import tangram.data.Parameters;
 import tangram.data.Referent;
@@ -73,6 +75,8 @@ public class LogisticModel {
 		}
 
 	}
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(LogisticModel.class);
 
 	private final ConcurrentMap<String, Logistic> wordModels;
 
@@ -284,19 +288,26 @@ public class LogisticModel {
 
 	public static void main(String[] args) throws Exception {
 		SessionSet set = new SessionSet(Paths.get("D:\\Users\\tcshore\\Documents\\Projects\\Tangrams\\Data\\Ready"));
-		System.out.println(set.size() + " sessions");
+		LOGGER.info("Will run cross-validation using {} session(s).", set.size());
+		LOGGER.info("Cross-validating using default parameters.");
+		System.out.println("TIME" + "\t" + Parameters.getHeader() + "\t" + "SCORE");
 		run(set);
 		Parameters.ONLY_GIVER = true;
+		LOGGER.info("Cross-validating using only instructor language.");
 		run(set);
 		Parameters.ONLY_GIVER = false;
 		Parameters.ONLY_REFLANG = true;
+		LOGGER.info("Cross-validating using only referring language.");
 		run(set);
 		Parameters.ONLY_GIVER = true;
+		LOGGER.info("Cross-validating using only referring instructor language.");
 		run(set);
 		Parameters.UPDATE_MODEL = true;
 		Parameters.UPDATE_WEIGHT = 1;
+		LOGGER.info("Cross-validating using model which updates itself with intraction data using a weight of {} for the new data.", Parameters.UPDATE_WEIGHT);
 		run(set);
 		Parameters.UPDATE_WEIGHT = 5;
+		LOGGER.info("Cross-validating using model which updates itself with intraction data using a weight of {} for the new data.", Parameters.UPDATE_WEIGHT);
 		run(set);
 	}
 
