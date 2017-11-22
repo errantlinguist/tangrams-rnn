@@ -1,21 +1,20 @@
 package tangram.logistic;
 
 import java.awt.Color;
-import java.io.*;
+import java.io.PrintWriter;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
-import tangram.data.*;
+import tangram.data.Referent;
+import tangram.data.SessionSet;
 
 public class TestColor {
 
 	public static void main(String[] args) throws Exception {
 		SessionSet set = new SessionSet(Paths.get("C:/data/tangram"));
 		LogisticModel model = new LogisticModel();
-		final CompletableFuture<Void> trainingJob = model.train(set);
-		trainingJob.join();
+		model.train(set);
 		
 		List<String> wlist = Arrays.asList(new String[]{"red", "green", "blue", "yellow", "magenta", "pink", "orange"});
 		

@@ -110,11 +110,19 @@ public class LogisticModel {
 	public Vocabulary getVocabulary() {
 		return vocab;
 	}
+	
+	/**
+	 * Trains the word models using all data from a SessionSet
+	 */
+	void train(SessionSet set) {
+		final CompletableFuture<Void> trainingJob = trainAsynchronously(set);
+		trainingJob.join();
+	}
 
 	/**
 	 * Trains the word models using all data from a SessionSet
 	 */
-	CompletableFuture<Void> train(SessionSet set) {
+	CompletableFuture<Void> trainAsynchronously(SessionSet set) {
 
 		trainingSet = new RoundSet(set);
 		vocab = trainingSet.getVocabulary();
@@ -136,24 +144,32 @@ public class LogisticModel {
 		atts.add(MIDY = new Attribute("midy"));
 		atts.add(TARGET = new Attribute("target", Arrays.asList(new String[] { "true", "false" })));
 
-		return train(vocab.getWords(), 1.0);
+		return trainAsynchronously(vocab.getWords(), 1.0);
 	}
 
 	/**
 	 * Updates (trains) the models with the new round
 	 */
-	private CompletableFuture<Void> updateModel(Round round) {
+	private void updateModel(Round round) {
 		trainingSet.rounds.add(round);
 		Vocabulary oldVocab = vocab;
 		vocab = trainingSet.getVocabulary();
 		vocab.prune(Parameters.DISCOUNT);
-		return train(vocab.getUpdatedWordsSince(oldVocab), Parameters.UPDATE_WEIGHT);
+		train(vocab.getUpdatedWordsSince(oldVocab), Parameters.UPDATE_WEIGHT);
+	}
+	
+	/**
+	 * Trains models for the specified words
+	 */
+	private void train(List<String> words, double weight) {
+		final CompletableFuture<Void> trainingJob = trainAsynchronously(words, weight);
+		trainingJob.join();
 	}
 
 	/**
 	 * Trains models for the specified words
 	 */
-	private CompletableFuture<Void> train(List<String> words, double weight) {
+	private CompletableFuture<Void> trainAsynchronously(List<String> words, double weight) {
 
 		// System.out.println("Training " + words);
 
@@ -239,8 +255,7 @@ public class LogisticModel {
 			for (Round round : session.rounds) {
 				mean.increment(targetRank(round));
 				if (Parameters.UPDATE_MODEL) {
-					final CompletableFuture<Void> trainingJob = updateModel(round);
-					trainingJob.join();
+					updateModel(round);
 				}
 			}
 		}
@@ -255,8 +270,7 @@ public class LogisticModel {
 		set.crossValidate((training, testing) -> {
 			try {
 				LogisticModel model = new LogisticModel();
-				final CompletableFuture<Void> trainingJob = model.train(training);
-				trainingJob.join();
+				model.train(training);
 				double meanRank = model.eval(new SessionSet(testing));
 				// System.out.println(testing.name + "\t" +
 				// Parameters.getSetting() + "\t" + meanRank);
@@ -269,7 +283,7 @@ public class LogisticModel {
 	}
 
 	public static void main(String[] args) throws Exception {
-		SessionSet set = new SessionSet(Paths.get("/home/tshore/Projects/tangrams-restricted/Data/Ready"));
+		SessionSet set = new SessionSet(Paths.get("D:\\Users\\tcshore\\Documents\\Projects\\Tangrams\\Data\\Ready"));
 		System.out.println(set.size() + " sessions");
 		run(set);
 		Parameters.ONLY_GIVER = true;
