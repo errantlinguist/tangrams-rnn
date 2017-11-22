@@ -288,30 +288,34 @@ public class LogisticModel {
 	}
 
 	public static void main(String[] args) throws Exception {
-		final Path inpath = Paths.get(args[0]);
-		LOGGER.info("Reading sessions from \"{}\".", inpath);
-		SessionSet set = new SessionSet(inpath);
-		LOGGER.info("Will run cross-validation using {} session(s).", set.size());
-		LOGGER.info("Cross-validating using default parameters.");
-		System.out.println("TIME" + "\t" + Parameters.getHeader() + "\t" + "SCORE");
-		run(set);
-		Parameters.ONLY_GIVER = true;
-		LOGGER.info("Cross-validating using only instructor language.");
-		run(set);
-		Parameters.ONLY_GIVER = false;
-		Parameters.ONLY_REFLANG = true;
-		LOGGER.info("Cross-validating using only referring language.");
-		run(set);
-		Parameters.ONLY_GIVER = true;
-		LOGGER.info("Cross-validating using only referring instructor language.");
-		run(set);
-		Parameters.UPDATE_MODEL = true;
-		Parameters.UPDATE_WEIGHT = 1;
-		LOGGER.info("Cross-validating using model which updates itself with intraction data using a weight of {} for the new data.", Parameters.UPDATE_WEIGHT);
-		run(set);
-		Parameters.UPDATE_WEIGHT = 5;
-		LOGGER.info("Cross-validating using model which updates itself with intraction data using a weight of {} for the new data.", Parameters.UPDATE_WEIGHT);
-		run(set);
+		if (args.length < 1) {
+			throw new IllegalArgumentException(String.format("Usage: %s INPATH", LogisticModel.class.getSimpleName()));
+		} else {
+			final Path inpath = Paths.get(args[0]);
+			LOGGER.info("Reading sessions from \"{}\".", inpath);
+			SessionSet set = new SessionSet(inpath);
+			LOGGER.info("Will run cross-validation using {} session(s).", set.size());
+			LOGGER.info("Cross-validating using default parameters.");
+			System.out.println("TIME" + "\t" + Parameters.getHeader() + "\t" + "SCORE");
+			run(set);
+			Parameters.ONLY_GIVER = true;
+			LOGGER.info("Cross-validating using only instructor language.");
+			run(set);
+			Parameters.ONLY_GIVER = false;
+			Parameters.ONLY_REFLANG = true;
+			LOGGER.info("Cross-validating using only referring language.");
+			run(set);
+			Parameters.ONLY_GIVER = true;
+			LOGGER.info("Cross-validating using only referring instructor language.");
+			run(set);
+			Parameters.UPDATE_MODEL = true;
+			Parameters.UPDATE_WEIGHT = 1;
+			LOGGER.info("Cross-validating using model which updates itself with intraction data using a weight of {} for the new data.", Parameters.UPDATE_WEIGHT);
+			run(set);
+			Parameters.UPDATE_WEIGHT = 5;
+			LOGGER.info("Cross-validating using model which updates itself with intraction data using a weight of {} for the new data.", Parameters.UPDATE_WEIGHT);
+			run(set);			
+		}
 	}
 
 	private static void run(SessionSet set) {
