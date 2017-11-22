@@ -1,5 +1,6 @@
 package tangram.logistic;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -59,7 +60,9 @@ public class WordStats {
 	
 	public static void main(String[] args) throws Exception {
 		WordStats stats = new WordStats();
-		SessionSet set = new SessionSet(Paths.get("C:/data/tangram"));
+		final Path inpath = Paths.get(args[0]);
+		System.err.println(String.format("Reading sessions from \"%s\".", inpath));
+		SessionSet set = new SessionSet(inpath);
 		LogisticModel model = new LogisticModel();
 		model.train(set);
 		Vocabulary vocab = model.getVocabulary();

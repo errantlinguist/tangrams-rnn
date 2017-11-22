@@ -107,7 +107,9 @@ public class Session {
 	}
 	
  	public static void main(String[] args) throws IOException {
-		new Session(Paths.get("C:\\data\\Summer recordings\\Game150"));
+		final Path inpath = Paths.get(args[0]);
+		System.err.println(String.format("Reading sessions from \"%s\".", inpath));
+		new Session(inpath);
 	}
 	
 }

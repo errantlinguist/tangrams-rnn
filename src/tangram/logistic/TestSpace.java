@@ -1,6 +1,7 @@
 package tangram.logistic;
 
 import java.io.PrintWriter;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
@@ -11,7 +12,9 @@ import tangram.data.SessionSet;
 public class TestSpace {
 
 	public static void main(String[] args) throws Exception {
-		SessionSet set = new SessionSet(Paths.get("C:/data/tangram"));
+		final Path inpath = Paths.get(args[0]);
+		System.err.println(String.format("Reading sessions from \"%s\".", inpath));
+		SessionSet set = new SessionSet(inpath);
 		LogisticModel model = new LogisticModel();
 		model.train(set);
 		

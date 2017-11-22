@@ -1,5 +1,6 @@
 package tangram.logistic;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -287,7 +288,9 @@ public class LogisticModel {
 	}
 
 	public static void main(String[] args) throws Exception {
-		SessionSet set = new SessionSet(Paths.get("D:\\Users\\tcshore\\Documents\\Projects\\Tangrams\\Data\\Ready"));
+		final Path inpath = Paths.get(args[0]);
+		LOGGER.info("Reading sessions from \"{}\".", inpath);
+		SessionSet set = new SessionSet(inpath);
 		LOGGER.info("Will run cross-validation using {} session(s).", set.size());
 		LOGGER.info("Cross-validating using default parameters.");
 		System.out.println("TIME" + "\t" + Parameters.getHeader() + "\t" + "SCORE");
