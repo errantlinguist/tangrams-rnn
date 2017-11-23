@@ -1,4 +1,19 @@
-package tangram.logistic;
+/*******************************************************************************
+ * Copyright 2017 Todd Shore
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License.  You may obtain a copy
+ * of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ ******************************************************************************/
+package se.kth.speech.coin.tangrams.wac.logistic;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,13 +38,14 @@ import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import tangram.data.Parameters;
-import tangram.data.Referent;
-import tangram.data.Round;
-import tangram.data.RoundSet;
-import tangram.data.Session;
-import tangram.data.SessionSet;
-import tangram.data.Vocabulary;
+import se.kth.speech.coin.tangrams.wac.data.Parameters;
+import se.kth.speech.coin.tangrams.wac.data.Referent;
+import se.kth.speech.coin.tangrams.wac.data.Round;
+import se.kth.speech.coin.tangrams.wac.data.RoundSet;
+import se.kth.speech.coin.tangrams.wac.data.Session;
+import se.kth.speech.coin.tangrams.wac.data.SessionSet;
+import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
+import se.kth.speech.coin.tangrams.wac.data.Vocabulary;
 import weka.classifiers.functions.Logistic;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
@@ -61,7 +77,7 @@ public class LogisticModel {
 			
 			for (Referent ref : examples) {
 				Instance instance = toInstance(ref);
-				double totalWeight = weight * (ref.target ? 19 : 1);
+				double totalWeight = weight * (ref.isTarget() ? 19 : 1);
 				instance.setWeight(totalWeight);
 				dataset.add(instance);
 			}
@@ -123,7 +139,9 @@ public class LogisticModel {
 		final CompletableFuture<Void> trainingJob = trainAsynchronously(set);
 		trainingJob.join();
 	}
-
+	
+	private static final List<String> REFERENT_CLASSIFICATION_VALUES = Arrays.asList(Stream.of(Boolean.TRUE, Boolean.FALSE).map(Object::toString).map(String::intern).toArray(String[]::new));
+	
 	/**
 	 * Trains the word models using all data from a SessionSet
 	 */
@@ -135,7 +153,7 @@ public class LogisticModel {
 
 		atts = new ArrayList<>();
 
-		atts.add(SHAPE = new Attribute("shape", new ArrayList<String>(Referent.shapes)));
+		atts.add(SHAPE = new Attribute("shape", new ArrayList<String>(Referent.getShapes())));
 		atts.add(SIZE = new Attribute("size"));
 		atts.add(RED = new Attribute("red"));
 		atts.add(GREEN = new Attribute("green"));
@@ -147,7 +165,7 @@ public class LogisticModel {
 
 		atts.add(MIDX = new Attribute("midx"));
 		atts.add(MIDY = new Attribute("midy"));
-		atts.add(TARGET = new Attribute("target", Arrays.asList(new String[] { "true", "false" })));
+		atts.add(TARGET = new Attribute("target", REFERENT_CLASSIFICATION_VALUES));
 
 		return trainAsynchronously(vocab.getWords(), 1.0);
 	}
@@ -156,7 +174,7 @@ public class LogisticModel {
 	 * Updates (trains) the models with the new round
 	 */
 	private void updateModel(Round round) {
-		trainingSet.rounds.add(round);
+		trainingSet.getRounds().add(round);
 		Vocabulary oldVocab = vocab;
 		vocab = trainingSet.getVocabulary();
 		vocab.prune(Parameters.DISCOUNT);
@@ -187,18 +205,18 @@ public class LogisticModel {
 
 	public Instance toInstance(Referent ref) {
 		DenseInstance instance = new DenseInstance(atts.size());
-		instance.setValue(SHAPE, ref.shape);
-		instance.setValue(SIZE, ref.size);
-		instance.setValue(RED, ref.red);
-		instance.setValue(GREEN, ref.green);
-		instance.setValue(BLUE, ref.blue);
+		instance.setValue(SHAPE, ref.getShape());
+		instance.setValue(SIZE, ref.getSize());
+		instance.setValue(RED, ref.getRed());
+		instance.setValue(GREEN, ref.getGreen());
+		instance.setValue(BLUE, ref.getBlue());
 		// instance.setValue(HUE, ref.hue);
-		instance.setValue(POSX, ref.posx);
-		instance.setValue(POSY, ref.posy);
-		instance.setValue(MIDX, ref.midx);
-		instance.setValue(MIDY, ref.midy);
+		instance.setValue(POSX, ref.getPositionX());
+		instance.setValue(POSY, ref.getPositionY());
+		instance.setValue(MIDX, ref.getMidX());
+		instance.setValue(MIDY, ref.getMidY());
 
-		instance.setValue(TARGET, ref.target ? "true" : "false");
+		instance.setValue(TARGET, Boolean.toString(ref.isTarget()));
 		return instance;
 	}
 
@@ -217,7 +235,7 @@ public class LogisticModel {
 	 */
 	public List<Referent> rank(Round round) throws Exception {
 		final Map<Referent, Double> scores = new HashMap<>();
-		for (Referent ref : round.referents) {
+		for (Referent ref : round.getReferents()) {
 			Instance inst = toInstance(ref);
 			Mean mean = new Mean();
 			for (String word : round.getWords()) {
@@ -228,7 +246,7 @@ public class LogisticModel {
 			}
 			scores.put(ref, mean.getResult());
 		}
-		List<Referent> ranking = new ArrayList<>(round.referents);
+		List<Referent> ranking = new ArrayList<>(round.getReferents());
 		ranking.sort(new Comparator<Referent>() {
 			@Override
 			public int compare(Referent o1, Referent o2) {
@@ -245,7 +263,7 @@ public class LogisticModel {
 		int rank = 0;
 		for (Referent ref : rank(round)) {
 			rank++;
-			if (ref.target)
+			if (ref.isTarget())
 				return rank;
 		}
 		return rank;
@@ -256,8 +274,8 @@ public class LogisticModel {
 	 */
 	private double eval(SessionSet set) throws Exception {
 		Mean mean = new Mean();
-		for (Session session : set.sessions) {
-			for (Round round : session.rounds) {
+		for (Session session : set.getSessions()) {
+			for (Round round : session.getRounds()) {
 				mean.increment(targetRank(round));
 				if (Parameters.UPDATE_MODEL) {
 					updateModel(round);
@@ -293,7 +311,7 @@ public class LogisticModel {
 		} else {
 			final Path inpath = Paths.get(args[0]);
 			LOGGER.info("Reading sessions from \"{}\".", inpath);
-			SessionSet set = new SessionSet(inpath);
+			SessionSet set = new SessionSetReader().apply(inpath);
 			LOGGER.info("Will run cross-validation using {} session(s).", set.size());
 			LOGGER.info("Cross-validating using default parameters.");
 			System.out.println("TIME" + "\t" + Parameters.getHeader() + "\t" + "SCORE");
