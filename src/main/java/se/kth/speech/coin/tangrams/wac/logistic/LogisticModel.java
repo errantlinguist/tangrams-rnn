@@ -127,7 +127,7 @@ public class LogisticModel {
 	public LogisticModel(final Executor asynchronousJobExecutor, final int estimatedWordClassCount) {
 		if (asynchronousJobExecutor instanceof ForkJoinPool) {
 			LOGGER.info("Will run model functionalities using a(n) {} instance with a parallelism level of {}.",
-					ForkJoinPool.class.getSimpleName(), ((ForkJoinPool) asynchronousJobExecutor).getParallelism());
+					asynchronousJobExecutor.getClass().getSimpleName(), ((ForkJoinPool) asynchronousJobExecutor).getParallelism());
 		}
 		this.asynchronousJobExecutor = asynchronousJobExecutor;
 		wordModels = new ConcurrentHashMap<>(estimatedWordClassCount);
