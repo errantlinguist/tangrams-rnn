@@ -74,7 +74,9 @@ public final class SessionSetReader {
 		} catch (final IndexOutOfBoundsException e) {
 			LOGGER.debug("List is too short; The remaining round(s) has/have no utterances.", e);
 		}
-		return utts == null ? NULL_ROUND_UTT_LIST : utts;
+		List<Utterance> result = utts == null ? NULL_ROUND_UTT_LIST : utts;
+		LOGGER.debug("Fetched {} utterance(s) for round {}.", result.size(), roundId);
+		return result;
 	}
 
 	private static int findLastValidRoundIdx(final List<Round> rounds) {
