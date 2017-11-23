@@ -123,7 +123,7 @@ public final class SessionSetReader {
 
 	public SessionSet apply(final Path dir) throws IOException {
 		final List<Session> sessions = new ArrayList<>();
-		for (final Iterator<Path> subdirIter = Files.list(dir).filter(Files::isDirectory).iterator(); subdirIter
+		for (final Iterator<Path> subdirIter = Files.walk(dir).filter(Files::isDirectory).iterator(); subdirIter
 				.hasNext();) {
 			final Path subdir = subdirIter.next();
 			final Path eventsFile = subdir.resolve("events.tsv");
