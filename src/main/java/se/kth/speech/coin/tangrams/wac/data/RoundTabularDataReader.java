@@ -72,7 +72,7 @@ public final class RoundTabularDataReader {
 			final Round oldRound = rounds.set(roundId, result);
 			assert oldRound == null;
 		} else {
-			assert Objects.equals(result, roundFactory.get());
+			// Do nothing
 		}
 		return result;
 	}
@@ -106,11 +106,11 @@ public final class RoundTabularDataReader {
 		for (final CSVRecord record : parser) {
 			final String eventName = record.get(Header.NAME);
 			if (Objects.equals(referringEventName, eventName)) {
-//				final int score = Integer.parseInt(record.get(Header.SCORE));
-//				final float time = Float.parseFloat(record.get(Header.TIME));
+				final int score = Integer.parseInt(record.get(Header.SCORE));
+				final float time = Float.parseFloat(record.get(Header.TIME));
 				final int roundId = Integer.parseInt(record.get(Header.ROUND));
 				final Supplier<Round> roundFactory = () -> new Round(
-						new ArrayList<>(DEFAULT_EXPECTED_UNIQUE_ENTITY_COUNT), roundUttListFactory.apply(roundId));
+						new ArrayList<>(DEFAULT_EXPECTED_UNIQUE_ENTITY_COUNT), roundUttListFactory.apply(roundId), score, time);
 				final Round round = fetchRound(result, roundId, roundFactory);
 				final List<Referent> roundEntities = round.getReferents();
 

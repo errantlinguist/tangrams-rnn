@@ -25,14 +25,20 @@ public final class Round {
 
 	private final List<Referent> referents;
 
-	public Round(final List<Referent> referents, final List<Utterance> utts) {
+	private final int score;
+
+	private final float time;
+
+	public Round(final List<Referent> referents, final List<Utterance> utts, final int score, final float time) {
 		this.referents = referents;
 		this.utts = utts;
+		this.score = score;
+		this.time = time;
 	}
 
 	/*
 	 * (non-Javadoc)
-	 *
+	 * 
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
@@ -54,6 +60,12 @@ public final class Round {
 		} else if (!referents.equals(other.referents)) {
 			return false;
 		}
+		if (score != other.score) {
+			return false;
+		}
+		if (Float.floatToIntBits(time) != Float.floatToIntBits(other.time)) {
+			return false;
+		}
 		if (utts == null) {
 			if (other.utts != null) {
 				return false;
@@ -69,6 +81,20 @@ public final class Round {
 	 */
 	public List<Referent> getReferents() {
 		return referents;
+	}
+
+	/**
+	 * @return the score
+	 */
+	public int getScore() {
+		return score;
+	}
+
+	/**
+	 * @return the time
+	 */
+	public float getTime() {
+		return time;
 	}
 
 	/**
@@ -110,7 +136,7 @@ public final class Round {
 
 	/*
 	 * (non-Javadoc)
-	 *
+	 * 
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
@@ -118,6 +144,8 @@ public final class Round {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + (referents == null ? 0 : referents.hashCode());
+		result = prime * result + score;
+		result = prime * result + Float.floatToIntBits(time);
 		result = prime * result + (utts == null ? 0 : utts.hashCode());
 		return result;
 	}
@@ -156,7 +184,7 @@ public final class Round {
 
 	/*
 	 * (non-Javadoc)
-	 *
+	 * 
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
@@ -166,6 +194,10 @@ public final class Round {
 		builder.append(utts);
 		builder.append(", referents=");
 		builder.append(referents);
+		builder.append(", score=");
+		builder.append(score);
+		builder.append(", time=");
+		builder.append(time);
 		builder.append("]");
 		return builder.toString();
 	}
