@@ -17,6 +17,7 @@ package se.kth.speech.coin.tangrams.wac.logistic;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Supplier;
 
@@ -35,12 +36,12 @@ public class CrossValidator {
 	private static final int DEFAULT_EXPECTED_WORD_CLASS_COUNT = 1000;
 
 	public static void main(final String[] args) throws Exception {
-		if (args.length < 1) {
-			throw new IllegalArgumentException(String.format("Usage: %s INPATH", CrossValidator.class.getSimpleName()));
+		final Path[] inpaths = Arrays.stream(args).map(String::trim).filter(str -> str.isEmpty()).map(Paths::get).toArray(Path[]::new);
+		if (inpaths.length < 1) {
+			throw new IllegalArgumentException(String.format("Usage: %s INPATHS...", CrossValidator.class.getSimpleName()));
 		} else {
-			final Path inpath = Paths.get(args[0]);
-			LOGGER.info("Reading sessions from \"{}\".", inpath);
-			final SessionSet set = new SessionSetReader().apply(inpath);
+			LOGGER.info("Reading sessions from {}.", Arrays.toString(inpaths));
+			final SessionSet set = new SessionSetReader().apply(inpaths);
 			LOGGER.info("Will run cross-validation using {} session(s).", set.size());
 			final ForkJoinPool executor = ForkJoinPool.commonPool();
 			LOGGER.info("Will run cross-validation using a(n) {} instance with a parallelism level of {}.",
