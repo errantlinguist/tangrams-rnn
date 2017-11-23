@@ -59,25 +59,11 @@ public final class Referent {
 	public Referent() {
 	}
 
-	public Referent(final String[] cols) {
-		target = Boolean.parseBoolean(cols[7]);
-		shape = cols[9];
-		SHAPES.add(shape);
-		size = Float.parseFloat(cols[11]);
-		red = Float.parseFloat(cols[12]) / 255f;
-		green = Float.parseFloat(cols[13]) / 255f;
-		blue = Float.parseFloat(cols[14]) / 255f;
-		hue = Float.parseFloat(cols[16]);
-		setPosition(Float.parseFloat(cols[19]), Float.parseFloat(cols[20]));
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
+	/* (non-Javadoc)
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(final Object obj) {
+	public boolean equals(Object obj) {
 		if (this == obj) {
 			return true;
 		}
@@ -87,7 +73,7 @@ public final class Referent {
 		if (!(obj instanceof Referent)) {
 			return false;
 		}
-		final Referent other = (Referent) obj;
+		Referent other = (Referent) obj;
 		if (Float.floatToIntBits(blue) != Float.floatToIntBits(other.blue)) {
 			return false;
 		}
@@ -198,9 +184,7 @@ public final class Referent {
 		return size;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
+	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
@@ -215,7 +199,7 @@ public final class Referent {
 		result = prime * result + Float.floatToIntBits(positionX);
 		result = prime * result + Float.floatToIntBits(positionY);
 		result = prime * result + Float.floatToIntBits(red);
-		result = prime * result + (shape == null ? 0 : shape.hashCode());
+		result = prime * result + ((shape == null) ? 0 : shape.hashCode());
 		result = prime * result + Float.floatToIntBits(size);
 		result = prime * result + (target ? 1231 : 1237);
 		return result;
