@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -134,6 +135,10 @@ public final class SessionSetReader {
 		final List<Session> sessions = new ArrayList<>();
 		readSessions(dir, sessions);
 		return new SessionSet(sessions);
+	}
+
+	public SessionSet apply(final Path[] dirs) throws IOException {
+		return apply(Arrays.asList(dirs));
 	}
 
 	private void readSessions(final Path dir, final Collection<? super Session> sessions) throws IOException {
