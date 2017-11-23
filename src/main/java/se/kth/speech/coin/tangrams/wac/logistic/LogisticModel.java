@@ -53,8 +53,8 @@ import weka.core.Instance;
 import weka.core.Instances;
 
 public class LogisticModel {
-	
-	private class WordClassifierTrainer implements Supplier<Entry<String,Logistic>> {
+
+	private class WordClassifierTrainer implements Supplier<Entry<String, Logistic>> {
 
 		private final String word;
 
@@ -62,37 +62,38 @@ public class LogisticModel {
 
 		private final Supplier<? extends Collection<Referent>> exampleSupplier;
 
-		private WordClassifierTrainer(final String word, final Supplier<? extends Collection<Referent>> exampleSupplier, final double weight) {
+		private WordClassifierTrainer(final String word, final Supplier<? extends Collection<Referent>> exampleSupplier,
+				final double weight) {
 			this.word = word;
 			this.exampleSupplier = exampleSupplier;
 			this.weight = weight;
 		}
 
 		@Override
-		public Entry<String,Logistic> get() {
+		public Entry<String, Logistic> get() {
 			Logistic logistic = new Logistic();
 			final Collection<Referent> examples = exampleSupplier.get();
 			Instances dataset = new Instances("Dataset", atts, examples.size());
 			dataset.setClass(TARGET);
-			
+
 			for (Referent ref : examples) {
 				Instance instance = toInstance(ref);
 				double totalWeight = weight * (ref.isTarget() ? 19 : 1);
 				instance.setWeight(totalWeight);
 				dataset.add(instance);
 			}
-			
+
 			try {
 				logistic.buildClassifier(dataset);
 			} catch (Exception e) {
 				throw new WordClassifierTrainingException(word, e);
 			}
-			
+
 			return Pair.of(word, logistic);
 		}
 
 	}
-	
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(LogisticModel.class);
 
 	private final ConcurrentMap<String, Logistic> wordModels;
@@ -124,6 +125,10 @@ public class LogisticModel {
 	}
 
 	public LogisticModel(final Executor asynchronousJobExecutor, final int estimatedWordClassCount) {
+		if (asynchronousJobExecutor instanceof ForkJoinPool) {
+			LOGGER.info("Will run model functionalities using a(n) {} instance with a parallelism level of {}.",
+					ForkJoinPool.class.getSimpleName(), ((ForkJoinPool) asynchronousJobExecutor).getParallelism());
+		}
 		this.asynchronousJobExecutor = asynchronousJobExecutor;
 		wordModels = new ConcurrentHashMap<>(estimatedWordClassCount);
 	}
@@ -131,7 +136,7 @@ public class LogisticModel {
 	public Vocabulary getVocabulary() {
 		return vocab;
 	}
-	
+
 	/**
 	 * Trains the word models using all data from a SessionSet
 	 */
@@ -139,9 +144,10 @@ public class LogisticModel {
 		final CompletableFuture<Void> trainingJob = trainAsynchronously(set);
 		trainingJob.join();
 	}
-	
-	private static final List<String> REFERENT_CLASSIFICATION_VALUES = Arrays.asList(Stream.of(Boolean.TRUE, Boolean.FALSE).map(Object::toString).map(String::intern).toArray(String[]::new));
-	
+
+	private static final List<String> REFERENT_CLASSIFICATION_VALUES = Arrays.asList(
+			Stream.of(Boolean.TRUE, Boolean.FALSE).map(Object::toString).map(String::intern).toArray(String[]::new));
+
 	/**
 	 * Trains the word models using all data from a SessionSet
 	 */
@@ -180,7 +186,7 @@ public class LogisticModel {
 		vocab.prune(Parameters.DISCOUNT);
 		train(vocab.getUpdatedWordsSince(oldVocab), Parameters.UPDATE_WEIGHT);
 	}
-	
+
 	/**
 	 * Trains models for the specified words
 	 */
@@ -197,10 +203,20 @@ public class LogisticModel {
 		// System.out.println("Training " + words);
 
 		// Train a model for each word
-		final Stream<CompletableFuture<Void>> wordClassifierTrainingJobs = words.stream().map(word -> CompletableFuture.supplyAsync(new WordClassifierTrainer(word, () -> trainingSet.getExamples(word), weight), asynchronousJobExecutor).thenAccept(wordClassifier -> wordModels.put(wordClassifier.getKey(), wordClassifier.getValue())));
+		final Stream<CompletableFuture<Void>> wordClassifierTrainingJobs = words.stream().map(word -> CompletableFuture
+				.supplyAsync(new WordClassifierTrainer(word, () -> trainingSet.getExamples(word), weight),
+						asynchronousJobExecutor)
+				.thenAccept(wordClassifier -> wordModels.put(wordClassifier.getKey(), wordClassifier.getValue())));
 		// Train the discount model
-		final CompletableFuture<Void> discountClassifierTrainingJob = CompletableFuture.supplyAsync(new WordClassifierTrainer("__OUT_OF_VOCABULARY__", () -> trainingSet.getDiscountExamples(vocab.getWords()), weight), asynchronousJobExecutor).thenAccept(wordClassifier -> discountModel = wordClassifier.getValue());
-		return CompletableFuture.allOf(Stream.concat(wordClassifierTrainingJobs, Stream.of(discountClassifierTrainingJob)).toArray(CompletableFuture[]::new));
+		final CompletableFuture<Void> discountClassifierTrainingJob = CompletableFuture
+				.supplyAsync(
+						new WordClassifierTrainer("__OUT_OF_VOCABULARY__",
+								() -> trainingSet.getDiscountExamples(vocab.getWords()), weight),
+						asynchronousJobExecutor)
+				.thenAccept(wordClassifier -> discountModel = wordClassifier.getValue());
+		return CompletableFuture
+				.allOf(Stream.concat(wordClassifierTrainingJobs, Stream.of(discountClassifierTrainingJob))
+						.toArray(CompletableFuture[]::new));
 	}
 
 	public Instance toInstance(Referent ref) {
@@ -328,11 +344,15 @@ public class LogisticModel {
 			run(set);
 			Parameters.UPDATE_MODEL = true;
 			Parameters.UPDATE_WEIGHT = 1;
-			LOGGER.info("Cross-validating using model which updates itself with intraction data using a weight of {} for the new data.", Parameters.UPDATE_WEIGHT);
+			LOGGER.info(
+					"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data.",
+					Parameters.UPDATE_WEIGHT);
 			run(set);
 			Parameters.UPDATE_WEIGHT = 5;
-			LOGGER.info("Cross-validating using model which updates itself with intraction data using a weight of {} for the new data.", Parameters.UPDATE_WEIGHT);
-			run(set);			
+			LOGGER.info(
+					"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data.",
+					Parameters.UPDATE_WEIGHT);
+			run(set);
 		}
 	}
 
