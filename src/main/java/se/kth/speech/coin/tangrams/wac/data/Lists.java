@@ -17,6 +17,7 @@ package se.kth.speech.coin.tangrams.wac.data;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -32,6 +33,19 @@ import java.util.stream.IntStream;
  *
  */
 public final class Lists {
+
+	/**
+	 *
+	 * @param ordering
+	 *            The {@link List} to use for ordering.
+	 * @return A {@link Comparator} using a given object's index in the given
+	 *         {@code List} as its order, with unseen elements ordered last.
+	 * @see <a href="http://stackoverflow.com/a/41128993/1391325">Original SO
+	 *      answer</a>
+	 */
+	public static <T> Comparator<T> comparingByIndex(final List<? extends T> ordering) {
+		return (elem1, elem2) -> Integer.compareUnsigned(ordering.indexOf(elem1), ordering.indexOf(elem2));
+	}
 
 	public static <T> Set<Integer> createMatchingElementIndexSet(final List<? extends T> list,
 			final Predicate<T> matcher) {
