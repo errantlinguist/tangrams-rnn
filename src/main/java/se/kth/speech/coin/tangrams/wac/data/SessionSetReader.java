@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -74,7 +75,7 @@ public final class SessionSetReader {
 		} catch (final IndexOutOfBoundsException e) {
 			LOGGER.debug("List is too short; The remaining round(s) has/have no utterances.", e);
 		}
-		List<Utterance> result = utts == null ? NULL_ROUND_UTT_LIST : utts;
+		final List<Utterance> result = utts == null ? NULL_ROUND_UTT_LIST : utts;
 		LOGGER.debug("Fetched {} utterance(s) for round {}.", result.size(), roundId);
 		return result;
 	}
@@ -111,7 +112,7 @@ public final class SessionSetReader {
 	private final RoundTabularDataReader roundReader;
 
 	private final UtteranceTabularDataReader uttReader;
-	
+
 	public SessionSetReader() {
 		this(new RoundTabularDataReader(), new UtteranceTabularDataReader());
 	}
@@ -121,8 +122,21 @@ public final class SessionSetReader {
 		this.uttReader = uttReader;
 	}
 
+	public SessionSet apply(final Collection<Path> dirs) throws IOException {
+		final List<Session> sessions = new ArrayList<>(16 * dirs.size());
+		for (final Path dir : dirs) {
+			readSessions(dir, sessions);
+		}
+		return new SessionSet(sessions);
+	}
+
 	public SessionSet apply(final Path dir) throws IOException {
 		final List<Session> sessions = new ArrayList<>();
+		readSessions(dir, sessions);
+		return new SessionSet(sessions);
+	}
+
+	private void readSessions(final Path dir, final Collection<? super Session> sessions) throws IOException {
 		for (final Iterator<Path> subdirIter = Files.walk(dir).filter(Files::isDirectory).iterator(); subdirIter
 				.hasNext();) {
 			final Path subdir = subdirIter.next();
@@ -135,7 +149,6 @@ public final class SessionSetReader {
 				sessions.add(session);
 			}
 		}
-		return new SessionSet(sessions);
 	}
 
 }
