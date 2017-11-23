@@ -1,6 +1,6 @@
 # tangrams-rnn
 
-Machine learning for classifying referent entities during the game [tangrams-restricted](https://github.com/errantlinguist/tangrams-restricted).
+Machine learning for classifying referent entities during the game [*tangrams-restricted*](https://github.com/errantlinguist/tangrams-restricted).
 
 * **Since:** 2017-11-20
 * **Author:** Todd Shore
