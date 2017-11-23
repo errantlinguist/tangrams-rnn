@@ -33,6 +33,43 @@ public final class Round {
 		this.utts = utts;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(final Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (!(obj instanceof Round)) {
+			return false;
+		}
+		final Round other = (Round) obj;
+		if (referents == null) {
+			if (other.referents != null) {
+				return false;
+			}
+		} else if (!referents.equals(other.referents)) {
+			return false;
+		}
+		if (roundId != other.roundId) {
+			return false;
+		}
+		if (utts == null) {
+			if (other.utts != null) {
+				return false;
+			}
+		} else if (!utts.equals(other.utts)) {
+			return false;
+		}
+		return true;
+	}
+
 	/**
 	 * @return the referents
 	 */
@@ -77,6 +114,21 @@ public final class Round {
 		return false;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + (referents == null ? 0 : referents.hashCode());
+		result = prime * result + roundId;
+		result = prime * result + (utts == null ? 0 : utts.hashCode());
+		return result;
+	}
+
 	/**
 	 * Checks if the round has a specific word
 	 */
@@ -111,7 +163,7 @@ public final class Round {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
