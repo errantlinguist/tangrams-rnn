@@ -117,6 +117,7 @@ public final class RoundTabularDataReader {
 				final int entityId = Integer.parseInt(record.get(Header.ENTITY));
 				final Referent entity = fetchReferent(roundEntities, entityId, roundId);
 				entity.setShape(record.get(Header.SHAPE));
+				entity.setEdgeCount(Integer.parseInt(record.get(Header.EDGE_COUNT)));
 				entity.setSize(Float.parseFloat(record.get(Header.SIZE)));
 				entity.setRed(Float.parseFloat(record.get(Header.RED)));
 				entity.setGreen(Float.parseFloat(record.get(Header.GREEN)));

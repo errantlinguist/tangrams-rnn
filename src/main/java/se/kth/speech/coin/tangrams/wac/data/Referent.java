@@ -34,6 +34,8 @@ public final class Referent {
 		return SHAPES;
 	}
 
+	private int edgeCount = 0;
+
 	private float blue = 0f;
 
 	private float green = 0f;
@@ -59,11 +61,13 @@ public final class Referent {
 	public Referent() {
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(final Object obj) {
 		if (this == obj) {
 			return true;
 		}
@@ -73,8 +77,11 @@ public final class Referent {
 		if (!(obj instanceof Referent)) {
 			return false;
 		}
-		Referent other = (Referent) obj;
+		final Referent other = (Referent) obj;
 		if (Float.floatToIntBits(blue) != Float.floatToIntBits(other.blue)) {
+			return false;
+		}
+		if (edgeCount != other.edgeCount) {
 			return false;
 		}
 		if (Float.floatToIntBits(green) != Float.floatToIntBits(other.green)) {
@@ -119,6 +126,13 @@ public final class Referent {
 	 */
 	public float getBlue() {
 		return blue;
+	}
+
+	/**
+	 * @return the edgeCount
+	 */
+	public int getEdgeCount() {
+		return edgeCount;
 	}
 
 	/**
@@ -184,7 +198,9 @@ public final class Referent {
 		return size;
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
@@ -192,6 +208,7 @@ public final class Referent {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + Float.floatToIntBits(blue);
+		result = prime * result + edgeCount;
 		result = prime * result + Float.floatToIntBits(green);
 		result = prime * result + Float.floatToIntBits(hue);
 		result = prime * result + Float.floatToIntBits(midX);
@@ -199,7 +216,7 @@ public final class Referent {
 		result = prime * result + Float.floatToIntBits(positionX);
 		result = prime * result + Float.floatToIntBits(positionY);
 		result = prime * result + Float.floatToIntBits(red);
-		result = prime * result + ((shape == null) ? 0 : shape.hashCode());
+		result = prime * result + (shape == null ? 0 : shape.hashCode());
 		result = prime * result + Float.floatToIntBits(size);
 		result = prime * result + (target ? 1231 : 1237);
 		return result;
@@ -218,6 +235,14 @@ public final class Referent {
 	 */
 	public void setBlue(final float blue) {
 		this.blue = blue;
+	}
+
+	/**
+	 * @param edgeCount
+	 *            the edgeCount to set
+	 */
+	public void setEdgeCount(final int edgeCount) {
+		this.edgeCount = edgeCount;
 	}
 
 	/**
@@ -278,34 +303,36 @@ public final class Referent {
 
 	/*
 	 * (non-Javadoc)
-	 *
+	 * 
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
 	public String toString() {
 		final StringBuilder builder = new StringBuilder(256);
-		builder.append("Referent [target=");
-		builder.append(target);
-		builder.append(", shape=");
-		builder.append(shape);
-		builder.append(", size=");
-		builder.append(size);
-		builder.append(", red=");
-		builder.append(red);
-		builder.append(", green=");
-		builder.append(green);
+		builder.append("Referent [edgeCount=");
+		builder.append(edgeCount);
 		builder.append(", blue=");
 		builder.append(blue);
+		builder.append(", green=");
+		builder.append(green);
 		builder.append(", hue=");
 		builder.append(hue);
-		builder.append(", positionX=");
-		builder.append(positionX);
-		builder.append(", positionY=");
-		builder.append(positionY);
 		builder.append(", midX=");
 		builder.append(midX);
 		builder.append(", midY=");
 		builder.append(midY);
+		builder.append(", positionX=");
+		builder.append(positionX);
+		builder.append(", positionY=");
+		builder.append(positionY);
+		builder.append(", red=");
+		builder.append(red);
+		builder.append(", shape=");
+		builder.append(shape);
+		builder.append(", size=");
+		builder.append(size);
+		builder.append(", target=");
+		builder.append(target);
 		builder.append("]");
 		return builder.toString();
 	}
