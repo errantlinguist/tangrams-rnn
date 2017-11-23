@@ -176,11 +176,18 @@ public class LogisticModel {
 
 	private final ConcurrentMap<String, Logistic> wordModels;
 	private Attribute SHAPE;
+	
 	private Attribute SIZE;
+	
 	private Attribute GREEN;
+	
 	private Attribute RED;
+	
 	private Attribute BLUE;
+	
 	private Attribute HUE;
+	
+	private Attribute EDGE_COUNT;
 
 	private Attribute POSX;
 
@@ -259,6 +266,7 @@ public class LogisticModel {
 	public Instance toInstance(final Referent ref) {
 		final DenseInstance instance = new DenseInstance(atts.size());
 		instance.setValue(SHAPE, ref.getShape());
+//		instance.setValue(EDGE_COUNT, ref.getEdgeCount());
 		instance.setValue(SIZE, ref.getSize());
 		instance.setValue(RED, ref.getRed());
 		instance.setValue(GREEN, ref.getGreen());
@@ -366,6 +374,7 @@ public class LogisticModel {
 		atts = new ArrayList<>();
 
 		atts.add(SHAPE = new Attribute("shape", new ArrayList<String>(Referent.getShapes())));
+//		atts.add(EDGE_COUNT = new Attribute("edge_count"));
 		atts.add(SIZE = new Attribute("size"));
 		atts.add(RED = new Attribute("red"));
 		atts.add(GREEN = new Attribute("green"));
