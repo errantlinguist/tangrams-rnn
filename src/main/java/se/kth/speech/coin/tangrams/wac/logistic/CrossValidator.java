@@ -36,7 +36,7 @@ public class CrossValidator {
 	private static final int DEFAULT_EXPECTED_WORD_CLASS_COUNT = 1000;
 
 	public static void main(final String[] args) throws Exception {
-		final Path[] inpaths = Arrays.stream(args).map(String::trim).filter(str -> str.isEmpty()).map(Paths::get).toArray(Path[]::new);
+		final Path[] inpaths = Arrays.stream(args).map(Paths::get).toArray(Path[]::new);
 		if (inpaths.length < 1) {
 			throw new IllegalArgumentException(String.format("Usage: %s INPATHS...", CrossValidator.class.getSimpleName()));
 		} else {
