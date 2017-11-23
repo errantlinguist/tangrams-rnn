@@ -36,12 +36,13 @@ public final class SessionSetReader {
 
 	private static void checkWellFormedness(final List<Round> rounds, final Path dir) {
 		for (final ListIterator<Round> roundIter = rounds.listIterator(); roundIter.hasNext();) {
+			final int roundId = roundIter.nextIndex();
 			final Round r = roundIter.next();
 			if (r.getUtts().size() < 1) {
-				throw new RuntimeException("Round " + r.roundId + " in session \"" + dir + "\" has no utterances.");
+				throw new RuntimeException("Round " + roundId + " in session \"" + dir + "\" has no utterances.");
 			}
 			if (r.getReferents().size() != 20) {
-				throw new RuntimeException("Round " + r.roundId + " in session \"" + dir + "\" has "
+				throw new RuntimeException("Round " + roundId + " in session \"" + dir + "\" has "
 						+ r.getReferents().size() + " referent(s).");
 			}
 		}

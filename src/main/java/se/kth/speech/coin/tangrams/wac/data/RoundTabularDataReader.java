@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.IntFunction;
+import java.util.function.Supplier;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -64,18 +65,15 @@ public final class RoundTabularDataReader {
 		return result;
 	}
 
-	private static Round fetchRound(final List<Round> rounds, final int roundId,
-			final IntFunction<List<Utterance>> roundUttListFactory) {
+	private static Round fetchRound(final List<Round> rounds, final int roundId, final Supplier<Round> roundFactory) {
 		Lists.ensureIndexNullValues(rounds, roundId);
 		Round result = rounds.get(roundId);
 		if (result == null) {
-			result = new Round(roundId, new ArrayList<>(DEFAULT_EXPECTED_UNIQUE_ENTITY_COUNT),
-					roundUttListFactory.apply(roundId));
+			result = roundFactory.get();
 			final Round oldRound = rounds.set(roundId, result);
 			assert oldRound == null;
 		} else {
-			assert result.roundId == roundId;
-			assert Objects.equals(result.getUtts(), roundUttListFactory.apply(roundId));
+			assert Objects.equals(result, roundFactory.get());
 		}
 		return result;
 	}
@@ -109,10 +107,12 @@ public final class RoundTabularDataReader {
 		for (final CSVRecord record : parser) {
 			final String eventName = record.get(Header.NAME);
 			if (Objects.equals(referringEventName, eventName)) {
-				// final int score = Integer.parseInt(record.get(Header.SCORE));
-				// final float time = Float.parseFloat(record.get(Header.TIME));
+//				final int score = Integer.parseInt(record.get(Header.SCORE));
+//				final float time = Float.parseFloat(record.get(Header.TIME));
 				final int roundId = Integer.parseInt(record.get(Header.ROUND));
-				final Round round = fetchRound(result, roundId, roundUttListFactory);
+				final Supplier<Round> roundFactory = () -> new Round(
+						new ArrayList<>(DEFAULT_EXPECTED_UNIQUE_ENTITY_COUNT), roundUttListFactory.apply(roundId));
+				final Round round = fetchRound(result, roundId, roundFactory);
 				final List<Referent> roundEntities = round.getReferents();
 
 				final int entityId = Integer.parseInt(record.get(Header.ENTITY));

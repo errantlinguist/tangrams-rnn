@@ -21,21 +21,18 @@ import java.util.List;
 
 public final class Round {
 
-	public final int roundId;
-
 	private final List<Utterance> utts;
 
 	private final List<Referent> referents;
 
-	public Round(final int roundId, final List<Referent> referents, final List<Utterance> utts) {
-		this.roundId = roundId;
+	public Round(final List<Referent> referents, final List<Utterance> utts) {
 		this.referents = referents;
 		this.utts = utts;
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
@@ -55,9 +52,6 @@ public final class Round {
 				return false;
 			}
 		} else if (!referents.equals(other.referents)) {
-			return false;
-		}
-		if (roundId != other.roundId) {
 			return false;
 		}
 		if (utts == null) {
@@ -116,7 +110,7 @@ public final class Round {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
@@ -124,7 +118,6 @@ public final class Round {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + (referents == null ? 0 : referents.hashCode());
-		result = prime * result + roundId;
 		result = prime * result + (utts == null ? 0 : utts.hashCode());
 		return result;
 	}
@@ -169,9 +162,7 @@ public final class Round {
 	@Override
 	public String toString() {
 		final StringBuilder builder = new StringBuilder(256);
-		builder.append("Round [roundId=");
-		builder.append(roundId);
-		builder.append(", utts=");
+		builder.append("Round [utts=");
 		builder.append(utts);
 		builder.append(", referents=");
 		builder.append(referents);
