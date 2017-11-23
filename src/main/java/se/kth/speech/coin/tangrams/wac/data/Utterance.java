@@ -15,9 +15,13 @@
  */
 package se.kth.speech.coin.tangrams.wac.data;
 
+import java.util.Comparator;
 import java.util.List;
 
-public final class Utterance {
+public final class Utterance implements Comparable<Utterance> {
+
+	private static final Comparator<Utterance> NATURAL_COMPARATOR = Comparator.comparingDouble(Utterance::getStartTime)
+			.thenComparingDouble(Utterance::getEndTime);
 
 	private final List<String> tokens;
 
@@ -39,6 +43,17 @@ public final class Utterance {
 		this.endTime = endTime;
 		this.tokens = tokens;
 		this.referringTokens = referringTokens;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Comparable#compareTo(java.lang.Object)
+	 */
+	@Override
+	public int compareTo(final Utterance o) {
+		// TODO Auto-generated method stub
+		return NATURAL_COMPARATOR.compare(this, o);
 	}
 
 	/*
@@ -99,17 +114,17 @@ public final class Utterance {
 	}
 
 	/**
-	 * @return the speakerId
-	 */
-	public String getSpeakerId() {
-		return speakerId;
-	}
-
-	/**
 	 * @return the referringTokens
 	 */
 	public List<String> getReferringTokens() {
 		return referringTokens;
+	}
+
+	/**
+	 * @return the speakerId
+	 */
+	public String getSpeakerId() {
+		return speakerId;
 	}
 
 	/**
@@ -178,7 +193,7 @@ public final class Utterance {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
