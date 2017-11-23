@@ -74,6 +74,66 @@ public final class Referent {
 		setPosition(Float.parseFloat(cols[19]), Float.parseFloat(cols[20]));
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(final Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (!(obj instanceof Referent)) {
+			return false;
+		}
+		final Referent other = (Referent) obj;
+		if (Float.floatToIntBits(blue) != Float.floatToIntBits(other.blue)) {
+			return false;
+		}
+		if (Float.floatToIntBits(green) != Float.floatToIntBits(other.green)) {
+			return false;
+		}
+		if (Float.floatToIntBits(hue) != Float.floatToIntBits(other.hue)) {
+			return false;
+		}
+		if (Float.floatToIntBits(midX) != Float.floatToIntBits(other.midX)) {
+			return false;
+		}
+		if (Float.floatToIntBits(midY) != Float.floatToIntBits(other.midY)) {
+			return false;
+		}
+		if (Float.floatToIntBits(positionX) != Float.floatToIntBits(other.positionX)) {
+			return false;
+		}
+		if (Float.floatToIntBits(positionY) != Float.floatToIntBits(other.positionY)) {
+			return false;
+		}
+		if (Float.floatToIntBits(red) != Float.floatToIntBits(other.red)) {
+			return false;
+		}
+		if (round != other.round) {
+			return false;
+		}
+		if (shape == null) {
+			if (other.shape != null) {
+				return false;
+			}
+		} else if (!shape.equals(other.shape)) {
+			return false;
+		}
+		if (Float.floatToIntBits(size) != Float.floatToIntBits(other.size)) {
+			return false;
+		}
+		if (target != other.target) {
+			return false;
+		}
+		return true;
+	}
+
 	/**
 	 * @return the blue
 	 */
@@ -149,6 +209,30 @@ public final class Referent {
 	 */
 	public float getSize() {
 		return size;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + Float.floatToIntBits(blue);
+		result = prime * result + Float.floatToIntBits(green);
+		result = prime * result + Float.floatToIntBits(hue);
+		result = prime * result + Float.floatToIntBits(midX);
+		result = prime * result + Float.floatToIntBits(midY);
+		result = prime * result + Float.floatToIntBits(positionX);
+		result = prime * result + Float.floatToIntBits(positionY);
+		result = prime * result + Float.floatToIntBits(red);
+		result = prime * result + round;
+		result = prime * result + (shape == null ? 0 : shape.hashCode());
+		result = prime * result + Float.floatToIntBits(size);
+		result = prime * result + (target ? 1231 : 1237);
+		return result;
 	}
 
 	/**
