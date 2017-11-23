@@ -16,9 +16,9 @@
 package se.kth.speech.coin.tangrams.wac.data;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public final class RoundSet {
 
@@ -29,8 +29,7 @@ public final class RoundSet {
 	}
 
 	public RoundSet(final SessionSet set) {
-		this(Arrays.asList(
-				set.getSessions().stream().map(Session::getRounds).flatMap(List::stream).toArray(Round[]::new)));
+		this(set.getSessions().stream().map(Session::getRounds).flatMap(List::stream).collect(Collectors.toList()));
 	}
 
 	public List<Referent> getDiscountExamples(final Collection<String> words) {
