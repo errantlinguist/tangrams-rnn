@@ -39,9 +39,11 @@ import org.apache.commons.csv.CSVRecord;
  */
 public final class UtteranceTabularDataReader {
 
+	// @formatter:off
 	private enum Header {
 		ROUND, SPEAKER, DIALOGUE_ROLE, START_TIME, END_TIME, UTTERANCE, REFERRING_TOKENS;
 	}
+	// @formatter:on
 
 	private static final String DEFAULT_INSTRUCTOR_ROLE_NAME = "INSTRUCTOR";
 

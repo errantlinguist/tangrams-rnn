@@ -39,10 +39,12 @@ import org.apache.commons.csv.CSVRecord;
  */
 public final class RoundTabularDataReader {
 
+	// @formatter:off
 	private enum Header {
 		EVENT, ROUND, SCORE, TIME, NAME, SUBMITTER, ENTITY, REFERENT, SELECTED, SHAPE, EDGE_COUNT, SIZE, RED, GREEN, BLUE, ALPHA, HUE, SATURATION, BRIGHTNESS, POSITION_X, POSITION_Y;
 	}
-
+	// @formatter:on
+	
 	private static final String DEFAULT_REFERRING_NAME = "nextturn.request";
 
 	private static final Charset DEFAULT_INFILE_CHARSET = StandardCharsets.UTF_8;
