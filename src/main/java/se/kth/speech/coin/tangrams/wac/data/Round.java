@@ -101,7 +101,7 @@ public final class Round {
 	public String prettyDialog() {
 		final StringBuilder sb = new StringBuilder();
 		for (final Utterance utt : utts) {
-			sb.append(utt.getParticipantId() + ": ");
+			sb.append(utt.getSpeakerId() + ": ");
 			for (final String word : utt.getTokens()) {
 				sb.append(word + " ");
 			}

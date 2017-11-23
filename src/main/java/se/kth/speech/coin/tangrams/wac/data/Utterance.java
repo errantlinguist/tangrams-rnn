@@ -23,7 +23,7 @@ public final class Utterance {
 
 	private final List<String> referringTokens;
 
-	private final String participantId;
+	private final String speakerId;
 
 	private final boolean isInstructor;
 
@@ -31,9 +31,9 @@ public final class Utterance {
 
 	private float endTime;
 
-	public Utterance(final float startTime, final float endTime, final String participantId, final boolean isInstructor,
+	public Utterance(final float startTime, final float endTime, final String speakerId, final boolean isInstructor,
 			final List<String> tokens, final List<String> referringTokens) {
-		this.participantId = participantId;
+		this.speakerId = speakerId;
 		this.isInstructor = isInstructor;
 		this.startTime = startTime;
 		this.endTime = endTime;
@@ -64,11 +64,11 @@ public final class Utterance {
 		if (isInstructor != other.isInstructor) {
 			return false;
 		}
-		if (participantId == null) {
-			if (other.participantId != null) {
+		if (speakerId == null) {
+			if (other.speakerId != null) {
 				return false;
 			}
-		} else if (!participantId.equals(other.participantId)) {
+		} else if (!speakerId.equals(other.speakerId)) {
 			return false;
 		}
 		if (referringTokens == null) {
@@ -99,10 +99,10 @@ public final class Utterance {
 	}
 
 	/**
-	 * @return the participantId
+	 * @return the speakerId
 	 */
-	public String getParticipantId() {
-		return participantId;
+	public String getSpeakerId() {
+		return speakerId;
 	}
 
 	/**
@@ -137,7 +137,7 @@ public final class Utterance {
 		int result = 1;
 		result = prime * result + Float.floatToIntBits(endTime);
 		result = prime * result + (isInstructor ? 1231 : 1237);
-		result = prime * result + (participantId == null ? 0 : participantId.hashCode());
+		result = prime * result + (speakerId == null ? 0 : speakerId.hashCode());
 		result = prime * result + (referringTokens == null ? 0 : referringTokens.hashCode());
 		result = prime * result + Float.floatToIntBits(startTime);
 		result = prime * result + (tokens == null ? 0 : tokens.hashCode());
@@ -188,8 +188,8 @@ public final class Utterance {
 		builder.append(startTime);
 		builder.append(", endTime=");
 		builder.append(endTime);
-		builder.append(", participantId=");
-		builder.append(participantId);
+		builder.append(", speakerId=");
+		builder.append(speakerId);
 		builder.append(", isInstructor=");
 		builder.append(isInstructor);
 		builder.append(", tokens=");

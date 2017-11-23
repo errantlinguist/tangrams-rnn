@@ -85,7 +85,7 @@ public final class UtteranceTabularDataReader {
 		final CSVParser parser = CSVFormat.TDF.withHeader(Header.class).withSkipHeaderRecord().parse(reader);
 		final List<ArrayList<Utterance>> result = new ArrayList<>(75);
 		for (final CSVRecord record : parser) {
-			final String participantId = record.get(Header.SPEAKER);
+			final String speakerId = record.get(Header.SPEAKER);
 			final String diagRole = record.get(Header.DIALOGUE_ROLE);
 			final boolean isInstructor = Objects.equals(instructorRoleName, diagRole);
 			final float startTime = Float.parseFloat(record.get(Header.START_TIME));
@@ -94,7 +94,7 @@ public final class UtteranceTabularDataReader {
 					.apply(TOKEN_DELIMITER_PATTERN.split(record.get(Header.UTTERANCE)));
 			final List<String> referringTokens = tokenSeqTransformer
 					.apply(TOKEN_DELIMITER_PATTERN.split(record.get(Header.REFERRING_TOKENS)));
-			final Utterance utt = new Utterance(startTime, endTime, participantId, isInstructor, tokens,
+			final Utterance utt = new Utterance(startTime, endTime, speakerId, isInstructor, tokens,
 					referringTokens);
 
 			final int roundId = Integer.parseInt(record.get(Header.ROUND));
