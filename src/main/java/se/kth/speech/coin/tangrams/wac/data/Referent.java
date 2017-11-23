@@ -50,8 +50,6 @@ public final class Referent {
 
 	private float red = 0f;
 
-	private int round = 0;
-
 	private String shape = "wedge";
 
 	private float size = 0f;
@@ -62,7 +60,6 @@ public final class Referent {
 	}
 
 	public Referent(final String[] cols) {
-		round = Integer.parseInt(cols[1]);
 		target = Boolean.parseBoolean(cols[7]);
 		shape = cols[9];
 		SHAPES.add(shape);
@@ -113,9 +110,6 @@ public final class Referent {
 			return false;
 		}
 		if (Float.floatToIntBits(red) != Float.floatToIntBits(other.red)) {
-			return false;
-		}
-		if (round != other.round) {
 			return false;
 		}
 		if (shape == null) {
@@ -191,13 +185,6 @@ public final class Referent {
 	}
 
 	/**
-	 * @return the round
-	 */
-	public int getRound() {
-		return round;
-	}
-
-	/**
 	 * @return the shape
 	 */
 	public String getShape() {
@@ -228,7 +215,6 @@ public final class Referent {
 		result = prime * result + Float.floatToIntBits(positionX);
 		result = prime * result + Float.floatToIntBits(positionY);
 		result = prime * result + Float.floatToIntBits(red);
-		result = prime * result + round;
 		result = prime * result + (shape == null ? 0 : shape.hashCode());
 		result = prime * result + Float.floatToIntBits(size);
 		result = prime * result + (target ? 1231 : 1237);
@@ -282,14 +268,6 @@ public final class Referent {
 	}
 
 	/**
-	 * @param round
-	 *            the round to set
-	 */
-	public void setRound(final int round) {
-		this.round = round;
-	}
-
-	/**
 	 * @param shape
 	 *            the shape to set
 	 */
@@ -322,9 +300,7 @@ public final class Referent {
 	@Override
 	public String toString() {
 		final StringBuilder builder = new StringBuilder(256);
-		builder.append("Referent [round=");
-		builder.append(round);
-		builder.append(", target=");
+		builder.append("Referent [target=");
 		builder.append(target);
 		builder.append(", shape=");
 		builder.append(shape);

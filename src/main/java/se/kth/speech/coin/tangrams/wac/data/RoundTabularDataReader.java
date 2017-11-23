@@ -55,7 +55,6 @@ public final class RoundTabularDataReader {
 		Referent result = roundEntities.get(entityIdx);
 		if (result == null) {
 			result = new Referent();
-			result.setRound(roundId);
 			final Referent oldEntity = roundEntities.set(entityIdx, result);
 			assert oldEntity == null;
 		} else {
