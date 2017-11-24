@@ -43,7 +43,7 @@ public final class UtteranceTabularDataReader {
 
 	// @formatter:off
 	private enum Header {
-		ROUND, SPEAKER, DIALOGUE_ROLE, START_TIME, END_TIME, UTTERANCE, REFERRING_TOKENS;
+		ROUND, SPEAKER, DIALOGUE_ROLE, START_TIME, END_TIME, TOKENS, REFERRING_TOKENS;
 	}
 	// @formatter:on
 
@@ -95,7 +95,7 @@ public final class UtteranceTabularDataReader {
 			final float startTime = Float.parseFloat(record.get(Header.START_TIME));
 			final float endTime = Float.parseFloat(record.get(Header.END_TIME));
 			final List<String> tokens = tokenSeqTransformer
-					.apply(TOKEN_DELIMITER_PATTERN.split(record.get(Header.UTTERANCE)));
+					.apply(TOKEN_DELIMITER_PATTERN.split(record.get(Header.TOKENS)));
 			final List<String> referringTokens = tokenSeqTransformer
 					.apply(TOKEN_DELIMITER_PATTERN.split(record.get(Header.REFERRING_TOKENS)));
 			final Utterance utt = new Utterance(startTime, endTime, speakerId, isInstructor, tokens,
