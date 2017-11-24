@@ -40,9 +40,12 @@ public final class TestSpace {
 			throw new IllegalArgumentException(String.format("Usage: %s INPATH OUTPATH", TestSpace.class.getName()));
 		} else {
 			final Path inpath = Paths.get(args[0]);
-			final Path outpath = Paths.get(args[1]);
-			LOGGER.info("Will read sessions from \"{}\"; Will write output to \"{}\".", inpath, outpath);
-			run(inpath, outpath);
+			final Path refTokenFilePath = Paths.get(args[1]);
+			final Path outpath = Paths.get(args[2]);
+			LOGGER.info(
+					"Will read sessions from \"{}\", using referring language read from \"{}\"; Will write output to \"{}\".",
+					inpath, refTokenFilePath, outpath);
+			run(inpath, refTokenFilePath, outpath);
 		}
 	}
 
@@ -82,8 +85,9 @@ public final class TestSpace {
 		LOGGER.info("Finished writing to \"{}\".", outfilePath);
 	}
 
-	private static void run(final Path inpath, final Path outpath) throws IOException, ClassificationException {
-		final SessionSet set = new SessionSetReader().apply(inpath);
+	private static void run(final Path inpath, final Path refTokenFilePath, final Path outpath)
+			throws IOException, ClassificationException {
+		final SessionSet set = new SessionSetReader(refTokenFilePath).apply(inpath);
 		LOGGER.info("Read {} session(s).", set.size());
 		final LogisticModel model = new LogisticModel();
 		model.train(set);

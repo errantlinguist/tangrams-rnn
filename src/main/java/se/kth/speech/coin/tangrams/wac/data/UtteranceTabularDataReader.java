@@ -23,17 +23,16 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
 import se.kth.speech.Lists;
+import se.kth.speech.coin.tangrams.TokenSequenceSingletonFactory;
 
 /**
  * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
@@ -44,13 +43,11 @@ public final class UtteranceTabularDataReader {
 
 	// @formatter:off
 	private enum Header {
-		ROUND, SPEAKER, DIALOGUE_ROLE, START_TIME, END_TIME, TOKENS, REFERRING_TOKENS;
+		ROUND, SPEAKER, DIALOGUE_ROLE, START_TIME, END_TIME, TOKENS;
 	}
 	// @formatter:on
 
 	private static final String DEFAULT_INSTRUCTOR_ROLE_NAME = "INSTRUCTOR";
-
-	private static final Pattern TOKEN_DELIMITER_PATTERN = Pattern.compile("\\s+");
 
 	private static final Charset DEFAULT_INFILE_CHARSET = StandardCharsets.UTF_8;
 
@@ -58,22 +55,27 @@ public final class UtteranceTabularDataReader {
 		return new TokenSequenceSingletonFactory(7000);
 	}
 
-	private final Function<? super List<String>, List<String>> tokenSeqTransformer;
+	private final Function<? super String, List<String>> tokenSeqFactory;
 
 	private final String instructorRoleName;
 
-	public UtteranceTabularDataReader() {
-		this(DEFAULT_INSTRUCTOR_ROLE_NAME, createDefaultTokenSeqTransformer());
+	private final Function<? super List<String>, List<String>> referringTokenSeqFactory;
+
+	public UtteranceTabularDataReader(final Function<? super List<String>, List<String>> referringTokenSeqFactory) {
+		this(createDefaultTokenSeqTransformer(), referringTokenSeqFactory, DEFAULT_INSTRUCTOR_ROLE_NAME);
 	}
 
-	public UtteranceTabularDataReader(final Function<? super List<String>, List<String>> tokenSeqTransformer) {
-		this(DEFAULT_INSTRUCTOR_ROLE_NAME, tokenSeqTransformer);
+	public UtteranceTabularDataReader(final Function<? super String, List<String>> tokenSeqFactory,
+			final Function<? super List<String>, List<String>> referringTokenSeqFactory) {
+		this(tokenSeqFactory, referringTokenSeqFactory, DEFAULT_INSTRUCTOR_ROLE_NAME);
 	}
 
-	public UtteranceTabularDataReader(final String instructorRoleName,
-			final Function<? super List<String>, List<String>> tokenSeqTransformer) {
+	public UtteranceTabularDataReader(final Function<? super String, List<String>> tokenSeqFactory,
+			final Function<? super List<String>, List<String>> referringTokenSeqFactory,
+			final String instructorRoleName) {
+		this.tokenSeqFactory = tokenSeqFactory;
+		this.referringTokenSeqFactory = referringTokenSeqFactory;
 		this.instructorRoleName = instructorRoleName;
-		this.tokenSeqTransformer = tokenSeqTransformer;
 	}
 
 	public List<ArrayList<Utterance>> apply(final Path infilePath) throws IOException {
@@ -95,10 +97,8 @@ public final class UtteranceTabularDataReader {
 			final boolean isInstructor = Objects.equals(instructorRoleName, diagRole);
 			final float startTime = Float.parseFloat(record.get(Header.START_TIME));
 			final float endTime = Float.parseFloat(record.get(Header.END_TIME));
-			final List<String> tokens = tokenSeqTransformer
-					.apply(Arrays.asList(TOKEN_DELIMITER_PATTERN.split(record.get(Header.TOKENS))));
-			final List<String> referringTokens = tokenSeqTransformer
-					.apply(Arrays.asList(TOKEN_DELIMITER_PATTERN.split(record.get(Header.REFERRING_TOKENS))));
+			final List<String> tokens = tokenSeqFactory.apply(record.get(Header.TOKENS));
+			final List<String> referringTokens = referringTokenSeqFactory.apply(tokens);
 			final Utterance utt = new Utterance(startTime, endTime, speakerId, isInstructor, tokens, referringTokens);
 
 			final int roundId = Integer.parseInt(record.get(Header.ROUND));

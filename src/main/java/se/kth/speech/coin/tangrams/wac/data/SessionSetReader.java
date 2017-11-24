@@ -30,6 +30,9 @@ import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import se.kth.speech.coin.tangrams.io.UtteranceReferringTokenMapReader;
+
 public final class SessionSetReader {
 
 	private final static Logger LOGGER = LoggerFactory.getLogger(SessionSetReader.class);
@@ -51,6 +54,11 @@ public final class SessionSetReader {
 		if (rounds.size() < 5) {
 			throw new RuntimeException(String.format("Session \"%s\" has only %d round(s).", rounds.size()));
 		}
+	}
+
+	private static UtteranceTabularDataReader createUttReader(final Path uttRefLangFilePath) throws IOException {
+		final Object2ObjectMap<List<String>, List<String>> uttRefs = readReferringLangMap(uttRefLangFilePath);
+		return new UtteranceTabularDataReader(uttRefs::get);
 	}
 
 	private static List<Utterance> fetchRoundUtts(final List<? extends List<Utterance>> roundUtts, final int roundId) {
@@ -84,6 +92,15 @@ public final class SessionSetReader {
 		return result;
 	}
 
+	private static Object2ObjectMap<List<String>, List<String>> readReferringLangMap(final Path uttRefLangFilePath)
+			throws IOException {
+		LOGGER.info("Reading referring language from \"{}\".", uttRefLangFilePath);
+		final Object2ObjectMap<List<String>, List<String>> result = new UtteranceReferringTokenMapReader()
+				.apply(uttRefLangFilePath);
+		LOGGER.info("Read referring language for {} unique utterance(s).", result.size());
+		return result;
+	}
+
 	private static List<Round> trimRounds(final List<Round> rounds) {
 		// Check first round if it is a valid round or is a "pre-game" round
 		// with no referents
@@ -99,13 +116,17 @@ public final class SessionSetReader {
 
 	private final UtteranceTabularDataReader uttReader;
 
-	public SessionSetReader() {
-		this(new RoundTabularDataReader(), new UtteranceTabularDataReader());
+	public SessionSetReader(final Path uttRefLangFilePath) throws IOException {
+		this(createUttReader(uttRefLangFilePath));
 	}
 
-	public SessionSetReader(final RoundTabularDataReader roundReader, final UtteranceTabularDataReader uttReader) {
-		this.roundReader = roundReader;
+	public SessionSetReader(final UtteranceTabularDataReader uttReader) {
+		this(uttReader, new RoundTabularDataReader());
+	}
+
+	public SessionSetReader(final UtteranceTabularDataReader uttReader, final RoundTabularDataReader roundReader) {
 		this.uttReader = uttReader;
+		this.roundReader = roundReader;
 	}
 
 	public SessionSet apply(final Collection<Path> dirs) throws IOException {
@@ -146,7 +167,7 @@ public final class SessionSetReader {
 				.hasNext();) {
 			final Path subdir = subdirIter.next();
 			final Path eventsFile = subdir.resolve("events.tsv");
-			final Path uttsFile = subdir.resolve("extracted-referring-tokens-lemma.tsv");
+			final Path uttsFile = subdir.resolve("extracted-referring-tokens.tsv");
 			if (Files.isRegularFile(eventsFile) && Files.isRegularFile(uttsFile)) {
 				final List<Round> rounds = createDialogueRoundList(subdir, eventsFile, uttsFile);
 				final Session session = new Session(subdir.getFileName().toString(), rounds);

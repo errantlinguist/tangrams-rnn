@@ -68,6 +68,14 @@ public final class DialogueReferentDescriptionWriter {
 						.desc("The file to write the results to; If this option is not supplied, the standard output stream will be used.")
 						.hasArg().argName("path").type(File.class).build();
 			}
+		},
+		REFERRING_TOKENS("t") {
+			@Override
+			public Option get() {
+				return Option.builder(optName).longOpt("referring-tokens")
+						.desc("The file to read utterance referring-language mappings from.").hasArg().argName("path")
+						.type(File.class).required().build();
+			}
 		};
 
 		private static final Options OPTIONS = createOptions();
@@ -316,7 +324,8 @@ public final class DialogueReferentDescriptionWriter {
 		}
 
 		private static List<RoundDatumExtractor> createOrderingList() {
-			final List<RoundDatumExtractor> result = Arrays.asList(DYAD, ROUND, SCORE, TIME, IS_NEGATIVE, DIALOGUE, REFERRING_TOKENS);
+			final List<RoundDatumExtractor> result = Arrays.asList(DYAD, ROUND, SCORE, TIME, IS_NEGATIVE, DIALOGUE,
+					REFERRING_TOKENS);
 			assert result.size() == RoundDatumExtractor.values().length;
 			return result;
 		}
@@ -356,11 +365,14 @@ public final class DialogueReferentDescriptionWriter {
 				LOGGER.info("Will read sessions from {}.", Arrays.toString(inpaths));
 				final ThrowingSupplier<PrintStream, IOException> outStreamGetter = CLIParameters
 						.parseOutpath((File) cl.getParsedOptionValue(Parameter.OUTPATH.optName));
-				final Stream<String> colNames = RoundDatumExtractor.createColumnNames();
-				final SessionSet set = new SessionSetReader().apply(inpaths);
+				final Path refTokenFilePath = ((File) cl.getParsedOptionValue(Parameter.REFERRING_TOKENS.optName))
+						.toPath();
+				final SessionSet set = new SessionSetReader(refTokenFilePath)
+						.apply(inpaths);
 				LOGGER.info("Read {} session(s).", set.size());
 
-				try (CSVPrinter printer = CSVFormat.TDF.withHeader(colNames.toArray(String[]::new))
+				try (CSVPrinter printer = CSVFormat.TDF
+						.withHeader(RoundDatumExtractor.createColumnNames().toArray(String[]::new))
 						.print(outStreamGetter.get())) {
 					set.getSessions().stream().sorted(Comparator.comparing(Session::getName))
 							.forEachOrdered(session -> {

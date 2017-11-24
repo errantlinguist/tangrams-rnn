@@ -13,38 +13,37 @@
  *	See the License for the specific language governing permissions and
  *	limitations under the License.
  */
-package se.kth.speech.coin.tangrams.wac.data;
+package se.kth.speech.coin.tangrams;
 
-import java.lang.ref.Reference;
-import java.lang.ref.SoftReference;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
-final class TokenSequenceSingletonFactory implements Function<List<String>, List<String>> {
+/**
+ * This class is threadsafe.
+ *
+ * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
+ * @since Nov 24, 2017
+ *
+ */
+public final class TokenSequenceSingletonFactory implements Function<String, List<String>> {
 
-	private final ConcurrentMap<List<String>, Reference<List<String>>> singletonInstances;
+	private static final Pattern TOKEN_DELIMITER_PATTERN = Pattern.compile("\\s+");
 
-	TokenSequenceSingletonFactory(final int expectedUniqueTokenSequenceCount) {
+	private final ConcurrentMap<String, List<String>> singletonInstances;
+
+	public TokenSequenceSingletonFactory(final int expectedUniqueTokenSequenceCount) {
 		singletonInstances = new ConcurrentHashMap<>(expectedUniqueTokenSequenceCount);
 	}
 
 	@Override
-	public List<String> apply(final List<String> tokens) {
-		return singletonInstances.compute(tokens, (key, oldValue) -> {
-			final Reference<List<String>> newValue;
-			if (oldValue == null || oldValue.get() == null) {
-				final List<String> internedTokens = Arrays
-						.asList(key.stream().map(String::intern).toArray(String[]::new));
-				newValue = new SoftReference<>(Collections.unmodifiableList(internedTokens));
-			} else {
-				newValue = oldValue;
-			}
-			return newValue;
-		}).get();
+	public List<String> apply(final String tokenStr) {
+		return singletonInstances.computeIfAbsent(tokenStr, key -> {
+			return Arrays.asList(TOKEN_DELIMITER_PATTERN.splitAsStream(key).map(String::intern).toArray(String[]::new));
+		});
 	}
 
 	/*

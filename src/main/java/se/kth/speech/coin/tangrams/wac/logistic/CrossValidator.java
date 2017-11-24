@@ -15,6 +15,7 @@
  */
 package se.kth.speech.coin.tangrams.wac.logistic;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,10 +26,18 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import se.kth.speech.coin.tangrams.wac.data.DialogueReferentDescriptionWriter;
 import se.kth.speech.coin.tangrams.wac.data.Parameters;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
@@ -58,45 +67,100 @@ public class CrossValidator {
 
 	}
 
+	private enum Parameter implements Supplier<Option> {
+		HELP("?") {
+			@Override
+			public Option get() {
+				return Option.builder(optName).longOpt("help").desc("Prints this message.").build();
+			}
+		},
+		REFERRING_TOKENS("t") {
+			@Override
+			public Option get() {
+				return Option.builder(optName).longOpt("referring-tokens")
+						.desc("The file to read utterance referring-language mappings from.").hasArg().argName("path")
+						.type(File.class).required().build();
+			}
+		};
+
+		private static final Options OPTIONS = createOptions();
+
+		private static Options createOptions() {
+			final Options result = new Options();
+			Arrays.stream(Parameter.values()).map(Parameter::get).forEach(result::addOption);
+			return result;
+		}
+
+		private static void printHelp() {
+			final HelpFormatter formatter = new HelpFormatter();
+			formatter.printHelp(DialogueReferentDescriptionWriter.class.getSimpleName() + " INPATHS...", OPTIONS);
+		}
+
+		protected final String optName;
+
+		private Parameter(final String optName) {
+			this.optName = optName;
+		}
+
+	}
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(CrossValidator.class);
 
 	public static void main(final String[] args) throws IOException {
-		final Path[] inpaths = Arrays.stream(args).map(Paths::get).toArray(Path[]::new);
-		if (inpaths.length < 1) {
-			throw new IllegalArgumentException(String.format("Usage: %s INPATHS...", CrossValidator.class.getName()));
+		final CommandLineParser parser = new DefaultParser();
+		try {
+			final CommandLine cl = parser.parse(Parameter.OPTIONS, args);
+			main(cl);
+		} catch (final ParseException e) {
+			System.out.println(String.format("An error occurred while parsing the command-line arguments: %s", e));
+			Parameter.printHelp();
+		}
+	}
+
+	public static void main(final CommandLine cl) throws ParseException, IOException {
+		if (cl.hasOption(Parameter.HELP.optName)) {
+			Parameter.printHelp();
 		} else {
-			LOGGER.info("Reading sessions from {}.", Arrays.toString(inpaths));
-			final SessionSet set = new SessionSetReader().apply(inpaths);
-			LOGGER.info("Will run cross-validation using {} session(s).", set.size());
-			final ForkJoinPool executor = ForkJoinPool.commonPool();
-			LOGGER.info("Will run cross-validation using a(n) {} instance with a parallelism level of {}.",
-					executor.getClass().getSimpleName(), executor.getParallelism());
-			final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(executor);
-			final CrossValidator crossValidator = new CrossValidator(modelFactory);
-			LOGGER.info("Cross-validating using default parameters.");
-			System.out.println("TIME" + "\t" + Parameters.getHeader() + "\t" + "SCORE");
-			crossValidator.run(set);
-			Parameters.ONLY_GIVER = true;
-			LOGGER.info("Cross-validating using only instructor language.");
-			crossValidator.run(set);
-			Parameters.ONLY_GIVER = false;
-			Parameters.ONLY_REFLANG = true;
-			LOGGER.info("Cross-validating using only referring language.");
-			crossValidator.run(set);
-			Parameters.ONLY_GIVER = true;
-			LOGGER.info("Cross-validating using only referring instructor language.");
-			crossValidator.run(set);
-			Parameters.UPDATE_MODEL = true;
-			Parameters.UPDATE_WEIGHT = 1;
-			LOGGER.info(
-					"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data.",
-					Parameters.UPDATE_WEIGHT);
-			crossValidator.run(set);
-			Parameters.UPDATE_WEIGHT = 5;
-			LOGGER.info(
-					"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data.",
-					Parameters.UPDATE_WEIGHT);
-			crossValidator.run(set);
+			final Path[] inpaths = cl.getArgList().stream().map(Paths::get).toArray(Path[]::new);
+			if (inpaths.length < 1) {
+				throw new IllegalArgumentException(
+						String.format("Usage: %s INPATH", DialogueReferentDescriptionWriter.class.getSimpleName()));
+			} else {
+				LOGGER.info("Will read sessions from {}.", Arrays.toString(inpaths));
+				final Path refTokenFilePath = ((File) cl.getParsedOptionValue(Parameter.REFERRING_TOKENS.optName))
+						.toPath();
+				final SessionSet set = new SessionSetReader(refTokenFilePath).apply(inpaths);
+				LOGGER.info("Will run cross-validation using {} session(s).", set.size());
+				final ForkJoinPool executor = ForkJoinPool.commonPool();
+				LOGGER.info("Will run cross-validation using a(n) {} instance with a parallelism level of {}.",
+						executor.getClass().getSimpleName(), executor.getParallelism());
+				final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(executor);
+				final CrossValidator crossValidator = new CrossValidator(modelFactory);
+				LOGGER.info("Cross-validating using default parameters.");
+				System.out.println("TIME" + "\t" + Parameters.getHeader() + "\t" + "SCORE");
+				crossValidator.run(set);
+				Parameters.ONLY_GIVER = true;
+				LOGGER.info("Cross-validating using only instructor language.");
+				crossValidator.run(set);
+				Parameters.ONLY_GIVER = false;
+				Parameters.ONLY_REFLANG = true;
+				LOGGER.info("Cross-validating using only referring language.");
+				crossValidator.run(set);
+				Parameters.ONLY_GIVER = true;
+				LOGGER.info("Cross-validating using only referring instructor language.");
+				crossValidator.run(set);
+				Parameters.UPDATE_MODEL = true;
+				Parameters.UPDATE_WEIGHT = 1;
+				LOGGER.info(
+						"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data.",
+						Parameters.UPDATE_WEIGHT);
+				crossValidator.run(set);
+				Parameters.UPDATE_WEIGHT = 5;
+				LOGGER.info(
+						"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data.",
+						Parameters.UPDATE_WEIGHT);
+				crossValidator.run(set);
+			}
 		}
 	}
 
