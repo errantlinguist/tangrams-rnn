@@ -32,6 +32,8 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
+import se.kth.speech.Lists;
+
 /**
  * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
  * @since Nov 23, 2017

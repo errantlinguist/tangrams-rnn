@@ -13,7 +13,7 @@
  *	See the License for the specific language governing permissions and
  *	limitations under the License.
  */
-package se.kth.speech.coin.tangrams.wac.data;
+package se.kth.speech;
 
 import java.util.ArrayList;
 import java.util.Collections;
