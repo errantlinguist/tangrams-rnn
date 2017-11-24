@@ -53,8 +53,8 @@ public final class SessionSetReader {
 		}
 	}
 
-	private static List<Round> createDialogueRoundList(final Path subdir, final Path eventsFile, final Path uttsFile,
-			final RoundTabularDataReader roundReader, final UtteranceTabularDataReader uttReader) throws IOException {
+	private List<Round> createDialogueRoundList(final Path subdir, final Path eventsFile, final Path uttsFile)
+			throws IOException {
 		LOGGER.info("Reading session at \"{}\".", subdir);
 		LOGGER.debug("Reading utterances file at \"{}\".", uttsFile);
 		final List<ArrayList<Utterance>> roundUtts = uttReader.apply(uttsFile);
@@ -146,10 +146,9 @@ public final class SessionSetReader {
 				.hasNext();) {
 			final Path subdir = subdirIter.next();
 			final Path eventsFile = subdir.resolve("events.tsv");
-			final Path uttsFile = subdir.resolve("extracted-referring-tokens.tsv");
+			final Path uttsFile = subdir.resolve("extracted-referring-tokens-lemma.tsv");
 			if (Files.isRegularFile(eventsFile) && Files.isRegularFile(uttsFile)) {
-				final List<Round> rounds = createDialogueRoundList(subdir, eventsFile, uttsFile, roundReader,
-						uttReader);
+				final List<Round> rounds = createDialogueRoundList(subdir, eventsFile, uttsFile);
 				final Session session = new Session(subdir.getFileName().toString(), rounds);
 				sessions.add(session);
 			}
