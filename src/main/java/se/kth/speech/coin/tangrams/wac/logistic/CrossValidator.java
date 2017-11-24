@@ -15,6 +15,7 @@
  */
 package se.kth.speech.coin.tangrams.wac.logistic;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -33,7 +34,7 @@ public class CrossValidator {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(CrossValidator.class);
 
-	public static void main(final String[] args) throws Exception {
+	public static void main(final String[] args) throws IOException {
 		final Path[] inpaths = Arrays.stream(args).map(Paths::get).toArray(Path[]::new);
 		if (inpaths.length < 1) {
 			throw new IllegalArgumentException(String.format("Usage: %s INPATHS...", CrossValidator.class.getName()));

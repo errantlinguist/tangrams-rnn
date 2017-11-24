@@ -15,6 +15,7 @@
  */
 package se.kth.speech.coin.tangrams.wac.logistic;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,7 +35,7 @@ public final class TestSize {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(TestSize.class);
 
-	public static void main(final String[] args) throws Exception {
+	public static void main(final String[] args) throws IOException, ClassificationException {
 		if (args.length != 2) {
 			throw new IllegalArgumentException(String.format("Usage: %s INPATH OUTPATH", TestSize.class.getName()));
 		} else {
@@ -45,7 +46,7 @@ public final class TestSize {
 		}
 	}
 
-	private static void run(final Path inpath, final Path outpath) throws Exception {
+	private static void run(final Path inpath, final Path outpath) throws IOException, ClassificationException {
 		final SessionSet set = new SessionSetReader().apply(inpath);
 		LOGGER.info("Read {} session(s).", set.size());
 		final LogisticModel model = new LogisticModel();
@@ -55,8 +56,9 @@ public final class TestSize {
 
 		final Path outfilePath = outpath.resolve("size.html");
 		LOGGER.info("Writing to \"{}\".", outfilePath);
-		try (PrintWriter pw = new PrintWriter(Files.newBufferedWriter(outfilePath,
-				StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING), true)) {
+		try (PrintWriter pw = new PrintWriter(
+				Files.newBufferedWriter(outfilePath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING),
+				true)) {
 
 			pw.println("<table>");
 

@@ -36,7 +36,7 @@ public final class TestDialog {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(TestDialog.class);
 
-	public static void main(final String[] args) throws Exception {
+	public static void main(final String[] args) throws IOException, ClassificationException {
 		if (args.length != 2) {
 			throw new IllegalArgumentException(String.format("Usage: %s INPATH OUTPATH", TestDialog.class.getName()));
 		} else {
@@ -47,7 +47,7 @@ public final class TestDialog {
 		}
 	}
 
-	private static void run(final Path inpath, final Path outpath) throws Exception {
+	private static void run(final Path inpath, final Path outpath) throws IOException, ClassificationException {
 		final SessionSet set = new SessionSetReader().apply(inpath);
 		set.crossValidate((training, testing) -> {
 			final Path outfilePath = outpath.resolve(testing.getName() + ".html");

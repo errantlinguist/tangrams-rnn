@@ -15,6 +15,7 @@
  */
 package se.kth.speech.coin.tangrams.wac.logistic;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -121,7 +122,7 @@ public class LogisticModel {
 		return crossMean.getResult();
 	}
 
-	public static void main(final String[] args) throws Exception {
+	public static void main(final String[] args) throws IOException {
 		if (args.length < 1) {
 			throw new IllegalArgumentException(String.format("Usage: %s INPATH", LogisticModel.class.getSimpleName()));
 		} else {
@@ -176,17 +177,17 @@ public class LogisticModel {
 
 	private final ConcurrentMap<String, Logistic> wordModels;
 	private Attribute SHAPE;
-	
+
 	private Attribute SIZE;
-	
+
 	private Attribute GREEN;
-	
+
 	private Attribute RED;
-	
+
 	private Attribute BLUE;
-	
+
 	private Attribute HUE;
-	
+
 	private Attribute EDGE_COUNT;
 
 	private Attribute POSX;
@@ -229,7 +230,7 @@ public class LogisticModel {
 	/**
 	 * Returns a ranking of the referents in a round
 	 */
-	public List<Referent> rank(final Round round) throws Exception {
+	public List<Referent> rank(final Round round) throws ClassificationException {
 		final Map<Referent, Double> scores = new HashMap<>();
 		for (final Referent ref : round.getReferents()) {
 			final Instance inst = toInstance(ref);
@@ -253,20 +254,25 @@ public class LogisticModel {
 		return ranking;
 	}
 
-	public double score(final String word, final Instance inst) throws Exception {
+	public double score(final String word, final Instance inst) throws ClassificationException {
 		final Logistic model = wordModels.getOrDefault(word, discountModel);
-		final double[] dist = model.distributionForInstance(inst);
+		double[] dist;
+		try {
+			dist = model.distributionForInstance(inst);
+		} catch (final Exception e) {
+			throw new ClassificationException(e);
+		}
 		return dist[0];
 	}
 
-	public double score(final String word, final Referent ref) throws Exception {
+	public double score(final String word, final Referent ref) throws ClassificationException {
 		return score(word, toInstance(ref));
 	}
 
 	public Instance toInstance(final Referent ref) {
 		final DenseInstance instance = new DenseInstance(atts.size());
 		instance.setValue(SHAPE, ref.getShape());
-//		instance.setValue(EDGE_COUNT, ref.getEdgeCount());
+		// instance.setValue(EDGE_COUNT, ref.getEdgeCount());
 		instance.setValue(SIZE, ref.getSize());
 		instance.setValue(RED, ref.getRed());
 		instance.setValue(GREEN, ref.getGreen());
@@ -284,7 +290,7 @@ public class LogisticModel {
 	/**
 	 * Returns the rank of the target referent in a round
 	 */
-	private int targetRank(final Round round) throws Exception {
+	private int targetRank(final Round round) throws ClassificationException {
 		int rank = 0;
 		for (final Referent ref : rank(round)) {
 			rank++;
@@ -341,7 +347,7 @@ public class LogisticModel {
 	/**
 	 * Evaluates a SessionSet and returns the mean rank
 	 */
-	double eval(final SessionSet set) throws Exception {
+	double eval(final SessionSet set) throws ClassificationException {
 		final Mean mean = new Mean();
 		for (final Session session : set.getSessions()) {
 			for (final Round round : session.getRounds()) {
@@ -374,7 +380,7 @@ public class LogisticModel {
 		atts = new ArrayList<>();
 
 		atts.add(SHAPE = new Attribute("shape", new ArrayList<String>(Referent.getShapes())));
-//		atts.add(EDGE_COUNT = new Attribute("edge_count"));
+		// atts.add(EDGE_COUNT = new Attribute("edge_count"));
 		atts.add(SIZE = new Attribute("size"));
 		atts.add(RED = new Attribute("red"));
 		atts.add(GREEN = new Attribute("green"));

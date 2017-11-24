@@ -16,6 +16,7 @@
 package se.kth.speech.coin.tangrams.wac.logistic;
 
 import java.awt.Color;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -47,7 +48,7 @@ public class TestColor {
 		return getHTMLColorString(Color.getHSBColor(0f, 0f, 1f - (float) score));
 	}
 
-	public static void main(final String[] args) throws Exception {
+	public static void main(final String[] args) throws IOException, ClassificationException {
 		if (args.length != 2) {
 			throw new IllegalArgumentException(String.format("Usage: %s INPATH OUTPATH", TestColor.class.getName()));
 		} else {
@@ -58,7 +59,7 @@ public class TestColor {
 		}
 	}
 
-	private static void run(final Path inpath, final Path outpath) throws Exception {
+	private static void run(final Path inpath, final Path outpath) throws IOException, ClassificationException {
 		final SessionSet set = new SessionSetReader().apply(inpath);
 		LOGGER.info("Read {} session(s).", set.size());
 		final LogisticModel model = new LogisticModel();

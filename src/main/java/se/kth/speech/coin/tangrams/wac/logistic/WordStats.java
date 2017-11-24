@@ -15,6 +15,7 @@
  */
 package se.kth.speech.coin.tangrams.wac.logistic;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -33,15 +34,15 @@ import se.kth.speech.coin.tangrams.wac.data.Vocabulary;
 
 public class WordStats {
 
-	private Map<String,List<Double>> targetScores = new HashMap<>();
-	private Map<String,List<Double>> offScores = new HashMap<>();
-	private Map<String,List<Double>> scores = new HashMap<>();
-	private Map<String,Integer> count = new HashMap<>();
-	
+	private Map<String, List<Double>> targetScores = new HashMap<>();
+	private Map<String, List<Double>> offScores = new HashMap<>();
+	private Map<String, List<Double>> scores = new HashMap<>();
+	private Map<String, Integer> count = new HashMap<>();
+
 	public void add(Round round, String word, double score, boolean target) {
-		//if (target && score < 0.2) {
-		//	System.out.println(word + " " + round.prettyDialog());
-		//}
+		// if (target && score < 0.2) {
+		// System.out.println(word + " " + round.prettyDialog());
+		// }
 		if (target) {
 			if (!targetScores.containsKey(word))
 				targetScores.put(word, new ArrayList<>());
@@ -54,7 +55,7 @@ public class WordStats {
 		if (!scores.containsKey(word))
 			scores.put(word, new ArrayList<>());
 		scores.get(word).add(score);
-		
+
 		count.put(word, count.getOrDefault(word, 0) + 1);
 	}
 
@@ -69,12 +70,13 @@ public class WordStats {
 				for (Double score : offScores.get(word)) {
 					meanOff.increment(score);
 				}
-				System.out.println(word + " " + meanTarget.getResult() + " " + meanOff.getResult() + " " + count.get(word));
+				System.out.println(
+						word + " " + meanTarget.getResult() + " " + meanOff.getResult() + " " + count.get(word));
 			}
 		}
 	}
-	
-	public static void main(String[] args) throws Exception {
+
+	public static void main(String[] args) throws IOException, ClassificationException {
 		WordStats stats = new WordStats();
 		final Path inpath = Paths.get(args[0]);
 		System.err.println(String.format("Reading sessions from \"%s\".", inpath));
