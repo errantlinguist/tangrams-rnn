@@ -19,28 +19,41 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import se.kth.speech.coin.tangrams.wac.data.Parameters;
+import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 
 public class CrossValidator {
 
-	final class Exception extends RuntimeException {
+	final static class Exception extends RuntimeException {
 
 		/**
 		 *
 		 */
 		private static final long serialVersionUID = -1636897113752283942L;
 
-		private Exception(final java.lang.Exception cause) {
-			super(cause);
+		private static final String createMessage(final SessionSet training, final Session testing,
+				final java.lang.Exception cause) {
+			final Set<String> trainingSessionNames = training.getSessions().stream().map(Session::getName)
+					.collect(Collectors.toCollection(() -> new TreeSet<>()));
+			return String.format(
+					"A(n) %s occurred while cross-validating with a training set of %d session(s) and testing on session \"%s\". Training sets: %s",
+					cause, training.size(), testing.getName(), trainingSessionNames);
+		}
+
+		private Exception(final SessionSet training, final Session testing, final java.lang.Exception cause) {
+			super(createMessage(training, testing, cause), cause);
 		}
 
 	}
@@ -105,7 +118,7 @@ public class CrossValidator {
 				final double meanRank = model.eval(new SessionSet(testing));
 				crossMean.increment(meanRank);
 			} catch (final ClassificationException e) {
-				throw new Exception(e);
+				throw new Exception(training, testing, e);
 			}
 		});
 		return crossMean.getResult();
