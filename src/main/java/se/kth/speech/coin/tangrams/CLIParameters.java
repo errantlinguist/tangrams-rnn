@@ -54,7 +54,7 @@ public final class CLIParameters {
 		} else {
 			LOGGER.info("Output file path is \"{}\".", outfile);
 			result = () -> new PrintStream(new BufferedOutputStream(Files.newOutputStream(outfile.toPath(),
-					StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)), true);
+					StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)));
 		}
 		return result;
 	}
