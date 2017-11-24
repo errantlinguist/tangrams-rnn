@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
-final class TokenSequenceSingletonFactory implements Function<String[], List<String>> {
+final class TokenSequenceSingletonFactory implements Function<List<String>, List<String>> {
 
 	private final ConcurrentMap<List<String>, Reference<List<String>>> singletonInstances;
 
@@ -33,25 +33,7 @@ final class TokenSequenceSingletonFactory implements Function<String[], List<Str
 	}
 
 	@Override
-	public List<String> apply(final String[] tokens) {
-		return apply(Arrays.asList(tokens));
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#toString()
-	 */
-	@Override
-	public String toString() {
-		final StringBuilder builder = new StringBuilder(48 * (singletonInstances.size() + 1));
-		builder.append("TokenListSingletonFactory [singletonInstances=");
-		builder.append(singletonInstances);
-		builder.append("]");
-		return builder.toString();
-	}
-
-	private List<String> apply(final List<String> tokens) {
+	public List<String> apply(final List<String> tokens) {
 		return singletonInstances.compute(tokens, (key, oldValue) -> {
 			final Reference<List<String>> newValue;
 			if (oldValue == null || oldValue.get() == null) {
@@ -63,5 +45,19 @@ final class TokenSequenceSingletonFactory implements Function<String[], List<Str
 			}
 			return newValue;
 		}).get();
+	}
+
+	/*
+	 * (non-Javadoc)
+	 *
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder(48 * (singletonInstances.size() + 1));
+		builder.append("TokenListSingletonFactory [singletonInstances=");
+		builder.append(singletonInstances);
+		builder.append("]");
+		return builder.toString();
 	}
 }

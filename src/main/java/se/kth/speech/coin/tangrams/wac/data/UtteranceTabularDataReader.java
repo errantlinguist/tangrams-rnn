@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -57,7 +58,7 @@ public final class UtteranceTabularDataReader {
 		return new TokenSequenceSingletonFactory(7000);
 	}
 
-	private final Function<? super String[], List<String>> tokenSeqTransformer;
+	private final Function<? super List<String>, List<String>> tokenSeqTransformer;
 
 	private final String instructorRoleName;
 
@@ -65,12 +66,12 @@ public final class UtteranceTabularDataReader {
 		this(DEFAULT_INSTRUCTOR_ROLE_NAME, createDefaultTokenSeqTransformer());
 	}
 
-	public UtteranceTabularDataReader(final Function<? super String[], List<String>> tokenSeqTransformer) {
+	public UtteranceTabularDataReader(final Function<? super List<String>, List<String>> tokenSeqTransformer) {
 		this(DEFAULT_INSTRUCTOR_ROLE_NAME, tokenSeqTransformer);
 	}
 
 	public UtteranceTabularDataReader(final String instructorRoleName,
-			final Function<? super String[], List<String>> tokenSeqTransformer) {
+			final Function<? super List<String>, List<String>> tokenSeqTransformer) {
 		this.instructorRoleName = instructorRoleName;
 		this.tokenSeqTransformer = tokenSeqTransformer;
 	}
@@ -95,11 +96,10 @@ public final class UtteranceTabularDataReader {
 			final float startTime = Float.parseFloat(record.get(Header.START_TIME));
 			final float endTime = Float.parseFloat(record.get(Header.END_TIME));
 			final List<String> tokens = tokenSeqTransformer
-					.apply(TOKEN_DELIMITER_PATTERN.split(record.get(Header.TOKENS)));
+					.apply(Arrays.asList(TOKEN_DELIMITER_PATTERN.split(record.get(Header.TOKENS))));
 			final List<String> referringTokens = tokenSeqTransformer
-					.apply(TOKEN_DELIMITER_PATTERN.split(record.get(Header.REFERRING_TOKENS)));
-			final Utterance utt = new Utterance(startTime, endTime, speakerId, isInstructor, tokens,
-					referringTokens);
+					.apply(Arrays.asList(TOKEN_DELIMITER_PATTERN.split(record.get(Header.REFERRING_TOKENS))));
+			final Utterance utt = new Utterance(startTime, endTime, speakerId, isInstructor, tokens, referringTokens);
 
 			final int roundId = Integer.parseInt(record.get(Header.ROUND));
 			Lists.ensureIndexSuppliedValues(result, roundId, () -> new ArrayList<>());
