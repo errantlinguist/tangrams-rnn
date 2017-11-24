@@ -36,7 +36,7 @@ public final class TestSize {
 
 	public static void main(final String[] args) throws Exception {
 		if (args.length != 2) {
-			throw new IllegalArgumentException(String.format("Usage: %s INPATH OUTPATH", TestDialog.class.getName()));
+			throw new IllegalArgumentException(String.format("Usage: %s INPATH OUTPATH", TestSize.class.getName()));
 		} else {
 			final Path inpath = Paths.get(args[0]);
 			final Path outpath = Paths.get(args[1]);
