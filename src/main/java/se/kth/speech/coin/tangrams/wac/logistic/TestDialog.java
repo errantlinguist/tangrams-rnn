@@ -21,6 +21,10 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.RoundSet;
@@ -28,33 +32,45 @@ import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.coin.tangrams.wac.data.Utterance;
 
-public class TestDialog {
+public final class TestDialog {
 
-	public static void main(String[] args) throws Exception {
-		final Path inpath = Paths.get(args[0]);
-		final Path outpath = Paths.get(args[1]);
-		System.err.println(String.format("Reading sessions from \"%s\"; Will write output to \"%s\".", inpath, outpath));
-		SessionSet set = new SessionSetReader().apply(inpath);
-		set.crossValidate((training,testing) -> {
-			try (PrintWriter pw = new PrintWriter(Files.newBufferedWriter(outpath.resolve(testing.getName() + ".html")))) {
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestDialog.class);
+
+	public static void main(final String[] args) throws Exception {
+		if (args.length != 2) {
+			throw new IllegalArgumentException(String.format("Usage: %s INPATH OUTPATH", TestDialog.class.getName()));
+		} else {
+			final Path inpath = Paths.get(args[0]);
+			final Path outpath = Paths.get(args[1]);
+			LOGGER.info("Will read sessions from \"{}\"; Will write output to \"{}\".", inpath, outpath);
+			run(inpath, outpath);
+		}
+	}
+
+	private static void run(final Path inpath, final Path outpath) throws Exception {
+		final SessionSet set = new SessionSetReader().apply(inpath);
+		set.crossValidate((training, testing) -> {
+			final Path outfilePath = outpath.resolve(testing.getName() + ".html");
+			try (PrintWriter pw = new PrintWriter(Files.newBufferedWriter(outfilePath, StandardOpenOption.CREATE,
+					StandardOpenOption.TRUNCATE_EXISTING))) {
 				pw.println("<table>");
-				LogisticModel model = new LogisticModel();
+				final LogisticModel model = new LogisticModel();
 				model.train(training);
-				for (Round round : new RoundSet(set).getRounds()) {
-					for (Utterance utt : round.getUtts()) {
-						for (String word : utt.getTokens()) {
-							
+				for (final Round round : new RoundSet(set).getRounds()) {
+					for (final Utterance utt : round.getUtts()) {
+						for (final String word : utt.getTokens()) {
+
 						}
 					}
-					//new File("turn-0").list;
+					// new File("turn-0").list;
 					pw.println("<img src=\"" + testing.getName() + "/screenshots/\"></td></tr>");
 				}
 				pw.println("</table>");
-			} catch (IOException e) {
+			} catch (final IOException e) {
 				throw new UncheckedIOException(e);
 			}
-			
+
 		});
 	}
-	
+
 }

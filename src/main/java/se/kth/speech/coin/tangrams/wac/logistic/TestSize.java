@@ -16,49 +16,64 @@
 package se.kth.speech.coin.tangrams.wac.logistic;
 
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 
-public class TestSize {
+public final class TestSize {
 
-	public static void main(String[] args) throws Exception {
-		final Path inpath = Paths.get(args[0]);
-		System.err.println(String.format("Reading sessions from \"%s\".", inpath));
-		SessionSet set = new SessionSetReader().apply(inpath);
-		LogisticModel model = new LogisticModel();
-		model.train(set);
-		
-		List<String> wlist = Arrays.asList(new String[]{"large", "big", "small"});
-		
-		PrintWriter pw = new PrintWriter("size.html");
-		
-		pw.println("<table>");
-				
-		for (float size = 0f; size <= 0.04f; size += 0.005) {
-			
-			Referent ref = new Referent();
-			ref.setSize(size);
-			
-			pw.println("<tr><td>" + size + "<td>");
-			
-			for (String word: wlist) {
-				double score = model.score(word, ref);
-				pw.println("<td style=\"color:" + TestColor.getHTMLColorString(score) + "\">" + word + "</td>");
-			}
-		
-			pw.println("</tr>");
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestSize.class);
+
+	public static void main(final String[] args) throws Exception {
+		if (args.length != 2) {
+			throw new IllegalArgumentException(String.format("Usage: %s INPATH OUTPATH", TestDialog.class.getName()));
+		} else {
+			final Path inpath = Paths.get(args[0]);
+			final Path outpath = Paths.get(args[1]);
+			LOGGER.info("Will read sessions from \"{}\"; Will write output to \"{}\".", inpath, outpath);
+			run(inpath, outpath);
 		}
-		
-		pw.println("</table>");
-		
-		pw.close();
-	
 	}
-	
+
+	private static void run(final Path inpath, final Path outpath) throws Exception {
+		final SessionSet set = new SessionSetReader().apply(inpath);
+		LOGGER.info("Read {} session(s).", set.size());
+		final LogisticModel model = new LogisticModel();
+		model.train(set);
+
+		final List<String> wlist = Arrays.asList(new String[] { "large", "big", "small" });
+
+		try (PrintWriter pw = new PrintWriter(Files.newBufferedWriter(outpath.resolve("size.html"),
+				StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING), true)) {
+
+			pw.println("<table>");
+
+			for (float size = 0f; size <= 0.04f; size += 0.005) {
+
+				final Referent ref = new Referent();
+				ref.setSize(size);
+
+				pw.println("<tr><td>" + size + "<td>");
+
+				for (final String word : wlist) {
+					final double score = model.score(word, ref);
+					pw.println("<td style=\"color:" + TestColor.getHTMLColorString(score) + "\">" + word + "</td>");
+				}
+
+				pw.println("</tr>");
+			}
+
+			pw.println("</table>");
+		}
+	}
 }
