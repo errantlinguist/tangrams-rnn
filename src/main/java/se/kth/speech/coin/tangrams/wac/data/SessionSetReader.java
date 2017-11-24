@@ -53,21 +53,6 @@ public final class SessionSetReader {
 		}
 	}
 
-	private List<Round> createDialogueRoundList(final Path subdir, final Path eventsFile, final Path uttsFile)
-			throws IOException {
-		LOGGER.info("Reading session at \"{}\".", subdir);
-		LOGGER.debug("Reading utterances file at \"{}\".", uttsFile);
-		final List<ArrayList<Utterance>> roundUtts = uttReader.apply(uttsFile);
-		LOGGER.debug("Parsed utterances for rounds up to ID {}.", roundUtts.size());
-		LOGGER.debug("Reading events file at \"{}\".", eventsFile);
-		final List<Round> rounds = roundReader.apply(eventsFile, roundId -> fetchRoundUtts(roundUtts, roundId));
-		LOGGER.debug("Parsed rounds up to ID {}.", rounds.size());
-		final List<Round> result = trimRounds(rounds);
-		checkWellFormedness(result, subdir);
-		LOGGER.debug("Read {} game round(s) with utterances.", result.size());
-		return result;
-	}
-
 	private static List<Utterance> fetchRoundUtts(final List<? extends List<Utterance>> roundUtts, final int roundId) {
 		List<Utterance> utts = null;
 		LOGGER.debug("Fetching utterances for round {}.", roundId);
@@ -139,6 +124,21 @@ public final class SessionSetReader {
 
 	public SessionSet apply(final Path[] dirs) throws IOException {
 		return apply(Arrays.asList(dirs));
+	}
+
+	private List<Round> createDialogueRoundList(final Path subdir, final Path eventsFile, final Path uttsFile)
+			throws IOException {
+		LOGGER.info("Reading session at \"{}\".", subdir);
+		LOGGER.debug("Reading utterances file at \"{}\".", uttsFile);
+		final List<ArrayList<Utterance>> roundUtts = uttReader.apply(uttsFile);
+		LOGGER.debug("Parsed utterances for rounds up to ID {}.", roundUtts.size());
+		LOGGER.debug("Reading events file at \"{}\".", eventsFile);
+		final List<Round> rounds = roundReader.apply(eventsFile, roundId -> fetchRoundUtts(roundUtts, roundId));
+		LOGGER.debug("Parsed rounds up to ID {}.", rounds.size());
+		final List<Round> result = trimRounds(rounds);
+		checkWellFormedness(result, subdir);
+		LOGGER.debug("Read {} game round(s) with utterances.", result.size());
+		return result;
 	}
 
 	private void readSessions(final Path dir, final Collection<? super Session> sessions) throws IOException {
