@@ -72,7 +72,7 @@ public class TestColor {
 
 			pw.println("<table>");
 
-			for (float hue = 0f; hue < 1f; hue += 0.02) {
+			for (float hue = 0f; hue < 1f; hue += 0.02f) {
 				final Color col = Color.getHSBColor(hue, 1f, 1f);
 				final Referent ref = new Referent();
 				ref.setHue(hue);
