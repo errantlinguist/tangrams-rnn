@@ -36,7 +36,7 @@ public class CrossValidator {
 	public static void main(final String[] args) throws Exception {
 		final Path[] inpaths = Arrays.stream(args).map(Paths::get).toArray(Path[]::new);
 		if (inpaths.length < 1) {
-			throw new IllegalArgumentException(String.format("Usage: %s INPATHS...", CrossValidator.class.getSimpleName()));
+			throw new IllegalArgumentException(String.format("Usage: %s INPATHS...", CrossValidator.class.getName()));
 		} else {
 			LOGGER.info("Reading sessions from {}.", Arrays.toString(inpaths));
 			final SessionSet set = new SessionSetReader().apply(inpaths);
