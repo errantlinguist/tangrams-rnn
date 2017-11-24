@@ -59,15 +59,10 @@ public class TestColor {
 		}
 	}
 
-	private static void run(final Path inpath, final Path outpath) throws IOException, ClassificationException {
-		final SessionSet set = new SessionSetReader().apply(inpath);
-		LOGGER.info("Read {} session(s).", set.size());
-		final LogisticModel model = new LogisticModel();
-		model.train(set);
-
+	public static void write(final LogisticModel model, final Path outpath)
+			throws IOException, ClassificationException {
 		final List<String> wlist = Arrays
 				.asList(new String[] { "red", "green", "blue", "yellow", "magenta", "pink", "orange" });
-
 		final Path outfilePath = outpath.resolve("colors.html");
 		LOGGER.info("Writing to \"{}\".", outfilePath);
 		try (PrintWriter pw = new PrintWriter(
@@ -106,6 +101,14 @@ public class TestColor {
 			pw.println("</table>");
 		}
 		LOGGER.info("Finished writing to \"{}\".", outfilePath);
+	}
+
+	private static void run(final Path inpath, final Path outpath) throws IOException, ClassificationException {
+		final SessionSet set = new SessionSetReader().apply(inpath);
+		LOGGER.info("Read {} session(s).", set.size());
+		final LogisticModel model = new LogisticModel();
+		model.train(set);
+		write(model, outpath);
 	}
 
 }

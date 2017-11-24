@@ -46,12 +46,8 @@ public final class TestSize {
 		}
 	}
 
-	private static void run(final Path inpath, final Path outpath) throws IOException, ClassificationException {
-		final SessionSet set = new SessionSetReader().apply(inpath);
-		LOGGER.info("Read {} session(s).", set.size());
-		final LogisticModel model = new LogisticModel();
-		model.train(set);
-
+	public static void write(final LogisticModel model, final Path outpath)
+			throws IOException, ClassificationException {
 		final List<String> wlist = Arrays.asList(new String[] { "large", "big", "small" });
 
 		final Path outfilePath = outpath.resolve("size.html");
@@ -80,5 +76,13 @@ public final class TestSize {
 			pw.println("</table>");
 		}
 		LOGGER.info("Finished writing to \"{}\".", outfilePath);
+	}
+
+	private static void run(final Path inpath, final Path outpath) throws IOException, ClassificationException {
+		final SessionSet set = new SessionSetReader().apply(inpath);
+		LOGGER.info("Read {} session(s).", set.size());
+		final LogisticModel model = new LogisticModel();
+		model.train(set);
+		write(model, outpath);
 	}
 }
