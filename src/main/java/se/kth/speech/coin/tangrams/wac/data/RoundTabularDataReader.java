@@ -44,7 +44,7 @@ public final class RoundTabularDataReader {
 		EVENT, ROUND, SCORE, TIME, NAME, SUBMITTER, ENTITY, REFERENT, SELECTED, SHAPE, EDGE_COUNT, SIZE, RED, GREEN, BLUE, ALPHA, HUE, SATURATION, BRIGHTNESS, POSITION_X, POSITION_Y;
 	}
 	// @formatter:on
-	
+
 	private static final String DEFAULT_REFERRING_NAME = "nextturn.request";
 
 	private static final Charset DEFAULT_INFILE_CHARSET = StandardCharsets.UTF_8;
@@ -112,7 +112,8 @@ public final class RoundTabularDataReader {
 				final float time = Float.parseFloat(record.get(Header.TIME));
 				final int roundId = Integer.parseInt(record.get(Header.ROUND));
 				final Supplier<Round> roundFactory = () -> new Round(
-						new ArrayList<>(DEFAULT_EXPECTED_UNIQUE_ENTITY_COUNT), roundUttListFactory.apply(roundId), score, time);
+						new ArrayList<>(DEFAULT_EXPECTED_UNIQUE_ENTITY_COUNT), roundUttListFactory.apply(roundId),
+						score, time);
 				final Round round = fetchRound(result, roundId, roundFactory);
 				final List<Referent> roundEntities = round.getReferents();
 
@@ -121,9 +122,9 @@ public final class RoundTabularDataReader {
 				entity.setShape(record.get(Header.SHAPE));
 				entity.setEdgeCount(Integer.parseInt(record.get(Header.EDGE_COUNT)));
 				entity.setSize(Float.parseFloat(record.get(Header.SIZE)));
-				entity.setRed(Integer.parseInt(record.get(Header.RED)));
-				entity.setGreen(Integer.parseInt(record.get(Header.GREEN)));
-				entity.setBlue(Integer.parseInt(record.get(Header.BLUE)));
+				entity.setRed(linearizeColorByteValue(Integer.parseInt(record.get(Header.RED))));
+				entity.setGreen(linearizeColorByteValue(Integer.parseInt(record.get(Header.GREEN))));
+				entity.setBlue(linearizeColorByteValue(Integer.parseInt(record.get(Header.BLUE))));
 				entity.setHue(Float.parseFloat(record.get(Header.HUE)));
 				entity.setPosition(Float.parseFloat(record.get(Header.POSITION_X)),
 						Float.parseFloat(record.get(Header.POSITION_Y)));
@@ -131,6 +132,10 @@ public final class RoundTabularDataReader {
 			}
 		}
 		return result;
+	}
+
+	private float linearizeColorByteValue(final int value) {
+		return value / 255f;
 	}
 
 }
