@@ -33,8 +33,6 @@ public class CrossValidator {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(CrossValidator.class);
 
-	private static final int DEFAULT_EXPECTED_WORD_CLASS_COUNT = 1000;
-
 	public static void main(final String[] args) throws Exception {
 		final Path[] inpaths = Arrays.stream(args).map(Paths::get).toArray(Path[]::new);
 		if (inpaths.length < 1) {
@@ -46,8 +44,7 @@ public class CrossValidator {
 			final ForkJoinPool executor = ForkJoinPool.commonPool();
 			LOGGER.info("Will run cross-validation using a(n) {} instance with a parallelism level of {}.",
 					executor.getClass().getSimpleName(), executor.getParallelism());
-			final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(executor,
-					DEFAULT_EXPECTED_WORD_CLASS_COUNT);
+			final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(executor);
 			final CrossValidator crossValidator = new CrossValidator(modelFactory);
 			LOGGER.info("Cross-validating using default parameters.");
 			System.out.println("TIME" + "\t" + Parameters.getHeader() + "\t" + "SCORE");
