@@ -94,26 +94,6 @@ public class LogisticModel {
 	private static final List<String> REFERENT_CLASSIFICATION_VALUES = Arrays.asList(
 			Stream.of(Boolean.TRUE, Boolean.FALSE).map(Object::toString).map(String::intern).toArray(String[]::new));
 
-	/**
-	 * Performs cross validation on a SessionSet and returns the mean rank
-	 */
-	public static double crossValidate(final SessionSet set, final Supplier<LogisticModel> modelFactory) {
-		final Mean crossMean = new Mean();
-		set.crossValidate((training, testing) -> {
-			try {
-				final LogisticModel model = modelFactory.get();
-				model.train(training);
-				final double meanRank = model.eval(new SessionSet(testing));
-				// System.out.println(testing.name + "\t" +
-				// Parameters.getSetting() + "\t" + meanRank);
-				crossMean.increment(meanRank);
-			} catch (final Exception e) {
-				e.printStackTrace();
-			}
-		});
-		return crossMean.getResult();
-	}
-
 	private final ConcurrentMap<String, Logistic> wordModels;
 	private Attribute SHAPE;
 
