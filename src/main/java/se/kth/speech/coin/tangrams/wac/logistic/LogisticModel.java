@@ -15,9 +15,6 @@
  */
 package se.kth.speech.coin.tangrams.wac.logistic;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,8 +33,6 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import se.kth.speech.coin.tangrams.wac.data.Parameters;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
@@ -45,7 +40,6 @@ import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.RoundSet;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
-import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.coin.tangrams.wac.data.Vocabulary;
 import weka.classifiers.functions.Logistic;
 import weka.core.Attribute;
@@ -95,8 +89,6 @@ public class LogisticModel {
 
 	}
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(LogisticModel.class);
-
 	private static final int DEFAULT_EXPECTED_WORD_CLASS_COUNT = 1000;
 
 	private static final List<String> REFERENT_CLASSIFICATION_VALUES = Arrays.asList(
@@ -120,59 +112,6 @@ public class LogisticModel {
 			}
 		});
 		return crossMean.getResult();
-	}
-
-	public static void main(final String[] args) throws IOException {
-		if (args.length < 1) {
-			throw new IllegalArgumentException(String.format("Usage: %s INPATH", LogisticModel.class.getSimpleName()));
-		} else {
-			final Path inpath = Paths.get(args[0]);
-			LOGGER.info("Reading sessions from \"{}\".", inpath);
-			final SessionSet set = new SessionSetReader().apply(inpath);
-			LOGGER.info("Will run cross-validation using {} session(s).", set.size());
-			final ForkJoinPool executor = ForkJoinPool.commonPool();
-			LOGGER.info("Will run model functionalities using a(n) {} instance with a parallelism level of {}.",
-					executor.getClass().getSimpleName(), executor.getParallelism());
-			final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(executor,
-					DEFAULT_EXPECTED_WORD_CLASS_COUNT);
-			LOGGER.info("Cross-validating using default parameters.");
-			System.out.println("TIME" + "\t" + Parameters.getHeader() + "\t" + "SCORE");
-			run(set, modelFactory);
-			Parameters.ONLY_GIVER = true;
-			LOGGER.info("Cross-validating using only instructor language.");
-			run(set, modelFactory);
-			Parameters.ONLY_GIVER = false;
-			Parameters.ONLY_REFLANG = true;
-			LOGGER.info("Cross-validating using only referring language.");
-			run(set, modelFactory);
-			Parameters.ONLY_GIVER = true;
-			LOGGER.info("Cross-validating using only referring instructor language.");
-			run(set, modelFactory);
-			Parameters.UPDATE_MODEL = true;
-			Parameters.UPDATE_WEIGHT = 1;
-			LOGGER.info(
-					"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data.",
-					Parameters.UPDATE_WEIGHT);
-			run(set, modelFactory);
-			Parameters.UPDATE_WEIGHT = 5;
-			LOGGER.info(
-					"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data.",
-					Parameters.UPDATE_WEIGHT);
-			run(set, modelFactory);
-		}
-	}
-
-	// if (asynchronousJobExecutor instanceof ForkJoinPool) {
-	// LOGGER.info("Will run model functionalities using a(n) {} instance with a
-	// parallelism level of {}.",
-	// asynchronousJobExecutor.getClass().getSimpleName(), ((ForkJoinPool)
-	// asynchronousJobExecutor).getParallelism());
-	// }
-	private static void run(final SessionSet set, final Supplier<LogisticModel> modelFactory) {
-		long t = System.currentTimeMillis();
-		final double score = crossValidate(set, modelFactory);
-		t = (System.currentTimeMillis() - t) / 1000;
-		System.out.println(t + "\t" + Parameters.getSetting() + "\t" + score);
 	}
 
 	private final ConcurrentMap<String, Logistic> wordModels;
