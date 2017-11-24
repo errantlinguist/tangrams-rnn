@@ -32,6 +32,19 @@ import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 
 public class CrossValidator {
 
+	final class Exception extends RuntimeException {
+
+		/**
+		 *
+		 */
+		private static final long serialVersionUID = -1636897113752283942L;
+
+		private Exception(final java.lang.Exception cause) {
+			super(cause);
+		}
+
+	}
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(CrossValidator.class);
 
 	public static void main(final String[] args) throws IOException {
@@ -90,11 +103,9 @@ public class CrossValidator {
 				final LogisticModel model = modelFactory.get();
 				model.train(training);
 				final double meanRank = model.eval(new SessionSet(testing));
-				// System.out.println(testing.name + "\t" +
-				// Parameters.getSetting() + "\t" + meanRank);
 				crossMean.increment(meanRank);
-			} catch (final Exception e) {
-				e.printStackTrace();
+			} catch (final ClassificationException e) {
+				throw new Exception(e);
 			}
 		});
 		return crossMean.getResult();
