@@ -42,19 +42,19 @@ public final class Referent {
 
 	private float hue = 0f;
 
-	private double midX = 0f;
+	private double midX = 0.0;
 
-	private double midY = 0f;
+	private double midY = 0.0;
 
-	private double positionX = 0f;
+	private double positionX = 0.0;
 
-	private double positionY = 0f;
+	private double positionY = 0.0;
 
 	private float red = 0f;
 
 	private String shape = "wedge";
 
-	private double size = 0f;
+	private double size = 0.0;
 
 	private boolean target = false;
 
