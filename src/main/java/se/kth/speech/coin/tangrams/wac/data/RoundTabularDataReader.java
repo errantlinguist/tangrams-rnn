@@ -121,9 +121,9 @@ public final class RoundTabularDataReader {
 				entity.setShape(record.get(Header.SHAPE));
 				entity.setEdgeCount(Integer.parseInt(record.get(Header.EDGE_COUNT)));
 				entity.setSize(Float.parseFloat(record.get(Header.SIZE)));
-				entity.setRed(Float.parseFloat(record.get(Header.RED)));
-				entity.setGreen(Float.parseFloat(record.get(Header.GREEN)));
-				entity.setBlue(Float.parseFloat(record.get(Header.BLUE)));
+				entity.setRed(Integer.parseInt(record.get(Header.RED)));
+				entity.setGreen(Integer.parseInt(record.get(Header.GREEN)));
+				entity.setBlue(Integer.parseInt(record.get(Header.BLUE)));
 				entity.setHue(Float.parseFloat(record.get(Header.HUE)));
 				entity.setPosition(Float.parseFloat(record.get(Header.POSITION_X)),
 						Float.parseFloat(record.get(Header.POSITION_Y)));
