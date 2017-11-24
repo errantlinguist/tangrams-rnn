@@ -54,7 +54,9 @@ public final class TestSpace {
 		final List<String> wlist = Arrays
 				.asList(new String[] { "left", "right", "bottom", "top", "middle", "center", "corner" });
 
-		try (PrintWriter pw = new PrintWriter(Files.newBufferedWriter(outpath.resolve("space.html"),
+		final Path outfilePath = outpath.resolve("space.html");
+		LOGGER.info("Writing to \"{}\".", outfilePath);
+		try (PrintWriter pw = new PrintWriter(Files.newBufferedWriter(outfilePath,
 				StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING), true)) {
 
 			pw.println("<table cellpadding=\"5\">");
@@ -79,6 +81,7 @@ public final class TestSpace {
 
 			pw.println("</table>");
 		}
+		LOGGER.info("Finished writing to \"{}\".", outfilePath);
 	}
 
 }

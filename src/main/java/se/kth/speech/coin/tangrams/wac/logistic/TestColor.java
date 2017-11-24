@@ -67,8 +67,11 @@ public class TestColor {
 		final List<String> wlist = Arrays
 				.asList(new String[] { "red", "green", "blue", "yellow", "magenta", "pink", "orange" });
 
-		try (PrintWriter pw = new PrintWriter(Files.newBufferedWriter(outpath.resolve("colors.html"),
-				StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING), true)) {
+		final Path outfilePath = outpath.resolve("colors.html");
+		LOGGER.info("Writing to \"{}\".", outfilePath);
+		try (PrintWriter pw = new PrintWriter(
+				Files.newBufferedWriter(outfilePath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING),
+				true)) {
 
 			pw.println("<table>");
 
@@ -101,6 +104,7 @@ public class TestColor {
 
 			pw.println("</table>");
 		}
+		LOGGER.info("Finished writing to \"{}\".", outfilePath);
 	}
 
 }

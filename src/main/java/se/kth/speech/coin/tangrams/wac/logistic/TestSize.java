@@ -53,7 +53,9 @@ public final class TestSize {
 
 		final List<String> wlist = Arrays.asList(new String[] { "large", "big", "small" });
 
-		try (PrintWriter pw = new PrintWriter(Files.newBufferedWriter(outpath.resolve("size.html"),
+		final Path outfilePath = outpath.resolve("size.html");
+		LOGGER.info("Writing to \"{}\".", outfilePath);
+		try (PrintWriter pw = new PrintWriter(Files.newBufferedWriter(outfilePath,
 				StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING), true)) {
 
 			pw.println("<table>");
@@ -75,5 +77,6 @@ public final class TestSize {
 
 			pw.println("</table>");
 		}
+		LOGGER.info("Finished writing to \"{}\".", outfilePath);
 	}
 }
