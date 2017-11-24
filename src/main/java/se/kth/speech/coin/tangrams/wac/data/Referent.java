@@ -42,19 +42,19 @@ public final class Referent {
 
 	private float hue = 0f;
 
-	private float midX = 0f;
+	private double midX = 0f;
 
-	private float midY = 0f;
+	private double midY = 0f;
 
-	private float positionX = 0f;
+	private double positionX = 0f;
 
-	private float positionY = 0f;
+	private double positionY = 0f;
 
 	private float red = 0f;
 
 	private String shape = "wedge";
 
-	private float size = 0f;
+	private double size = 0f;
 
 	private boolean target = false;
 
@@ -90,16 +90,16 @@ public final class Referent {
 		if (Float.floatToIntBits(hue) != Float.floatToIntBits(other.hue)) {
 			return false;
 		}
-		if (Float.floatToIntBits(midX) != Float.floatToIntBits(other.midX)) {
+		if (Double.doubleToLongBits(midX) != Double.doubleToLongBits(other.midX)) {
 			return false;
 		}
-		if (Float.floatToIntBits(midY) != Float.floatToIntBits(other.midY)) {
+		if (Double.doubleToLongBits(midY) != Double.doubleToLongBits(other.midY)) {
 			return false;
 		}
-		if (Float.floatToIntBits(positionX) != Float.floatToIntBits(other.positionX)) {
+		if (Double.doubleToLongBits(positionX) != Double.doubleToLongBits(other.positionX)) {
 			return false;
 		}
-		if (Float.floatToIntBits(positionY) != Float.floatToIntBits(other.positionY)) {
+		if (Double.doubleToLongBits(positionY) != Double.doubleToLongBits(other.positionY)) {
 			return false;
 		}
 		if (Float.floatToIntBits(red) != Float.floatToIntBits(other.red)) {
@@ -112,7 +112,7 @@ public final class Referent {
 		} else if (!shape.equals(other.shape)) {
 			return false;
 		}
-		if (Float.floatToIntBits(size) != Float.floatToIntBits(other.size)) {
+		if (Double.doubleToLongBits(size) != Double.doubleToLongBits(other.size)) {
 			return false;
 		}
 		if (target != other.target) {
@@ -152,28 +152,28 @@ public final class Referent {
 	/**
 	 * @return the midX
 	 */
-	public float getMidX() {
+	public double getMidX() {
 		return midX;
 	}
 
 	/**
 	 * @return the midY
 	 */
-	public float getMidY() {
+	public double getMidY() {
 		return midY;
 	}
 
 	/**
 	 * @return the positionX
 	 */
-	public float getPositionX() {
+	public double getPositionX() {
 		return positionX;
 	}
 
 	/**
 	 * @return the positionY
 	 */
-	public float getPositionY() {
+	public double getPositionY() {
 		return positionY;
 	}
 
@@ -194,7 +194,7 @@ public final class Referent {
 	/**
 	 * @return the size
 	 */
-	public float getSize() {
+	public double getSize() {
 		return size;
 	}
 
@@ -211,13 +211,19 @@ public final class Referent {
 		result = prime * result + edgeCount;
 		result = prime * result + Float.floatToIntBits(green);
 		result = prime * result + Float.floatToIntBits(hue);
-		result = prime * result + Float.floatToIntBits(midX);
-		result = prime * result + Float.floatToIntBits(midY);
-		result = prime * result + Float.floatToIntBits(positionX);
-		result = prime * result + Float.floatToIntBits(positionY);
+		long temp;
+		temp = Double.doubleToLongBits(midX);
+		result = prime * result + (int) (temp ^ temp >>> 32);
+		temp = Double.doubleToLongBits(midY);
+		result = prime * result + (int) (temp ^ temp >>> 32);
+		temp = Double.doubleToLongBits(positionX);
+		result = prime * result + (int) (temp ^ temp >>> 32);
+		temp = Double.doubleToLongBits(positionY);
+		result = prime * result + (int) (temp ^ temp >>> 32);
 		result = prime * result + Float.floatToIntBits(red);
 		result = prime * result + (shape == null ? 0 : shape.hashCode());
-		result = prime * result + Float.floatToIntBits(size);
+		temp = Double.doubleToLongBits(size);
+		result = prime * result + (int) (temp ^ temp >>> 32);
 		result = prime * result + (target ? 1231 : 1237);
 		return result;
 	}
@@ -261,7 +267,7 @@ public final class Referent {
 		this.hue = hue;
 	}
 
-	public void setPosition(final float x, final float y) {
+	public void setPosition(final double x, final double y) {
 		positionX = x;
 		positionY = y;
 		midX = 1f - Math.abs(0.5f - positionX) * 2f;
@@ -289,7 +295,7 @@ public final class Referent {
 	 * @param size
 	 *            the size to set
 	 */
-	public void setSize(final float size) {
+	public void setSize(final double size) {
 		this.size = size;
 	}
 
@@ -303,7 +309,7 @@ public final class Referent {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
