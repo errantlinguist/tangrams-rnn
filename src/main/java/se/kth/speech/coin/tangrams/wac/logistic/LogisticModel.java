@@ -51,11 +51,11 @@ public class LogisticModel {
 
 	private class WordClassifierTrainer implements Supplier<Entry<String, Logistic>> {
 
-		private final String word;
+		private final Supplier<? extends Stream<Weighted<Referent>>> exampleSupplier;
 
 		private final double weight;
 
-		private final Supplier<? extends Stream<Weighted<Referent>>> exampleSupplier;
+		private final String word;
 
 		private WordClassifierTrainer(final String word,
 				final Supplier<? extends Stream<Weighted<Referent>>> exampleSupplier, final double weight) {
@@ -99,40 +99,63 @@ public class LogisticModel {
 	private static final List<String> REFERENT_CLASSIFICATION_VALUES = Arrays.asList(
 			Stream.of(Boolean.TRUE, Boolean.FALSE).map(Object::toString).map(String::intern).toArray(String[]::new));
 
-	private final ConcurrentMap<String, Logistic> wordModels;
-	private Attribute SHAPE;
+	private static Stream<Weighted<Referent>> createClassWeightedReferents(final Round round) {
+		final List<Referent> refs = round.getReferents();
+		final Referent[] posRefs = refs.stream().filter(Referent::isTarget).toArray(Referent[]::new);
+		final Referent[] negRefs = refs.stream().filter(ref -> !ref.isTarget()).toArray(Referent[]::new);
+		final double negClassWeight = 1.0;
+		final double posClassWeight = negRefs.length / (double) posRefs.length;
+		return Stream.concat(createWeightedReferents(posRefs, posClassWeight),
+				createWeightedReferents(negRefs, negClassWeight));
+	}
+	private static Stream<Weighted<Referent>> createDiscountClassExamples(final RoundSet rounds,
+			final Collection<? super String> words) {
+		return rounds.getDiscountRounds(words).flatMap(LogisticModel::createClassWeightedReferents);
+	}
 
-	private Attribute SIZE;
+	private static Stream<Weighted<Referent>> createWeightedReferents(final Referent[] refs, final double weight) {
+		return Arrays.stream(refs).map(ref -> new Weighted<>(ref, weight));
+	}
 
-	private Attribute GREEN;
+	private static Stream<Weighted<Referent>> createWordClassExamples(final RoundSet rounds, final String word) {
+		return rounds.getExampleRounds(word).flatMap(LogisticModel::createClassWeightedReferents);
+	}
 
-	private Attribute RED;
+	private final Executor asynchronousJobExecutor;
 
-	private Attribute BLUE;
+	private ArrayList<Attribute> atts;
 
 //	private Attribute HUE;
 
 //	private Attribute EDGE_COUNT;
 
-	private Attribute POSX;
+	private Attribute BLUE;
 
-	private Attribute POSY;
+	private Logistic discountModel;
+
+	private Attribute GREEN;
 
 	private Attribute MIDX;
 
 	private Attribute MIDY;
 
+	private Attribute POSX;
+
+	private Attribute POSY;
+
+	private Attribute RED;
+
+	private Attribute SHAPE;
+
+	private Attribute SIZE;
+
 	private Attribute TARGET;
-
-	private ArrayList<Attribute> atts;
-
-	private Logistic discountModel;
 
 	private RoundSet trainingSet;
 
 	private Vocabulary vocab;
 
-	private final Executor asynchronousJobExecutor;
+	private final ConcurrentMap<String, Logistic> wordModels;
 
 	public LogisticModel() {
 		this(ForkJoinPool.commonPool(), DEFAULT_EXPECTED_WORD_CLASS_COUNT);
@@ -214,29 +237,6 @@ public class LogisticModel {
 
 		instance.setValue(TARGET, Boolean.toString(ref.isTarget()));
 		return instance;
-	}
-
-	private Stream<Weighted<Referent>> createClassWeightedReferents(final Round round) {
-		final List<Referent> refs = round.getReferents();
-		final Referent[] posRefs = refs.stream().filter(Referent::isTarget).toArray(Referent[]::new);
-		final Referent[] negRefs = refs.stream().filter(ref -> !ref.isTarget()).toArray(Referent[]::new);
-		final double negClassWeight = 1.0;
-		final double posClassWeight = negRefs.length / (double) posRefs.length;
-		return Stream.concat(createWeightedReferents(posRefs, posClassWeight),
-				createWeightedReferents(negRefs, negClassWeight));
-	}
-
-	private Stream<Weighted<Referent>> createDiscountClassExamples(final RoundSet rounds,
-			final Collection<? super String> words) {
-		return rounds.getDiscountRounds(words).flatMap(this::createClassWeightedReferents);
-	}
-
-	private Stream<Weighted<Referent>> createWeightedReferents(final Referent[] refs, final double weight) {
-		return Arrays.stream(refs).map(ref -> new Weighted<>(ref, weight));
-	}
-
-	private Stream<Weighted<Referent>> createWordClassExamples(final RoundSet rounds, final String word) {
-		return rounds.getExampleRounds(word).flatMap(this::createClassWeightedReferents);
 	}
 
 	/**
