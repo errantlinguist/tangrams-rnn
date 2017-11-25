@@ -35,6 +35,10 @@ import se.kth.speech.coin.tangrams.io.UtteranceReferringTokenMapReader;
 
 public final class SessionSetReader {
 
+	private static final String DEFAULT_EVENTS_FILENAME = "events.tsv";
+
+	private static final String DEFAULT_UTTS_FILENAME = "utts.tsv";
+
 	private final static Logger LOGGER = LoggerFactory.getLogger(SessionSetReader.class);
 
 	private static final List<Utterance> NULL_ROUND_UTT_LIST = Collections.emptyList();
@@ -95,8 +99,7 @@ public final class SessionSetReader {
 	private static Map<List<String>, List<String>> readReferringLangMap(final Path uttRefLangFilePath)
 			throws IOException {
 		LOGGER.info("Reading referring language from \"{}\".", uttRefLangFilePath);
-		final Map<List<String>, List<String>> result = new UtteranceReferringTokenMapReader()
-				.apply(uttRefLangFilePath);
+		final Map<List<String>, List<String>> result = new UtteranceReferringTokenMapReader().apply(uttRefLangFilePath);
 		LOGGER.info("Read referring language for {} unique utterance(s).", result.size());
 		return result;
 	}
@@ -112,21 +115,28 @@ public final class SessionSetReader {
 		return result;
 	}
 
+	private final String eventsFilename;
+
 	private final RoundTabularDataReader roundReader;
 
 	private final UtteranceTabularDataReader uttReader;
+
+	private final String uttsFilename;
 
 	public SessionSetReader(final Path uttRefLangFilePath) throws IOException {
 		this(createUttReader(uttRefLangFilePath));
 	}
 
-	public SessionSetReader(final UtteranceTabularDataReader uttReader) {
-		this(uttReader, new RoundTabularDataReader());
-	}
-
-	public SessionSetReader(final UtteranceTabularDataReader uttReader, final RoundTabularDataReader roundReader) {
+	public SessionSetReader(final String uttsFilename, final UtteranceTabularDataReader uttReader,
+			final String eventsFilename, final RoundTabularDataReader roundReader) {
 		this.uttReader = uttReader;
 		this.roundReader = roundReader;
+		this.uttsFilename = uttsFilename;
+		this.eventsFilename = eventsFilename;
+	}
+
+	public SessionSetReader(final UtteranceTabularDataReader uttReader) {
+		this(DEFAULT_UTTS_FILENAME, uttReader, DEFAULT_EVENTS_FILENAME, new RoundTabularDataReader());
 	}
 
 	public SessionSet apply(final Collection<Path> dirs) throws IOException {
@@ -166,8 +176,8 @@ public final class SessionSetReader {
 		for (final Iterator<Path> subdirIter = Files.walk(dir).filter(Files::isDirectory).iterator(); subdirIter
 				.hasNext();) {
 			final Path subdir = subdirIter.next();
-			final Path eventsFile = subdir.resolve("events.tsv");
-			final Path uttsFile = subdir.resolve("extracted-referring-tokens.tsv");
+			final Path eventsFile = subdir.resolve(eventsFilename);
+			final Path uttsFile = subdir.resolve(uttsFilename);
 			if (Files.isRegularFile(eventsFile) && Files.isRegularFile(uttsFile)) {
 				final List<Round> rounds = createDialogueRoundList(subdir, eventsFile, uttsFile);
 				final Session session = new Session(subdir.getFileName().toString(), rounds);
