@@ -44,7 +44,7 @@ public class WordClassifierTrainingException extends RuntimeException {
 	 * @param cause
 	 */
 	public WordClassifierTrainingException(final String word, final Throwable cause) {
-		this(createDefaultMessage(word, cause), word, cause);
+		this(word, createDefaultMessage(word, cause), cause);
 	}
 
 	/**
