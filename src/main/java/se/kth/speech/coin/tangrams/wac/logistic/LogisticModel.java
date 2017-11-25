@@ -229,7 +229,7 @@ public class LogisticModel {
 	}
 
 	/**
-	 * Trains models for the specified words.
+	 * Trains models for the specified words asynchronously.
 	 *
 	 * @param words
 	 *            The vocabulary words to train models for.
@@ -291,7 +291,10 @@ public class LogisticModel {
 	}
 
 	/**
-	 * Trains the word models using all data from a SessionSet
+	 * Trains the word models using all data from a {@link SessionSet}.
+	 *
+	 * @param set
+	 *            The {@code SessionSet} to use as training data.
 	 */
 	void train(final SessionSet set) {
 		final CompletableFuture<Void> trainingJob = trainAsynchronously(set);
@@ -299,7 +302,8 @@ public class LogisticModel {
 	}
 
 	/**
-	 * Trains the word models using all data from a {@link SessionSet}.
+	 * Trains the word models using all data from a {@link SessionSet}
+	 * asynchronously.
 	 *
 	 * @param set
 	 *            The {@code SessionSet} to use as training data.
