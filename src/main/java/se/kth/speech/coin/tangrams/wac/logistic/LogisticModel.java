@@ -221,7 +221,7 @@ public class LogisticModel {
 	}
 
 	/**
-	 * Trains models for the specified words
+	 * Trains models for the specified words.
 	 */
 	private void train(final List<String> words, final double weight) {
 		final CompletableFuture<Void> trainingJob = trainAsynchronously(words, weight);
@@ -229,17 +229,28 @@ public class LogisticModel {
 	}
 
 	/**
-	 * Trains models for the specified words
+	 * Trains models for the specified words.
+	 *
+	 * @param words
+	 *            The vocabulary words to train models for.
+	 * @param weight
+	 *            The weight of each datapoint representing a single observation
+	 *            for a given word.
+	 * @return A {@link CompletableFuture} representing the
+	 *         {@link CompletableFuture#complete(Object) completion} of the
+	 *         training of models for all given words.
 	 */
 	private CompletableFuture<Void> trainAsynchronously(final List<String> words, final double weight) {
 
 		// System.out.println("Training " + words);
 
 		// Train a model for each word
-		final Stream<CompletableFuture<Void>> wordClassifierTrainingJobs = words.stream().map(word -> CompletableFuture
-				.supplyAsync(new WordClassifierTrainer(word, () -> trainingSet.getExamples(word), weight),
-						asynchronousJobExecutor)
-				.thenAccept(wordClassifier -> wordModels.put(wordClassifier.getKey(), wordClassifier.getValue())));
+		final Stream<CompletableFuture<Void>> wordClassifierTrainingJobs = words.stream()
+				.map(word -> CompletableFuture
+						.supplyAsync(new WordClassifierTrainer(word, () -> trainingSet.getExamples(word), weight),
+								asynchronousJobExecutor)
+						.thenAccept(
+								wordClassifier -> wordModels.put(wordClassifier.getKey(), wordClassifier.getValue())));
 		// Train the discount model
 		final CompletableFuture<Void> discountClassifierTrainingJob = CompletableFuture
 				.supplyAsync(
@@ -288,7 +299,13 @@ public class LogisticModel {
 	}
 
 	/**
-	 * Trains the word models using all data from a SessionSet
+	 * Trains the word models using all data from a {@link SessionSet}.
+	 *
+	 * @param set
+	 *            The {@code SessionSet} to use as training data.
+	 * @return A {@link CompletableFuture} representing the
+	 *         {@link CompletableFuture#complete(Object) completion} of the
+	 *         training of models for all words in the vocabulary.
 	 */
 	CompletableFuture<Void> trainAsynchronously(final SessionSet set) {
 
@@ -298,7 +315,7 @@ public class LogisticModel {
 
 		atts = new ArrayList<>();
 
-		atts.add(SHAPE = new Attribute("shape", new ArrayList<String>(Referent.getShapes())));
+		atts.add(SHAPE = new Attribute("shape", new ArrayList<>(Referent.getShapes())));
 		// atts.add(EDGE_COUNT = new Attribute("edge_count"));
 		atts.add(SIZE = new Attribute("size"));
 		atts.add(RED = new Attribute("red"));
