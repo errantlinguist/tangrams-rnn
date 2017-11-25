@@ -32,7 +32,7 @@ public class Vocabulary {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		for (String word : getWordsSortedByFreq()) {
-			sb.append(word + " " + dict.get(word) + "\n");
+			sb.append(word + " " + dict.get(word) + System.lineSeparator());
 		}
 		return sb.toString();
 	}
