@@ -30,7 +30,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Supplier;
-import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
