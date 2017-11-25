@@ -360,8 +360,8 @@ public class LogisticModel {
 
 		final List<String> shapeUniqueValues = new ArrayList<>(Referent.getShapes());
 		atts.add(SHAPE = new Attribute("shape", shapeUniqueValues));
-		final List<String> edgeCountUniqueValues = Arrays
-				.asList(Referent.getEdgeCounts().stream().map(Number::toString).toArray(String[]::new));
+//		final List<String> edgeCountUniqueValues = Arrays
+//				.asList(Referent.getEdgeCounts().stream().map(Number::toString).toArray(String[]::new));
 //		atts.add(EDGE_COUNT = new Attribute("edge_count", edgeCountUniqueValues));
 		atts.add(SIZE = new Attribute("size"));
 		atts.add(RED = new Attribute("red"));
