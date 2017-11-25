@@ -15,10 +15,10 @@
  */
 package se.kth.speech.coin.tangrams.wac.data;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class RoundSet {
 
@@ -32,28 +32,39 @@ public final class RoundSet {
 		this(set.getSessions().stream().map(Session::getRounds).flatMap(List::stream).collect(Collectors.toList()));
 	}
 
-	public List<Referent> getDiscountExamples(final Collection<String> words) {
-		final List<Referent> result = new ArrayList<>();
-		for (final Round round : rounds) {
-			if (round.hasDiscount(words)) {
-				// result.add(round.target);
-				// result.add(round.getRandomNonTarget());
-				result.addAll(round.getReferents());
-			}
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(final Object obj) {
+		if (this == obj) {
+			return true;
 		}
-		return result;
+		if (obj == null) {
+			return false;
+		}
+		if (!(obj instanceof RoundSet)) {
+			return false;
+		}
+		final RoundSet other = (RoundSet) obj;
+		if (rounds == null) {
+			if (other.rounds != null) {
+				return false;
+			}
+		} else if (!rounds.equals(other.rounds)) {
+			return false;
+		}
+		return true;
 	}
 
-	public List<Referent> getExamples(final String hasWord) {
-		final List<Referent> result = new ArrayList<>();
-		for (final Round round : rounds) {
-			if (round.hasWord(hasWord)) {
-				// result.add(round.target);
-				// result.add(round.getRandomNonTarget());
-				result.addAll(round.getReferents());
-			}
-		}
-		return result;
+	public Stream<Round> getDiscountRounds(final Collection<? super String> words) {
+		return rounds.stream().filter(round -> round.hasDiscount(words));
+	}
+
+	public Stream<Round> getExampleRounds(final String hasWord) {
+		return rounds.stream().filter(round -> round.hasWord(hasWord));
 	}
 
 	/**
@@ -71,6 +82,19 @@ public final class RoundSet {
 			}
 		}
 		return vocab;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + (rounds == null ? 0 : rounds.hashCode());
+		return result;
 	}
 
 	/*

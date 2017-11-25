@@ -55,10 +55,10 @@ public class LogisticModel {
 
 		private final double weight;
 
-		private final Supplier<? extends Collection<Referent>> exampleSupplier;
+		private final Supplier<? extends Stream<Weighted<Referent>>> exampleSupplier;
 
-		private WordClassifierTrainer(final String word, final Supplier<? extends Collection<Referent>> exampleSupplier,
-				final double weight) {
+		private WordClassifierTrainer(final String word,
+				final Supplier<? extends Stream<Weighted<Referent>>> exampleSupplier, final double weight) {
 			this.word = word;
 			this.exampleSupplier = exampleSupplier;
 			this.weight = weight;
@@ -67,15 +67,20 @@ public class LogisticModel {
 		@Override
 		public Entry<String, Logistic> get() {
 			final Logistic logistic = new Logistic();
-			final Collection<Referent> examples = exampleSupplier.get();
-			final Instances dataset = new Instances("Dataset", atts, examples.size());
+			@SuppressWarnings("unchecked")
+			final Weighted<Referent>[] examples = exampleSupplier.get().toArray(Weighted[]::new);
+			final Instances dataset = new Instances("Dataset", atts, examples.length);
 			dataset.setClass(TARGET);
 
-			for (final Referent ref : examples) {
-				final Instance instance = toInstance(ref);
-				final double totalWeight = weight * (ref.isTarget() ? 19 : 1);
-				instance.setWeight(totalWeight);
-				dataset.add(instance);
+			for (final Weighted<Referent> example : examples) {
+				final Referent ref = example.getWrapped();
+				final Instance inst = toInstance(ref);
+				// The instance's current weight is the weight of the instance's
+				// class; now multiply it by the weight of the word the model is
+				// being trained for
+				final double totalWeight = weight * example.getWeight();
+				inst.setWeight(totalWeight);
+				dataset.add(inst);
 			}
 
 			try {
@@ -107,7 +112,7 @@ public class LogisticModel {
 
 	private Attribute HUE;
 
-	private Attribute EDGE_COUNT;
+//	private Attribute EDGE_COUNT;
 
 	private Attribute POSX;
 
@@ -189,9 +194,14 @@ public class LogisticModel {
 	}
 
 	public Instance toInstance(final Referent ref) {
+		// NOTE: There is no reason to cache Instance values because
+		// "Instances.add(Instance)" always creates a shallow copy thereof
+		// anyway, so the only possible benefit of a cache would be avoiding the
+		// computational cost of object construction at the cost of extra memory
+		// consumption
 		final DenseInstance instance = new DenseInstance(atts.size());
 		instance.setValue(SHAPE, ref.getShape());
-		// instance.setValue(EDGE_COUNT, ref.getEdgeCount());
+//		instance.setValue(EDGE_COUNT, Integer.toString(ref.getEdgeCount()));
 		instance.setValue(SIZE, ref.getSize());
 		instance.setValue(RED, ref.getRed());
 		instance.setValue(GREEN, ref.getGreen());
@@ -204,6 +214,29 @@ public class LogisticModel {
 
 		instance.setValue(TARGET, Boolean.toString(ref.isTarget()));
 		return instance;
+	}
+
+	private Stream<Weighted<Referent>> createClassWeightedReferents(final Round round) {
+		final List<Referent> refs = round.getReferents();
+		final Referent[] posRefs = refs.stream().filter(Referent::isTarget).toArray(Referent[]::new);
+		final Referent[] negRefs = refs.stream().filter(ref -> !ref.isTarget()).toArray(Referent[]::new);
+		final double negClassWeight = 1.0;
+		final double posClassWeight = negRefs.length / (double) posRefs.length;
+		return Stream.concat(createWeightedReferents(posRefs, posClassWeight),
+				createWeightedReferents(negRefs, negClassWeight));
+	}
+
+	private Stream<Weighted<Referent>> createDiscountClassExamples(final RoundSet rounds,
+			final Collection<? super String> words) {
+		return rounds.getDiscountRounds(words).flatMap(this::createClassWeightedReferents);
+	}
+
+	private Stream<Weighted<Referent>> createWeightedReferents(final Referent[] refs, final double weight) {
+		return Arrays.stream(refs).map(ref -> new Weighted<>(ref, weight));
+	}
+
+	private Stream<Weighted<Referent>> createWordClassExamples(final RoundSet rounds, final String word) {
+		return rounds.getExampleRounds(word).flatMap(this::createClassWeightedReferents);
 	}
 
 	/**
@@ -253,15 +286,15 @@ public class LogisticModel {
 		// Train a model for each word
 		final Stream<CompletableFuture<Void>> wordClassifierTrainingJobs = words.stream()
 				.map(word -> CompletableFuture
-						.supplyAsync(new WordClassifierTrainer(word, () -> trainingSet.getExamples(word), weight),
-								asynchronousJobExecutor)
+						.supplyAsync(new WordClassifierTrainer(word, () -> createWordClassExamples(trainingSet, word),
+								weight), asynchronousJobExecutor)
 						.thenAccept(
 								wordClassifier -> wordModels.put(wordClassifier.getKey(), wordClassifier.getValue())));
 		// Train the discount model
 		final CompletableFuture<Void> discountClassifierTrainingJob = CompletableFuture
 				.supplyAsync(
 						new WordClassifierTrainer("__OUT_OF_VOCABULARY__",
-								() -> trainingSet.getDiscountExamples(vocab.getWords()), weight),
+								() -> createDiscountClassExamples(trainingSet, vocab.getWords()), weight),
 						asynchronousJobExecutor)
 				.thenAccept(wordClassifier -> discountModel = wordClassifier.getValue());
 		return CompletableFuture
@@ -325,8 +358,11 @@ public class LogisticModel {
 
 		atts = new ArrayList<>();
 
-		atts.add(SHAPE = new Attribute("shape", new ArrayList<>(Referent.getShapes())));
-		// atts.add(EDGE_COUNT = new Attribute("edge_count"));
+		final List<String> shapeUniqueValues = new ArrayList<>(Referent.getShapes());
+		atts.add(SHAPE = new Attribute("shape", shapeUniqueValues));
+		final List<String> edgeCountUniqueValues = Arrays
+				.asList(Referent.getEdgeCounts().stream().map(Number::toString).toArray(String[]::new));
+//		atts.add(EDGE_COUNT = new Attribute("edge_count", edgeCountUniqueValues));
 		atts.add(SIZE = new Attribute("size"));
 		atts.add(RED = new Attribute("red"));
 		atts.add(GREEN = new Attribute("green"));

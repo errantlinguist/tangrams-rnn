@@ -125,7 +125,7 @@ public final class Round {
 	 * Checks if the round has a word which is not part of the provided
 	 * collection of words
 	 */
-	public boolean hasDiscount(final Collection<String> words) {
+	public boolean hasDiscount(final Collection<? super String> words) {
 		for (final String word : getWords()) {
 			if (!words.contains(word)) {
 				return true;

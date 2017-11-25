@@ -16,20 +16,33 @@
 package se.kth.speech.coin.tangrams.wac.data;
 
 import java.util.NavigableSet;
-import java.util.Set;
 import java.util.TreeSet;
 
 public final class Referent {
 
 	/**
-	 * A {@link Set} of all {@link Referent#shape shape} values assigned to all
-	 * {@link Referent} instances.
+	 * A {@link NavigableSet} of all {@link Referent#edgeCount edge count}
+	 * values assigned to all {@link Referent} instances.
+	 */
+	private static final NavigableSet<Integer> EDGE_COUNTS = new TreeSet<>();
+
+	/**
+	 * A {@link NavigableSet} of all {@link Referent#shape shape} values
+	 * assigned to all {@link Referent} instances.
 	 */
 	private static final NavigableSet<String> SHAPES = new TreeSet<>();
 
 	/**
-	 * @return A {@link Set} of all {@link Referent#shape shape} values assigned
-	 *         to all {@link Referent} instances.
+	 * @return A {@link NavigableSet} of all {@link Referent#edgeCount edge
+	 *         count} values assigned to all {@link Referent} instances.
+	 */
+	public static NavigableSet<Integer> getEdgeCounts() {
+		return EDGE_COUNTS;
+	}
+
+	/**
+	 * @return A {@link NavigableSet} of all {@link Referent#shape shape} values
+	 *         assigned to all {@link Referent} instances.
 	 */
 	public static NavigableSet<String> getShapes() {
 		return SHAPES;
@@ -64,7 +77,7 @@ public final class Referent {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
@@ -201,7 +214,7 @@ public final class Referent {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
@@ -250,6 +263,7 @@ public final class Referent {
 	 */
 	public void setEdgeCount(final int edgeCount) {
 		this.edgeCount = edgeCount;
+		EDGE_COUNTS.add(edgeCount);
 	}
 
 	/**
