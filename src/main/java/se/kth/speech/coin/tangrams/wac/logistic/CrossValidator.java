@@ -20,11 +20,14 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -33,39 +36,18 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import se.kth.speech.coin.tangrams.wac.data.DialogueReferentDescriptionWriter;
-import se.kth.speech.coin.tangrams.wac.data.Parameters;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 
 public class CrossValidator {
-
-	final static class Exception extends RuntimeException {
-
-		/**
-		 *
-		 */
-		private static final long serialVersionUID = -1636897113752283942L;
-
-		private static final String createMessage(final SessionSet training, final Session testing,
-				final java.lang.Exception cause) {
-			final Set<String> trainingSessionNames = training.getSessions().stream().map(Session::getName)
-					.collect(Collectors.toCollection(() -> new TreeSet<>()));
-			return String.format(
-					"A(n) %s occurred while cross-validating with a training set of %d session(s) and testing on session \"%s\". Training sets: %s",
-					cause, training.size(), testing.getName(), trainingSessionNames);
-		}
-
-		private Exception(final SessionSet training, final Session testing, final java.lang.Exception cause) {
-			super(createMessage(training, testing, cause), cause);
-		}
-
-	}
 
 	private enum Parameter implements Supplier<Option> {
 		HELP("?") {
@@ -104,18 +86,29 @@ public class CrossValidator {
 
 	}
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(CrossValidator.class);
+	final static class Exception extends RuntimeException {
 
-	public static void main(final String[] args) throws IOException {
-		final CommandLineParser parser = new DefaultParser();
-		try {
-			final CommandLine cl = parser.parse(Parameter.OPTIONS, args);
-			main(cl);
-		} catch (final ParseException e) {
-			System.out.println(String.format("An error occurred while parsing the command-line arguments: %s", e));
-			Parameter.printHelp();
+		/**
+		 *
+		 */
+		private static final long serialVersionUID = -1636897113752283942L;
+
+		private static final String createMessage(final SessionSet training, final Session testing,
+				final java.lang.Exception cause) {
+			final Set<String> trainingSessionNames = training.getSessions().stream().map(Session::getName)
+					.collect(Collectors.toCollection(() -> new TreeSet<>()));
+			return String.format(
+					"A(n) %s occurred while cross-validating with a training set of %d session(s) and testing on session \"%s\". Training sets: %s",
+					cause, training.size(), testing.getName(), trainingSessionNames);
 		}
+
+		private Exception(final SessionSet training, final Session testing, final java.lang.Exception cause) {
+			super(createMessage(training, testing, cause), cause);
+		}
+
 	}
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(CrossValidator.class);
 
 	public static void main(final CommandLine cl) throws ParseException, IOException {
 		if (cl.hasOption(Parameter.HELP.optName)) {
@@ -134,39 +127,61 @@ public class CrossValidator {
 				final ForkJoinPool executor = ForkJoinPool.commonPool();
 				LOGGER.info("Will run cross-validation using a(n) {} instance with a parallelism level of {}.",
 						executor.getClass().getSimpleName(), executor.getParallelism());
-				final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(executor);
-				final CrossValidator crossValidator = new CrossValidator(modelFactory);
-				LOGGER.info("Cross-validating using default parameters.");
-				System.out.println("TIME" + "\t" + Parameters.getHeader() + "\t" + "SCORE");
-				crossValidator.run(set);
-				Parameters.ONLY_GIVER = true;
-				LOGGER.info("Cross-validating using only instructor language.");
-				crossValidator.run(set);
-				Parameters.ONLY_GIVER = false;
-				Parameters.ONLY_REFLANG = true;
-				LOGGER.info("Cross-validating using only referring language.");
-				crossValidator.run(set);
-				Parameters.ONLY_GIVER = true;
-				LOGGER.info("Cross-validating using only referring instructor language.");
-				crossValidator.run(set);
-				Parameters.UPDATE_MODEL = true;
-				Parameters.UPDATE_WEIGHT = 1;
-				LOGGER.info(
-						"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data.",
-						Parameters.UPDATE_WEIGHT);
-				crossValidator.run(set);
-				Parameters.UPDATE_WEIGHT = 5;
-				LOGGER.info(
-						"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data.",
-						Parameters.UPDATE_WEIGHT);
-				crossValidator.run(set);
+				try (CSVPrinter printer = CSVFormat.TDF.withHeader(createColumnNames().toArray(String[]::new))
+						.print(System.out)) {
+					run(executor, set, printer);
+				}
 			}
 		}
 	}
 
+	public static void main(final String[] args) throws IOException {
+		final CommandLineParser parser = new DefaultParser();
+		try {
+			final CommandLine cl = parser.parse(Parameter.OPTIONS, args);
+			main(cl);
+		} catch (final ParseException e) {
+			System.out.println(String.format("An error occurred while parsing the command-line arguments: %s", e));
+			Parameter.printHelp();
+		}
+	}
+
+	private static Stream<String> createColumnNames() {
+		final Stream.Builder<String> resultBuilder = Stream.builder();
+		resultBuilder.add("TIME");
+		Arrays.stream(ModelParameter.values()).map(Object::toString).forEachOrdered(resultBuilder);
+		resultBuilder.accept("MEAN_RANK");
+		return resultBuilder.build();
+	}
+
+	private static void run(final Executor executor, final SessionSet set, final CSVPrinter printer)
+			throws IOException {
+		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
+		final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
+		final CrossValidator crossValidator = new CrossValidator(modelParams, modelFactory);
+		LOGGER.info("Cross-validating using default parameters.");
+		crossValidator.run(set, printer);
+		modelParams.put(ModelParameter.ONLY_INSTRUCTOR, false);
+		LOGGER.info("Cross-validating using language from both the instructor and the manipulator.");
+		crossValidator.run(set, printer);
+		modelParams.put(ModelParameter.UPDATE_WEIGHT, 1.0);
+		LOGGER.info(
+				"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data; All language is used.",
+				modelParams.get(ModelParameter.UPDATE_WEIGHT));
+		crossValidator.run(set, printer);
+		modelParams.put(ModelParameter.UPDATE_WEIGHT, 5.0);
+		LOGGER.info(
+				"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data; All language is used.",
+				modelParams.get(ModelParameter.UPDATE_WEIGHT));
+		crossValidator.run(set, printer);
+	}
+
 	private final Supplier<LogisticModel> modelFactory;
 
-	public CrossValidator(final Supplier<LogisticModel> modelFactory) {
+	private final Map<ModelParameter, Object> modelParams;
+
+	public CrossValidator(final Map<ModelParameter, Object> modelParams, final Supplier<LogisticModel> modelFactory) {
+		this.modelParams = modelParams;
 		this.modelFactory = modelFactory;
 	}
 
@@ -188,11 +203,15 @@ public class CrossValidator {
 		return crossMean.getResult();
 	}
 
-	private void run(final SessionSet set) {
+	private void run(final SessionSet set, final CSVPrinter printer) throws IOException {
 		long t = System.currentTimeMillis();
 		final double score = crossValidate(set);
 		t = (System.currentTimeMillis() - t) / 1000;
-		System.out.println(t + "\t" + Parameters.getSetting() + "\t" + score);
+		final Stream.Builder<String> rowBuilder = Stream.builder();
+		rowBuilder.accept(Long.toString(t));
+		Arrays.stream(ModelParameter.values()).map(modelParams::get).map(Object::toString).forEachOrdered(rowBuilder);
+		rowBuilder.accept(Double.toString(score));
+		printer.printRecord((Iterable<String>) rowBuilder.build()::iterator);
 	}
 
 }

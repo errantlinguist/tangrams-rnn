@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,9 +58,10 @@ public final class TestDialog {
 			try (PrintWriter pw = new PrintWriter(Files.newBufferedWriter(outfilePath, StandardOpenOption.CREATE,
 					StandardOpenOption.TRUNCATE_EXISTING))) {
 				pw.println("<table>");
-				final LogisticModel model = new LogisticModel();
+				final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
+				final LogisticModel model = new LogisticModel(modelParams);
 				model.train(training);
-				for (final Round round : new RoundSet(set).getRounds()) {
+				for (final Round round : new RoundSet(set, modelParams).getRounds()) {
 					for (final Utterance utt : round.getUtts()) {
 						for (final String word : utt.getTokens()) {
 

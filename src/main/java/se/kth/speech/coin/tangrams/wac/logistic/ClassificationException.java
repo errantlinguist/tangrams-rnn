@@ -20,7 +20,7 @@ package se.kth.speech.coin.tangrams.wac.logistic;
  * @since Nov 24, 2017
  *
  */
-public class ClassificationException extends Exception {
+public class ClassificationException extends RuntimeException {
 
 	/**
 	 *

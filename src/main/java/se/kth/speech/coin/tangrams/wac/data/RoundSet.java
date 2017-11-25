@@ -17,24 +17,39 @@ package se.kth.speech.coin.tangrams.wac.data;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import se.kth.speech.coin.tangrams.wac.logistic.ModelParameter;
 
 public final class RoundSet {
 
 	private final List<Round> rounds;
 
-	public RoundSet(final List<Round> rounds) {
+	private final Map<ModelParameter, Object> modelParams;
+
+	public RoundSet(final List<Round> rounds, final Map<ModelParameter, Object> modelParams) {
 		this.rounds = rounds;
+		this.modelParams = modelParams;
 	}
 
-	public RoundSet(final SessionSet set) {
-		this(set.getSessions().stream().map(Session::getRounds).flatMap(List::stream).collect(Collectors.toList()));
+	public RoundSet(final SessionSet set, final Map<ModelParameter, Object> modelParams) {
+		this(set.getSessions().stream().map(Session::getRounds).flatMap(List::stream).collect(Collectors.toList()),
+				modelParams);
+	}
+
+	public Vocabulary createVocabulary() {
+		final Vocabulary vocab = new Vocabulary();
+		for (final Round round : rounds) {
+			round.getWords(modelParams).forEach(vocab::add);
+		}
+		return vocab;
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
@@ -60,11 +75,11 @@ public final class RoundSet {
 	}
 
 	public Stream<Round> getDiscountRounds(final Collection<? super String> words) {
-		return rounds.stream().filter(round -> round.hasDiscount(words));
+		return rounds.stream().filter(round -> round.hasDiscount(words, modelParams));
 	}
 
 	public Stream<Round> getExampleRounds(final String hasWord) {
-		return rounds.stream().filter(round -> round.hasWord(hasWord));
+		return rounds.stream().filter(round -> round.hasWord(hasWord, modelParams));
 	}
 
 	/**
@@ -74,19 +89,9 @@ public final class RoundSet {
 		return rounds;
 	}
 
-	public Vocabulary getVocabulary() {
-		final Vocabulary vocab = new Vocabulary();
-		for (final Round round : rounds) {
-			for (final String word : round.getWords()) {
-				vocab.add(word);
-			}
-		}
-		return vocab;
-	}
-
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override

@@ -15,9 +15,13 @@
  */
 package se.kth.speech.coin.tangrams.wac.data;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+
+import se.kth.speech.coin.tangrams.wac.logistic.ModelParameter;
 
 public final class Round {
 
@@ -38,7 +42,7 @@ public final class Round {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
@@ -107,36 +111,25 @@ public final class Round {
 	/**
 	 * Returns a list of words that have been used in this round
 	 */
-	public List<String> getWords() {
-		final List<String> list = new ArrayList<>();
-		for (final Utterance utt : utts) {
-			if (Parameters.ONLY_GIVER && !utt.isInstructor()) {
-				continue;
-			}
-			final List<String> words = Parameters.ONLY_REFLANG ? utt.getReferringTokens() : utt.getTokens();
-			for (final String word : words) {
-				list.add(word);
-			}
-		}
-		return list;
+	public Stream<String> getWords(final Map<ModelParameter, Object> modelParams) {
+		final Predicate<Utterance> uttFilter = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR)
+				? Utterance::isInstructor
+				: utt -> true;
+		final Stream<Utterance> relevantUtts = utts.stream().filter(uttFilter);
+		return relevantUtts.map(Utterance::getReferringTokens).flatMap(List::stream);
 	}
 
 	/**
 	 * Checks if the round has a word which is not part of the provided
 	 * collection of words
 	 */
-	public boolean hasDiscount(final Collection<? super String> words) {
-		for (final String word : getWords()) {
-			if (!words.contains(word)) {
-				return true;
-			}
-		}
-		return false;
+	public boolean hasDiscount(final Collection<? super String> words, final Map<ModelParameter, Object> modelParams) {
+		return getWords(modelParams).anyMatch(word -> !words.contains(word));
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
@@ -153,13 +146,8 @@ public final class Round {
 	/**
 	 * Checks if the round has a specific word
 	 */
-	public boolean hasWord(final String hasWord) {
-		for (final String word : getWords()) {
-			if (word.equals(hasWord)) {
-				return true;
-			}
-		}
-		return false;
+	public boolean hasWord(final String hasWord, final Map<ModelParameter, Object> modelParams) {
+		return getWords(modelParams).anyMatch(word -> word.equals(hasWord));
 	}
 
 	public boolean isNegative() {
@@ -184,7 +172,7 @@ public final class Round {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#toString()
 	 */
 	@Override

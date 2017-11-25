@@ -45,18 +45,19 @@ public class WordStats {
 		LOGGER.info("Will read sessions from \"{}\", using referring language read from \"{}\".", inpath,
 				refTokenFilePath);
 		final SessionSet set = new SessionSetReader(refTokenFilePath).apply(inpath);
-		final LogisticModel model = new LogisticModel();
+		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
+		final LogisticModel model = new LogisticModel(modelParams);
 		model.train(set);
 		final Vocabulary vocab = model.getVocabulary();
-		for (final Round round : new RoundSet(set).getRounds()) {
-			for (final String word : round.getWords()) {
+		for (final Round round : new RoundSet(set, modelParams).getRounds()) {
+			round.getWords(modelParams).forEach(word -> {
 				if (vocab.has(word)) {
 					for (final Referent ref : round.getReferents()) {
 						final double score = model.score(word, ref);
 						stats.add(round, word, score, ref.isTarget());
 					}
 				}
-			}
+			});
 		}
 		stats.print();
 	}
