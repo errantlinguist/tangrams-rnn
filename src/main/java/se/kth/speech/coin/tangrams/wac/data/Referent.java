@@ -15,8 +15,9 @@
  */
 package se.kth.speech.coin.tangrams.wac.data;
 
-import java.util.HashSet;
+import java.util.NavigableSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 public final class Referent {
 
@@ -24,13 +25,13 @@ public final class Referent {
 	 * A {@link Set} of all {@link Referent#shape shape} values assigned to all
 	 * {@link Referent} instances.
 	 */
-	private static final Set<String> SHAPES = new HashSet<>(18, 1.0f);
+	private static final NavigableSet<String> SHAPES = new TreeSet<>();
 
 	/**
 	 * @return A {@link Set} of all {@link Referent#shape shape} values assigned
 	 *         to all {@link Referent} instances.
 	 */
-	public static Set<String> getShapes() {
+	public static NavigableSet<String> getShapes() {
 		return SHAPES;
 	}
 
