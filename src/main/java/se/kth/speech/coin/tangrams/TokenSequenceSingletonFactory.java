@@ -35,8 +35,8 @@ public final class TokenSequenceSingletonFactory implements Function<String, Lis
 
 	private final ConcurrentMap<String, List<String>> singletonInstances;
 
-	public TokenSequenceSingletonFactory(final int expectedUniqueTokenSequenceCount) {
-		singletonInstances = new ConcurrentHashMap<>(expectedUniqueTokenSequenceCount);
+	public TokenSequenceSingletonFactory(final int instanceCacheInitialCapacity) {
+		singletonInstances = new ConcurrentHashMap<>(instanceCacheInitialCapacity);
 	}
 
 	@Override

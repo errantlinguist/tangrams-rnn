@@ -40,12 +40,12 @@ import se.kth.speech.coin.tangrams.TokenSequenceSingletonFactory;
  */
 public final class UtteranceReferringTokenMapReader {
 
-	private static final int DEFAULT_EXPECTED_UNIQUE_TOKEN_SEQ_COUNT = 7000;
+	private static final int RESULT_MAP_INITIAL_CAPACITY = 7000;
 
 	private static final Charset DEFAULT_ENCODING = StandardCharsets.UTF_8;
 
 	private static TokenSequenceSingletonFactory createDefaultTokenSeqTransformer() {
-		return new TokenSequenceSingletonFactory(DEFAULT_EXPECTED_UNIQUE_TOKEN_SEQ_COUNT);
+		return new TokenSequenceSingletonFactory(RESULT_MAP_INITIAL_CAPACITY);
 	}
 
 	private final Function<? super String, List<String>> tokenSeqFactory;
@@ -71,9 +71,9 @@ public final class UtteranceReferringTokenMapReader {
 	public Map<List<String>, List<String>> apply(final Reader reader) throws IOException {
 		final CSVParser parser = CSVFormat.TDF.withFirstRecordAsHeader().parse(reader);
 		final Map<List<String>, List<String>> result = new HashMap<>(
-				DEFAULT_EXPECTED_UNIQUE_TOKEN_SEQ_COUNT, 1.0f);
+				RESULT_MAP_INITIAL_CAPACITY);
 //		final Object2ObjectOpenHashMap<List<String>, List<String>> result = new Object2ObjectOpenHashMap<>(
-//				DEFAULT_EXPECTED_UNIQUE_TOKEN_SEQ_COUNT, 1.0f);
+//				DEFAULT_EXPECTED_UNIQUE_TOKEN_SEQ_COUNT);
 		for (final CSVRecord record : parser) {
 			final String tokenStr = record.get("TOKENS");
 			final List<String> tokens = tokenSeqFactory.apply(tokenStr);
