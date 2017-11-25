@@ -28,8 +28,8 @@ public class WordClassifierTrainingException extends RuntimeException {
 	private static final long serialVersionUID = -1812653455419224580L;
 
 	private static String createDefaultMessage(final String word, final Throwable cause) {
-		return String.format("A(n) %s occurred while training a classifier for the word \"%s\"",
-				cause.getClass().getSimpleName(), word);
+		return String.format("A(n) %s occurred while training a classifier for the word \"%s\". Original exception message: \"%s\"",
+				cause.getClass().getSimpleName(), word, cause.getLocalizedMessage());
 	}
 
 	private final String word;
