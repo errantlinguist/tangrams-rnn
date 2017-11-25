@@ -183,13 +183,13 @@ public class LogisticModel {
 	public Vocabulary getVocabulary() {
 		return vocab;
 	}
-	
+
 	public List<Referent> rank(final Round round) throws ClassificationException {
 		final Map<Referent, Double> scores = new HashMap<>();
 		for (final Referent ref : round.getReferents()) {
 			final Instance inst = toInstance(ref);
 			final Mean mean = new Mean();
-			Iterator<String> wordIter = round.getWords(modelParams).iterator();
+			final Iterator<String> wordIter = round.getWords(modelParams).iterator();
 			while (wordIter.hasNext()) {
 				final String word = wordIter.next();
 				double score = score(word, inst);
@@ -217,34 +217,6 @@ public class LogisticModel {
 		});
 		return ranking;
 	}
-
-//	/**
-//	 * Returns a ranking of the referents in a round
-//	 */
-//	public Stream<Referent> rank(final Round round) throws ClassificationException {
-//		final Map<Referent, Double> scores = new HashMap<>();
-//		final List<Referent> refs = round.getReferents();
-//		for (final Referent ref : refs) {
-//			final Instance inst = toInstance(ref);
-//			DoubleStream wordScores = round.getWords(modelParams).mapToDouble(word -> {
-//				double score = score(word, inst);
-//				// NOTE: Values are retrieved directly from the map instead of
-//				// e.g.
-//				// assigning
-//				// them to a final field because it's possible that the map
-//				// values
-//				// change at another place in the code and performance isn't an
-//				// issue
-//				// here anyway
-//				if ((Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ)) {
-//					score *= Math.log10(vocab.getCount(word, 3));
-//				}	
-//				return score;
-//			});
-//			scores.put(ref, wordScores.average().getAsDouble());
-//		}
-//		return refs.stream().sorted(Comparator.comparingDouble(scores::get));
-//	}
 
 	public double score(final String word, final Instance inst) throws ClassificationException {
 		final Logistic model = wordModels.getOrDefault(word, discountModel);
@@ -289,9 +261,9 @@ public class LogisticModel {
 	 */
 	private int targetRank(final Round round) throws ClassificationException {
 		int rank = 0;
-		final Iterator<Referent> nbestRefIter =  rank(round).iterator();
+		final Iterator<Referent> nbestRefIter = rank(round).iterator();
 		while (nbestRefIter.hasNext()) {
-			Referent ref = nbestRefIter.next();
+			final Referent ref = nbestRefIter.next();
 			rank++;
 			if (ref.isTarget()) {
 				return rank;
