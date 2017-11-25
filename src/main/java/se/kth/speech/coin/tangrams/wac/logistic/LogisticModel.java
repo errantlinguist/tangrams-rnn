@@ -110,7 +110,7 @@ public class LogisticModel {
 
 	private Attribute BLUE;
 
-	private Attribute HUE;
+//	private Attribute HUE;
 
 //	private Attribute EDGE_COUNT;
 
