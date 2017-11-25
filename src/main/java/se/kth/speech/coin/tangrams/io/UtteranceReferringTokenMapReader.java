@@ -22,15 +22,15 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import se.kth.speech.coin.tangrams.TokenSequenceSingletonFactory;
 
 /**
@@ -58,20 +58,22 @@ public final class UtteranceReferringTokenMapReader {
 		this.tokenSeqFactory = tokenSeqFactory;
 	}
 
-	public Object2ObjectMap<List<String>, List<String>> apply(final Path infilePath) throws IOException {
+	public Map<List<String>, List<String>> apply(final Path infilePath) throws IOException {
 		return apply(infilePath, DEFAULT_ENCODING);
 	}
 
-	public Object2ObjectMap<List<String>, List<String>> apply(final Path infilePath, final Charset encoding) throws IOException {
+	public Map<List<String>, List<String>> apply(final Path infilePath, final Charset encoding) throws IOException {
 		try (BufferedReader reader = Files.newBufferedReader(infilePath, encoding)) {
 			return apply(reader);
 		}
 	}
 
-	public Object2ObjectMap<List<String>, List<String>> apply(final Reader reader) throws IOException {
+	public Map<List<String>, List<String>> apply(final Reader reader) throws IOException {
 		final CSVParser parser = CSVFormat.TDF.withFirstRecordAsHeader().parse(reader);
-		final Object2ObjectOpenHashMap<List<String>, List<String>> result = new Object2ObjectOpenHashMap<>(
+		final Map<List<String>, List<String>> result = new HashMap<>(
 				DEFAULT_EXPECTED_UNIQUE_TOKEN_SEQ_COUNT, 1.0f);
+//		final Object2ObjectOpenHashMap<List<String>, List<String>> result = new Object2ObjectOpenHashMap<>(
+//				DEFAULT_EXPECTED_UNIQUE_TOKEN_SEQ_COUNT, 1.0f);
 		for (final CSVRecord record : parser) {
 			final String tokenStr = record.get("TOKENS");
 			final List<String> tokens = tokenSeqFactory.apply(tokenStr);
@@ -79,7 +81,7 @@ public final class UtteranceReferringTokenMapReader {
 			final List<String> refTokens = tokenSeqFactory.apply(refTokenStr);
 			result.put(tokens, refTokens);
 		}
-		result.trim();
+//		result.trim();
 		return result;
 	}
 

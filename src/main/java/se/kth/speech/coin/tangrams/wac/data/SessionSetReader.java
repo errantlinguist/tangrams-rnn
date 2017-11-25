@@ -25,12 +25,12 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import se.kth.speech.coin.tangrams.io.UtteranceReferringTokenMapReader;
 
 public final class SessionSetReader {
@@ -57,7 +57,7 @@ public final class SessionSetReader {
 	}
 
 	private static UtteranceTabularDataReader createUttReader(final Path uttRefLangFilePath) throws IOException {
-		final Object2ObjectMap<List<String>, List<String>> uttRefs = readReferringLangMap(uttRefLangFilePath);
+		final Map<List<String>, List<String>> uttRefs = readReferringLangMap(uttRefLangFilePath);
 		return new UtteranceTabularDataReader(uttRefs::get);
 	}
 
@@ -92,10 +92,10 @@ public final class SessionSetReader {
 		return result;
 	}
 
-	private static Object2ObjectMap<List<String>, List<String>> readReferringLangMap(final Path uttRefLangFilePath)
+	private static Map<List<String>, List<String>> readReferringLangMap(final Path uttRefLangFilePath)
 			throws IOException {
 		LOGGER.info("Reading referring language from \"{}\".", uttRefLangFilePath);
-		final Object2ObjectMap<List<String>, List<String>> result = new UtteranceReferringTokenMapReader()
+		final Map<List<String>, List<String>> result = new UtteranceReferringTokenMapReader()
 				.apply(uttRefLangFilePath);
 		LOGGER.info("Read referring language for {} unique utterance(s).", result.size());
 		return result;
