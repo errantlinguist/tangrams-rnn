@@ -15,30 +15,110 @@
  */
 package se.kth.speech.coin.tangrams.wac.data;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public class Vocabulary {
+public final class Vocabulary {
 
-	Map<String,Integer> dict = new HashMap<>();
-	
-	public void add(String word) {
-		if (!dict.containsKey(word))
+	private final Map<String, Integer> dict = new HashMap<>();
+
+	public void add(final String word) {
+		if (!dict.containsKey(word)) {
 			dict.put(word, 1);
-		else
+		} else {
 			dict.put(word, dict.get(word) + 1);
-	}
-	
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		for (String word : getWordsSortedByFreq()) {
-			sb.append(word + " " + dict.get(word) + System.lineSeparator());
 		}
-		return sb.toString();
 	}
-	
-	public void prune(int n) {
-		for (String word : getWords()) {
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(final Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (!(obj instanceof Vocabulary)) {
+			return false;
+		}
+		final Vocabulary other = (Vocabulary) obj;
+		if (dict == null) {
+			if (other.dict != null) {
+				return false;
+			}
+		} else if (!dict.equals(other.dict)) {
+			return false;
+		}
+		return true;
+	}
+
+	public Integer getCount(final String word) {
+		return dict.get(word);
+	}
+
+	public double getCount(final String word, final int def) {
+		final Integer count = getCount(word);
+		if (count == null) {
+			return def;
+		} else {
+			return count;
+		}
+	}
+
+	public List<String> getUpdatedWordsSince(final Vocabulary oldVocab) {
+		final List<String> newWords = new ArrayList<>();
+		for (final String word : getWords()) {
+			// System.out.println(word + " " + oldVocab.dict.get(word) + " " +
+			// dict.get(word));
+			if (!oldVocab.dict.containsKey(word) || !oldVocab.dict.get(word).equals(dict.get(word))) {
+				newWords.add(word);
+			}
+		}
+		return newWords;
+	}
+
+	public List<String> getWords() {
+		return new ArrayList<>(dict.keySet());
+	}
+
+	public List<String> getWordsSortedByFreq() {
+		final List<String> words = getWords();
+		words.sort(new Comparator<String>() {
+			@Override
+			public int compare(final String o1, final String o2) {
+				return dict.get(o2).compareTo(dict.get(o1));
+			}
+		});
+		return words;
+	}
+
+	public boolean has(final String word) {
+		return dict.containsKey(word);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + (dict == null ? 0 : dict.hashCode());
+		return result;
+	}
+
+	public void prune(final int n) {
+		for (final String word : getWords()) {
 			if (dict.get(word) < n) {
 				dict.remove(word);
 			}
@@ -49,46 +129,13 @@ public class Vocabulary {
 		return dict.size();
 	}
 
-	public List<String> getWordsSortedByFreq() {
-		List<String> words = getWords();
-		words.sort(new Comparator<String>() {
-			@Override
-			public int compare(String o1, String o2) {
-				return dict.get(o2).compareTo(dict.get(o1));
-			}
-		});
-		return words;
-	}
-	
-	public List<String> getWords() {
-		return new ArrayList<>(dict.keySet());
-	}
-
-	public List<String> getUpdatedWordsSince(Vocabulary oldVocab) {
-		List<String> newWords = new ArrayList<>();
-		for (String word : getWords()) {
-			//System.out.println(word + " " + oldVocab.dict.get(word) + " " + dict.get(word));
-			if (!oldVocab.dict.containsKey(word) || !oldVocab.dict.get(word).equals(dict.get(word)))
-				newWords.add(word);
+	@Override
+	public String toString() {
+		final StringBuilder sb = new StringBuilder();
+		for (final String word : getWordsSortedByFreq()) {
+			sb.append(word + " " + dict.get(word) + System.lineSeparator());
 		}
-		return newWords;
+		return sb.toString();
 	}
 
-	public Integer getCount(String word) {
-		return dict.get(word);
-	}
-	
-	public boolean has(String word) {
-		return dict.containsKey(word);
-	}
-
-	public double getCount(String word, int def) {
-		Integer count = getCount(word);
-		if (count == null)
-			return def;
-		else
-			return count;
-	}
-	
-	
 }
