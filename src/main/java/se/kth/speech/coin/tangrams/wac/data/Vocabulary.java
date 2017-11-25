@@ -39,7 +39,7 @@ public class Vocabulary {
 	
 	public void prune(int n) {
 		for (String word : getWords()) {
-			if (dict.get(word) < n || word.endsWith("-")) {
+			if (dict.get(word) < n) {
 				dict.remove(word);
 			}
 		}
