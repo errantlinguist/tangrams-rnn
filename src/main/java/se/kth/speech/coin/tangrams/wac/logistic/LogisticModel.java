@@ -221,7 +221,13 @@ public class LogisticModel {
 	}
 
 	/**
-	 * Trains models for the specified words.
+	 * Trains models for the specified words asynchronously.
+	 *
+	 * @param words
+	 *            The vocabulary words to train models for.
+	 * @param weight
+	 *            The weight of each datapoint representing a single observation
+	 *            for a given word.
 	 */
 	private void train(final List<String> words, final double weight) {
 		final CompletableFuture<Void> trainingJob = trainAsynchronously(words, weight);
