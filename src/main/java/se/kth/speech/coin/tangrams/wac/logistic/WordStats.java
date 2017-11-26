@@ -38,12 +38,23 @@ public class WordStats {
 	private static final Logger LOGGER = LoggerFactory.getLogger(WordStats.class);
 
 	public static void main(final String[] args) throws IOException, ClassificationException {
-		final WordStats stats = new WordStats();
-		final Path inpath = Paths.get(args[0]);
-		final Path refTokenFilePath = Paths.get(args[1]);
-		LOGGER.info("Will read sessions from \"{}\", using referring language read from \"{}\".", inpath,
-				refTokenFilePath);
+		if (args.length != 3) {
+			throw new IllegalArgumentException(
+					String.format("Usage: %s INPATH REFERRING_LANG_FILE OUTPATH", TestSpace.class.getName()));
+		} else {
+			final Path inpath = Paths.get(args[0]);
+			final Path refTokenFilePath = Paths.get(args[1]);
+			final Path outpath = Paths.get(args[2]);
+			LOGGER.info("Will read sessions from \"{}\", using referring language read from \"{}\".", inpath,
+					refTokenFilePath);
+			run(inpath, refTokenFilePath, outpath);
+		}
+	}
+
+	private static void run(final Path inpath, final Path refTokenFilePath, final Path outpath) throws IOException {
 		final SessionSet set = new SessionSetReader(refTokenFilePath).apply(inpath);
+		LOGGER.info("Read {} session(s).", set.size());
+		final WordStats stats = new WordStats();
 		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
 		final LogisticModel model = new LogisticModel(modelParams);
 		model.train(set);
@@ -93,7 +104,7 @@ public class WordStats {
 
 	public void print() {
 		targetScores.forEach((word, wordTargetScores) -> {
-			List<Double> wordOffScores = offScores.get(word);
+			final List<Double> wordOffScores = offScores.get(word);
 			if (wordOffScores != null) {
 				final double meanTarget = wordTargetScores.stream().mapToDouble(Double::doubleValue).average()
 						.getAsDouble();
