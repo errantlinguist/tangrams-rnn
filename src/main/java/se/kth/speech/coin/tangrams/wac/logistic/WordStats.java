@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,20 +92,15 @@ public class WordStats {
 	}
 
 	public void print() {
-		for (final String word : targetScores.keySet()) {
-			final Mean meanTarget = new Mean();
-			final Mean meanOff = new Mean();
-			for (final Double score : targetScores.get(word)) {
-				meanTarget.increment(score);
+		targetScores.forEach((word, wordTargetScores) -> {
+			List<Double> wordOffScores = offScores.get(word);
+			if (wordOffScores != null) {
+				final double meanTarget = wordTargetScores.stream().mapToDouble(Double::doubleValue).average()
+						.getAsDouble();
+				final double meanOff = wordOffScores.stream().mapToDouble(Double::doubleValue).average().getAsDouble();
+				System.out.println(word + " " + meanTarget + " " + meanOff + " " + count.get(word));
 			}
-			if (offScores.containsKey(word)) {
-				for (final Double score : offScores.get(word)) {
-					meanOff.increment(score);
-				}
-				System.out.println(
-						word + " " + meanTarget.getResult() + " " + meanOff.getResult() + " " + count.get(word));
-			}
-		}
+		});
 	}
 
 }
