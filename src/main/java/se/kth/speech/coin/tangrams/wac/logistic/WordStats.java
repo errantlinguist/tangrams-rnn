@@ -94,10 +94,7 @@ public class WordStats {
 			}
 			offScores.get(word).add(score);
 		}
-		if (!scores.containsKey(word)) {
-			scores.put(word, new ArrayList<>());
-		}
-		scores.get(word).add(score);
+		scores.computeIfAbsent(word, k -> new ArrayList<>()).add(score);
 
 		count.put(word, count.getOrDefault(word, 0) + 1);
 	}
