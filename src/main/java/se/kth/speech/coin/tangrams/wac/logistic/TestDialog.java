@@ -53,12 +53,12 @@ public final class TestDialog {
 
 	private static void run(final Path inpath, final Path refTokenFilePath, final Path outpath) throws IOException, ClassificationException {
 		final SessionSet set = new SessionSetReader(refTokenFilePath).apply(inpath);
+		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
 		set.crossValidate((training, testing) -> {
 			final Path outfilePath = outpath.resolve(testing.getName() + ".html");
 			try (PrintWriter pw = new PrintWriter(Files.newBufferedWriter(outfilePath, StandardOpenOption.CREATE,
 					StandardOpenOption.TRUNCATE_EXISTING))) {
 				pw.println("<table>");
-				final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
 				final LogisticModel model = new LogisticModel(modelParams);
 				model.train(training);
 				for (final Round round : new RoundSet(set, modelParams).getRounds()) {
@@ -75,7 +75,7 @@ public final class TestDialog {
 				throw new UncheckedIOException(e);
 			}
 
-		});
+		}, modelParams);
 	}
 
 }

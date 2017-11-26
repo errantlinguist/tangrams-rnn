@@ -52,6 +52,32 @@ public enum ModelParameter {
 			return Boolean.valueOf(input);
 		}
 	},
+	/**
+	 * The seed used for random number generation; This should be a
+	 * {@link Long}.
+	 */
+	RANDOM_SEED {
+		/**
+		 * A {@link Long} value.
+		 */
+		@Override
+		protected Object parseValue(final String input) {
+			return Long.valueOf(input);
+		}
+	},
+	/**
+	 * The number of sessions to discount from each cross-validation training
+	 * set; This should be a non-negative {@link Integer}.
+	 */
+	TRAINING_SET_SIZE_DISCOUNT {
+		/**
+		 * @return A non-negative {@link Integer} value.
+		 */
+		@Override
+		protected Object parseValue(final String input) {
+			return parseNonNegativeInteger(input);
+		}
+	},
 
 	/**
 	 * Weight for incremental updates (relative to 1.0 for background model);
@@ -66,7 +92,6 @@ public enum ModelParameter {
 			return parseNonNegativeBigDecimal(input);
 		}
 	},
-
 	/**
 	 * Weight score by word frequency; This should be a {@link Boolean}.
 	 */
@@ -111,6 +136,8 @@ public enum ModelParameter {
 		final Map<ModelParameter, Object> result = new EnumMap<>(ModelParameter.class);
 		result.put(DISCOUNT, 3);
 		result.put(ONLY_INSTRUCTOR, true);
+		result.put(RANDOM_SEED, 1L);
+		result.put(TRAINING_SET_SIZE_DISCOUNT, 0);
 		result.put(UPDATE_WEIGHT, BigDecimal.ZERO);
 		result.put(WEIGHT_BY_FREQ, true);
 		assert result.size() == ModelParameter.values().length;
@@ -132,6 +159,26 @@ public enum ModelParameter {
 	private static BigDecimal parseNonNegativeBigDecimal(final String input) {
 		final BigDecimal result = new BigDecimal(input);
 		if (BigDecimal.ZERO.compareTo(result) > 0) {
+			throw new IllegalArgumentException(
+					String.format("Value must be non-negative but received \"%s\" as input.", input));
+		}
+		return result;
+	}
+
+	/**
+	 * Parses a {@link Integer} from a given string, ensuring that the value is
+	 * non-negative.
+	 *
+	 * @param input
+	 *            The {@link String} to parse.
+	 * @return An {@code Integer} instance representing a non-negative value.
+	 * @throws IllegalArgumentException
+	 *             if the value is negative.
+	 *
+	 */
+	private static Integer parseNonNegativeInteger(final String input) {
+		final Integer result = Integer.valueOf(input);
+		if (result < 0) {
 			throw new IllegalArgumentException(
 					String.format("Value must be non-negative but received \"%s\" as input.", input));
 		}

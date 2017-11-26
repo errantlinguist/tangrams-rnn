@@ -16,11 +16,28 @@
 package se.kth.speech.coin.tangrams.wac.data;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 import java.util.function.BiConsumer;
 
+import se.kth.speech.HashedCollections;
+import se.kth.speech.coin.tangrams.wac.logistic.ModelParameter;
+
 public final class SessionSet {
+
+	private static void addRandomIntegers(final Collection<? super Integer> idxs, final int resultSize, final int bound,
+			final Random random) {
+		while (idxs.size() < resultSize) {
+			final int nextIdx = random.nextInt(bound);
+			idxs.add(nextIdx);
+		}
+	}
 
 	private final List<Session> sessions;
 
@@ -32,16 +49,18 @@ public final class SessionSet {
 		this(Collections.singletonList(session));
 	}
 
-	public SessionSet(final SessionSet toCopy) {
-		this(new ArrayList<>(toCopy.sessions));
-	}
-
-	public void crossValidate(final BiConsumer<SessionSet, Session> consumer) {
-		for (int i = 0; i < sessions.size(); i++) {
-			final SessionSet training = new SessionSet(this);
-			final Session testing = training.sessions.remove(i);
-			// System.out.println("Testing on " + testing.sessions.get(0).name);
-			consumer.accept(training, testing);
+	public void crossValidate(final BiConsumer<SessionSet, Session> consumer,
+			final Map<ModelParameter, Object> modelParams) {
+		final int trainingSetSizeDiscount = (Integer) modelParams.get(ModelParameter.TRAINING_SET_SIZE_DISCOUNT);
+		final long randomSeed = (Long) modelParams.get(ModelParameter.RANDOM_SEED);
+		final Random random = new Random(randomSeed);
+		final ListIterator<Session> testSessionIter = sessions.listIterator();
+		while (testSessionIter.hasNext()) {
+			final int testSessionIdx = testSessionIter.nextIndex();
+			final Session testSession = testSessionIter.next();
+			final List<Session> trainingSessions = createTrainingSessionList(testSessionIdx, trainingSetSizeDiscount,
+					random);
+			consumer.accept(new SessionSet(trainingSessions), testSession);
 		}
 	}
 
@@ -75,7 +94,7 @@ public final class SessionSet {
 	/**
 	 * @return the sessions
 	 */
-	public List<Session> getSessions() {
+	public Collection<Session> getSessions() {
 		return sessions;
 	}
 
@@ -118,6 +137,36 @@ public final class SessionSet {
 		builder.append(sessions);
 		builder.append("]");
 		return builder.toString();
+	}
+
+	private List<Session> createTrainingSessionList(final int testSessionIdx, final int trainingSetSizeDiscount,
+			final Random random) {
+		final int idxsToRemoveCount = trainingSetSizeDiscount + 1;
+		final int resultSize = sessions.size() - idxsToRemoveCount;
+		if (resultSize < 1) {
+			throw new IllegalArgumentException(
+					String.format("Tried to discount training set size by %d but there are only %s sessions.",
+							trainingSetSizeDiscount, sessions.size()));
+		}
+		
+		final Set<Integer> idxsToRemove = new HashSet<>(HashedCollections.capacity(idxsToRemoveCount));
+		idxsToRemove.add(testSessionIdx);
+		addRandomIntegers(idxsToRemove, idxsToRemoveCount, sessions.size(), random);
+		assert idxsToRemove.size() == idxsToRemoveCount;
+		
+		final List<Session> result = new ArrayList<>(resultSize);
+		final ListIterator<Session> trainingSessionIter = sessions.listIterator();
+		while (trainingSessionIter.hasNext()) {
+			final int trainingSessionIdx = trainingSessionIter.nextIndex();
+			final Session trainingSession = trainingSessionIter.next();
+			if (idxsToRemove.contains(trainingSessionIdx)) {
+				// Do nothing
+			} else {
+				result.add(trainingSession);
+			}
+		}
+		assert result.size() == resultSize;
+		return result;
 	}
 
 }

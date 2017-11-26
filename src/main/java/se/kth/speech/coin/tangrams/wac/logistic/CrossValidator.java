@@ -154,7 +154,7 @@ public class CrossValidator {
 			final Consumer<? super RoundEvaluationResult> resultHandler) throws IOException {
 		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
 		final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
-		final CrossValidator crossValidator = new CrossValidator(modelFactory);
+		final CrossValidator crossValidator = new CrossValidator(modelParams, modelFactory);
 		LOGGER.info("Cross-validating using default parameters.");
 		crossValidator.crossValidate(set, resultHandler);
 		modelParams.put(ModelParameter.ONLY_INSTRUCTOR, false);
@@ -174,7 +174,10 @@ public class CrossValidator {
 
 	private final Supplier<LogisticModel> modelFactory;
 
-	public CrossValidator(final Supplier<LogisticModel> modelFactory) {
+	private final Map<ModelParameter, Object> modelParams;
+
+	public CrossValidator(final Map<ModelParameter, Object> modelParams, final Supplier<LogisticModel> modelFactory) {
+		this.modelParams = modelParams;
 		this.modelFactory = modelFactory;
 	}
 
@@ -191,7 +194,7 @@ public class CrossValidator {
 			} catch (final ClassificationException e) {
 				throw new Exception(training, testing, e);
 			}
-		});
+		}, modelParams);
 	}
 
 }
