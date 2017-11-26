@@ -36,8 +36,8 @@ public final class TestSpace {
 	private static final Logger LOGGER = LoggerFactory.getLogger(TestSpace.class);
 
 	public static void main(final String[] args) throws IOException, ClassificationException {
-		if (args.length != 2) {
-			throw new IllegalArgumentException(String.format("Usage: %s INPATH OUTPATH", TestSpace.class.getName()));
+		if (args.length != 3) {
+			throw new IllegalArgumentException(String.format("Usage: %s INPATH REFERRING_LANG_FILE OUTPATH", TestSpace.class.getName()));
 		} else {
 			final Path inpath = Paths.get(args[0]);
 			final Path refTokenFilePath = Paths.get(args[1]);
