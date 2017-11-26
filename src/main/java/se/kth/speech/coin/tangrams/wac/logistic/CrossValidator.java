@@ -126,7 +126,7 @@ public class CrossValidator {
 				final ForkJoinPool executor = ForkJoinPool.commonPool();
 				LOGGER.info("Will run cross-validation using a(n) {} instance with a parallelism level of {}.",
 						executor.getClass().getSimpleName(), executor.getParallelism());
-				final RoundEvaluationResultTablularDataWriter resultWriter = new RoundEvaluationResultTablularDataWriter(
+				final CrossValidationRoundEvaluationResultTablularDataWriter resultWriter = new CrossValidationRoundEvaluationResultTablularDataWriter(
 						System.out);
 				run(executor, set, evalResult -> {
 					try {
@@ -151,7 +151,7 @@ public class CrossValidator {
 	}
 
 	private static void run(final Executor executor, final SessionSet set,
-			final Consumer<? super RoundEvaluationResult> resultHandler) throws IOException {
+			final Consumer<? super CrossValidationRoundEvaluationResult> resultHandler) throws IOException {
 		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
 		final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
 		final CrossValidator crossValidator = new CrossValidator(modelParams, modelFactory);
@@ -184,17 +184,26 @@ public class CrossValidator {
 	/**
 	 * Performs cross validation on a {@link SessionSet}.
 	 */
-	public void crossValidate(final SessionSet set, final Consumer<? super RoundEvaluationResult> resultHandler) {
-		set.crossValidate((training, testing) -> {
-			try {
-				final LogisticModel model = modelFactory.get();
-				model.train(training);
-				final Stream<RoundEvaluationResult> roundEvalResults = model.eval(new SessionSet(testing));
-				roundEvalResults.forEach(resultHandler);
-			} catch (final ClassificationException e) {
-				throw new Exception(training, testing, e);
-			}
-		}, modelParams);
+	public void crossValidate(final SessionSet set,
+			final Consumer<? super CrossValidationRoundEvaluationResult> resultHandler) {
+		final int cvIterCount = (Integer) modelParams.get(ModelParameter.CROSS_VALIDATION_ITER_COUNT);
+		for (int i = 1; i <= cvIterCount; ++i) {
+			// This is required to allow binding to the variable in the lambda
+			// below
+			final int cvIter = i;
+			set.crossValidate((training, testing) -> {
+				try {
+					final LogisticModel model = modelFactory.get();
+					model.train(training);
+					final Stream<RoundEvaluationResult> roundEvalResults = model.eval(new SessionSet(testing));
+					roundEvalResults.map(evalResult -> new CrossValidationRoundEvaluationResult(cvIter, evalResult))
+							.forEach(resultHandler);
+				} catch (final ClassificationException e) {
+					throw new Exception(training, testing, e);
+				}
+			}, modelParams);
+		}
+
 	}
 
 }

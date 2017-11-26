@@ -33,36 +33,49 @@ import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.Utterance;
 
-public final class RoundEvaluationResultTablularDataWriter {
+public final class CrossValidationRoundEvaluationResultTablularDataWriter {
 
-	private enum Datum implements Function<RoundEvaluationResult, String> {
+	// @formatter:off
+	private enum Datum implements Function<CrossValidationRoundEvaluationResult, String> {
 		CLASSIFICATION_START {
 			@Override
-			public String apply(final RoundEvaluationResult input) {
-				final OffsetDateTime classificationStartTime = input.getClassificationStartTime();
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
+				final OffsetDateTime classificationStartTime = evalResult.getClassificationStartTime();
 				return TIMESTAMP_FORMATTER.format(classificationStartTime);
 			}
+		},
+		CROSS_VALIDATION_ITER {
+
+			@Override
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				return Integer.toString(cvResult.getCrossValidationIteration());
+			}
+
 		},
 		DYAD {
 
 			@Override
-			public String apply(final RoundEvaluationResult input) {
-				return input.getSessionId();
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
+				return evalResult.getSessionId();
 			}
 
 		},
 		ROUND {
 
 			@Override
-			public String apply(final RoundEvaluationResult input) {
-				return Integer.toString(input.getRoundId());
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
+				return Integer.toString(evalResult.getRoundId());
 			}
 
 		},
 		RANK {
 
 			@Override
-			public String apply(final RoundEvaluationResult evalResult) {
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
 				final List<Referent> ranking = classificationResult.getRanking();
 				final int targetRank = targetRank(ranking.iterator());
@@ -73,7 +86,8 @@ public final class RoundEvaluationResultTablularDataWriter {
 		SCORE {
 
 			@Override
-			public String apply(final RoundEvaluationResult evalResult) {
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				return Integer.toString(round.getScore());
 			}
@@ -82,7 +96,8 @@ public final class RoundEvaluationResultTablularDataWriter {
 		ROUND_START_TIME {
 
 			@Override
-			public String apply(final RoundEvaluationResult evalResult) {
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				return Float.toString(round.getTime());
 			}
@@ -91,7 +106,8 @@ public final class RoundEvaluationResultTablularDataWriter {
 		UTT_COUNT {
 
 			@Override
-			public String apply(final RoundEvaluationResult evalResult) {
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Utterance> utts = round.getUtts();
 				return Integer.toString(utts.size());
@@ -101,7 +117,8 @@ public final class RoundEvaluationResultTablularDataWriter {
 		REFERRING_TOKEN_COUNT {
 
 			@Override
-			public String apply(final RoundEvaluationResult evalResult) {
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
 				final int count = classificationResult.getWords().length;
 				return Integer.toString(count);
@@ -116,7 +133,8 @@ public final class RoundEvaluationResultTablularDataWriter {
 		REFERRING_TOKEN_TYPES {
 
 			@Override
-			public String apply(final RoundEvaluationResult evalResult) {
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Utterance> utts = round.getUtts();
 				final Stream<String> refTokens = utts.stream().map(Utterance::getReferringTokens).flatMap(List::stream);
@@ -127,7 +145,8 @@ public final class RoundEvaluationResultTablularDataWriter {
 		OOV_COUNT {
 
 			@Override
-			public String apply(final RoundEvaluationResult evalResult) {
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
 				return Integer.toString(classificationResult.getOovObservationCount());
 			}
@@ -136,123 +155,135 @@ public final class RoundEvaluationResultTablularDataWriter {
 		ORIG_TOKEN_COUNT {
 
 			@Override
-			public String apply(final RoundEvaluationResult evalResult) {
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Utterance> utts = round.getUtts();
 				final Stream<String> tokens = utts.stream().map(Utterance::getTokens).flatMap(List::stream);
 				return Long.toString(tokens.count());
 			}
 
-		}, SHAPE{
+		},
+		SHAPE {
 
 			@Override
-			public String apply(RoundEvaluationResult evalResult) {
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Referent> refs = round.getReferents();
 				assert refs.stream().filter(Referent::isTarget).count() == 1L;
 				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
 				return targetRef.getShape();
 			}
-			
-		}, EDGE_COUNT{
+
+		},
+		EDGE_COUNT {
 
 			@Override
-			public String apply(RoundEvaluationResult evalResult) {
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Referent> refs = round.getReferents();
 				assert refs.stream().filter(Referent::isTarget).count() == 1L;
 				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
 				return Integer.toString(targetRef.getEdgeCount());
 			}
-			
-		}, SIZE{
+
+		},
+		SIZE {
 
 			@Override
-			public String apply(RoundEvaluationResult evalResult) {
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Referent> refs = round.getReferents();
 				assert refs.stream().filter(Referent::isTarget).count() == 1L;
 				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
 				return Double.toString(targetRef.getSize());
 			}
-			
-		}, RED{
+
+		},
+		RED {
 
 			@Override
-			public String apply(RoundEvaluationResult evalResult) {
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Referent> refs = round.getReferents();
 				assert refs.stream().filter(Referent::isTarget).count() == 1L;
 				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
 				return Float.toString(targetRef.getRed());
 			}
-			
-		}, GREEN{
+
+		},
+		GREEN {
 
 			@Override
-			public String apply(RoundEvaluationResult evalResult) {
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Referent> refs = round.getReferents();
 				assert refs.stream().filter(Referent::isTarget).count() == 1L;
 				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
 				return Float.toString(targetRef.getGreen());
 			}
-			
-		}, BLUE{
+
+		},
+		BLUE {
 
 			@Override
-			public String apply(RoundEvaluationResult evalResult) {
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Referent> refs = round.getReferents();
 				assert refs.stream().filter(Referent::isTarget).count() == 1L;
 				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
 				return Float.toString(targetRef.getBlue());
 			}
-			
-		}, HUE{
+
+		},
+		HUE {
 
 			@Override
-			public String apply(RoundEvaluationResult evalResult) {
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Referent> refs = round.getReferents();
 				assert refs.stream().filter(Referent::isTarget).count() == 1L;
 				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
 				return Float.toString(targetRef.getHue());
 			}
-			
-		}, POSITION_X{
+
+		},
+		POSITION_X {
 
 			@Override
-			public String apply(RoundEvaluationResult evalResult) {
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Referent> refs = round.getReferents();
 				assert refs.stream().filter(Referent::isTarget).count() == 1L;
 				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
 				return Double.toString(targetRef.getPositionX());
 			}
-			
-		}, POSITION_Y{
+
+		},
+		POSITION_Y {
 
 			@Override
-			public String apply(RoundEvaluationResult evalResult) {
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Referent> refs = round.getReferents();
 				assert refs.stream().filter(Referent::isTarget).count() == 1L;
 				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
 				return Double.toString(targetRef.getPositionY());
 			}
-			
+
 		};
 
-//		private static final List<Datum> ORDERING = createOrderingList();
-//
-//		private static List<Datum> createOrderingList() {
-//			final List<Datum> result = Arrays.asList(CLASSIFICATION_START, DYAD, ROUND, ROUND_START_TIME, SCORE, RANK,
-//					UTT_COUNT, ORIG_TOKEN_COUNT, REFERRING_TOKEN_COUNT, REFERRING_TOKEN_TYPES, OOV_COUNT);
-//			assert result.size() == Datum.values().length;
-//			return result;
-//		}
 	}
+	// @formatter:on
 
 	private static final Collector<CharSequence, ?, String> TOKEN_JOINER = Collectors.joining(",");
 
@@ -281,15 +312,15 @@ public final class RoundEvaluationResultTablularDataWriter {
 
 	private final CSVPrinter printer;
 
-	private RoundEvaluationResultTablularDataWriter(final CSVPrinter printer) {
+	private CrossValidationRoundEvaluationResultTablularDataWriter(final CSVPrinter printer) {
 		this.printer = printer;
 	}
 
-	RoundEvaluationResultTablularDataWriter(final Appendable out) throws IOException {
+	CrossValidationRoundEvaluationResultTablularDataWriter(final Appendable out) throws IOException {
 		this(FORMAT.print(out));
 	}
 
-	public void accept(final RoundEvaluationResult input) throws IOException {
+	public void accept(final CrossValidationRoundEvaluationResult input) throws IOException {
 		final Stream<String> row = Arrays.stream(Datum.values()).map(datum -> datum.apply(input));
 		printer.printRecord((Iterable<String>) row::iterator);
 	}

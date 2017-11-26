@@ -26,6 +26,21 @@ import java.util.Map;
  */
 public enum ModelParameter {
 	/**
+	 * The number of times a full cross-validation should be performed; This is
+	 * useful for cases where randomization might affect results, such as when
+	 * {@link #TRAINING_SET_SIZE_DISCOUNT} is greater than 0. This should be a
+	 * positive {@link Integer}.
+	 */
+	CROSS_VALIDATION_ITER_COUNT {
+		/**
+		 * @return A positive {@link Integer} value.
+		 */
+		@Override
+		protected Object parseValue(final String input) {
+			return parsePositiveInteger(input);
+		}
+	},
+	/**
 	 * Only build model for words with more or equal number of instances than
 	 * this; This should be a positive {@link Integer}.
 	 */
@@ -134,6 +149,7 @@ public enum ModelParameter {
 	 */
 	public static Map<ModelParameter, Object> createDefaultParamValueMap() {
 		final Map<ModelParameter, Object> result = new EnumMap<>(ModelParameter.class);
+		result.put(CROSS_VALIDATION_ITER_COUNT, 1);
 		result.put(DISCOUNT, 3);
 		result.put(ONLY_INSTRUCTOR, true);
 		result.put(RANDOM_SEED, 1L);
