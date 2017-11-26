@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Executor;
@@ -186,6 +187,9 @@ public class CrossValidator {
 	public void crossValidate(final SessionSet set,
 			final Consumer<? super CrossValidationRoundEvaluationResult> resultHandler) {
 		final int cvIterCount = (Integer) modelParams.get(ModelParameter.CROSS_VALIDATION_ITER_COUNT);
+		// Pass the same Random instance to each cross-validation iteration so that each iteration is potentially different
+		final long randomSeed = (Long) modelParams.get(ModelParameter.RANDOM_SEED);
+		final Random random = new Random(randomSeed);
 		for (int i = 1; i <= cvIterCount; ++i) {
 			// This is required to allow binding to the variable in the lambda
 			// below
@@ -200,7 +204,7 @@ public class CrossValidator {
 				} catch (final ClassificationException e) {
 					throw new Exception(training, testing, e);
 				}
-			}, modelParams);
+			}, modelParams, random);
 		}
 
 	}

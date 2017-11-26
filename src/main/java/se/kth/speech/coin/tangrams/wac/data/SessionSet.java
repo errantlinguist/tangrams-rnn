@@ -50,10 +50,8 @@ public final class SessionSet {
 	}
 
 	public void crossValidate(final BiConsumer<SessionSet, Session> consumer,
-			final Map<ModelParameter, Object> modelParams) {
+			final Map<ModelParameter, Object> modelParams, Random random) {
 		final int trainingSetSizeDiscount = (Integer) modelParams.get(ModelParameter.TRAINING_SET_SIZE_DISCOUNT);
-		final long randomSeed = (Long) modelParams.get(ModelParameter.RANDOM_SEED);
-		final Random random = new Random(randomSeed);
 		final ListIterator<Session> testSessionIter = sessions.listIterator();
 		while (testSessionIter.hasNext()) {
 			final int testSessionIdx = testSessionIter.nextIndex();
