@@ -44,6 +44,8 @@ public final class UtteranceReferringTokenMapReader {
 
 	private static final Charset DEFAULT_ENCODING = StandardCharsets.UTF_8;
 
+	private static final CSVFormat FORMAT = CSVFormat.TDF.withFirstRecordAsHeader();
+
 	private static TokenSequenceSingletonFactory createDefaultTokenSeqTransformer() {
 		return new TokenSequenceSingletonFactory(RESULT_MAP_INITIAL_CAPACITY);
 	}
@@ -69,11 +71,11 @@ public final class UtteranceReferringTokenMapReader {
 	}
 
 	public Map<List<String>, List<String>> apply(final Reader reader) throws IOException {
-		final CSVParser parser = CSVFormat.TDF.withFirstRecordAsHeader().parse(reader);
-		final Map<List<String>, List<String>> result = new HashMap<>(
-				RESULT_MAP_INITIAL_CAPACITY);
-//		final Object2ObjectOpenHashMap<List<String>, List<String>> result = new Object2ObjectOpenHashMap<>(
-//				DEFAULT_EXPECTED_UNIQUE_TOKEN_SEQ_COUNT);
+		final CSVParser parser = FORMAT.parse(reader);
+		final Map<List<String>, List<String>> result = new HashMap<>(RESULT_MAP_INITIAL_CAPACITY);
+		// final Object2ObjectOpenHashMap<List<String>, List<String>> result =
+		// new Object2ObjectOpenHashMap<>(
+		// DEFAULT_EXPECTED_UNIQUE_TOKEN_SEQ_COUNT);
 		for (final CSVRecord record : parser) {
 			final String tokenStr = record.get("TOKENS");
 			final List<String> tokens = tokenSeqFactory.apply(tokenStr);
@@ -81,7 +83,7 @@ public final class UtteranceReferringTokenMapReader {
 			final List<String> refTokens = tokenSeqFactory.apply(refTokenStr);
 			result.put(tokens, refTokens);
 		}
-//		result.trim();
+		// result.trim();
 		return result;
 	}
 

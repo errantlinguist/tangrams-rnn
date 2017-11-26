@@ -53,6 +53,8 @@ public final class RoundTabularDataReader {
 
 	private static final int DEFAULT_EXPECTED_UNIQUE_ENTITY_COUNT = 20;
 
+	private static final CSVFormat FORMAT = CSVFormat.TDF.withHeader(Header.class).withSkipHeaderRecord();
+
 	private static Referent fetchReferent(final List<Referent> roundEntities, final int entityId, final int roundId) {
 		final int entityIdx = entityId - 1;
 		Lists.ensureIndexNullValues(roundEntities, entityIdx);
@@ -105,7 +107,7 @@ public final class RoundTabularDataReader {
 
 	public List<Round> apply(final Reader reader, final IntFunction<List<Utterance>> roundUttListFactory)
 			throws IOException {
-		final CSVParser parser = CSVFormat.TDF.withHeader(Header.class).withSkipHeaderRecord().parse(reader);
+		final CSVParser parser = FORMAT.parse(reader);
 		final List<Round> result = new ArrayList<>(75);
 		for (final CSVRecord record : parser) {
 			final String eventName = record.get(Header.NAME);

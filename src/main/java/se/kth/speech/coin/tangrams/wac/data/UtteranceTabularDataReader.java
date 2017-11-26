@@ -51,6 +51,8 @@ public final class UtteranceTabularDataReader {
 
 	private static final Charset DEFAULT_INFILE_CHARSET = StandardCharsets.UTF_8;
 
+	private static final CSVFormat FORMAT = CSVFormat.TDF.withHeader(Header.class).withSkipHeaderRecord();
+
 	private static TokenSequenceSingletonFactory createDefaultTokenSeqTransformer() {
 		return new TokenSequenceSingletonFactory(7000);
 	}
@@ -89,7 +91,7 @@ public final class UtteranceTabularDataReader {
 	}
 
 	public List<ArrayList<Utterance>> apply(final Reader reader) throws IOException {
-		final CSVParser parser = CSVFormat.TDF.withHeader(Header.class).withSkipHeaderRecord().parse(reader);
+		final CSVParser parser = FORMAT.parse(reader);
 		final List<ArrayList<Utterance>> result = new ArrayList<>(75);
 		for (final CSVRecord record : parser) {
 			final String speakerId = record.get(Header.SPEAKER);
