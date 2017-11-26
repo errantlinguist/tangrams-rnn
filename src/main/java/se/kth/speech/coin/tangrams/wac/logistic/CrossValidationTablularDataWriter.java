@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -74,13 +75,21 @@ public final class CrossValidationTablularDataWriter {
 		},
 		RANK {
 
+			private final Comparator<Weighted<Referent>> refScoreComparator = createComparator();
+
 			@Override
 			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
-				final List<Referent> ranking = classificationResult.getRanking();
-				final int targetRank = targetRank(ranking.iterator());
+				final List<Weighted<Referent>> scoredRefs = classificationResult.getScoredReferents();
+				scoredRefs.sort(refScoreComparator);
+				final int targetRank = targetRank(scoredRefs.iterator());
 				return Integer.toString(targetRank);
+			}
+
+			private Comparator<Weighted<Referent>> createComparator(){
+				final Comparator<Weighted<Referent>> naturalOrder = Comparator.naturalOrder();
+				return naturalOrder.reversed();
 			}
 
 		},
@@ -317,7 +326,7 @@ public final class CrossValidationTablularDataWriter {
 				return modelParams.get(ModelParameter.TRAINING_SET_SIZE_DISCOUNT).toString();
 			}
 
-		}, 
+		},
 		UPDATE_WEIGHT {
 
 			@Override
@@ -344,10 +353,11 @@ public final class CrossValidationTablularDataWriter {
 	 *            An {@link Iterator} of <em>n</em>-best target referents.
 	 * @return The rank of the true {@link Referent#isTarget() target} referent.
 	 */
-	private static int targetRank(final Iterator<Referent> nbestRefIter) {
+	private static int targetRank(final Iterator<Weighted<Referent>> nbestRefIter) {
 		int rank = 0;
 		while (nbestRefIter.hasNext()) {
-			final Referent ref = nbestRefIter.next();
+			final Weighted<Referent> scoredRef = nbestRefIter.next();
+			final Referent ref = scoredRef.getWrapped();
 			rank++;
 			if (ref.isTarget()) {
 				return rank;

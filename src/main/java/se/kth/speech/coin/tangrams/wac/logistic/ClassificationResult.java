@@ -22,10 +22,10 @@ import se.kth.speech.coin.tangrams.wac.data.Referent;
 final class ClassificationResult {
 
 	/**
-	 * An <em>n</em>-best list of possible target referents for a given
-	 * {@code Round}.
+	 * A list of {@link Weighted} instances representing the confidence score of
+	 * each {@link Referent} being the target referent for the given game round.
 	 */
-	private final List<Referent> ranking;
+	private final List<Weighted<Referent>> scoredReferents;
 
 	/**
 	 * The count of words for which no pre-trained classifier could be found and
@@ -41,9 +41,10 @@ final class ClassificationResult {
 
 	/**
 	 *
-	 * @param ranking
-	 *            An <em>n</em>-best list of possible target referents for a
-	 *            given {@code Round}.
+	 * @param scoredReferents
+	 *            A list of {@link Weighted} instances representing the
+	 *            confidence score of each {@link Referent} being the target
+	 *            referent for the given game round.
 	 * @param words
 	 *            An array of strings used for choosing word classifiers during
 	 *            classification.
@@ -51,8 +52,9 @@ final class ClassificationResult {
 	 *            The count of words for which no pre-trained classifier could
 	 *            be found and thus were interpolated.
 	 */
-	ClassificationResult(final List<Referent> ranking, final String[] words, final int oovObservationCount) {
-		this.ranking = ranking;
+	ClassificationResult(final List<Weighted<Referent>> scoredReferents, final String[] words,
+			final int oovObservationCount) {
+		this.scoredReferents = scoredReferents;
 		this.words = words;
 		this.oovObservationCount = oovObservationCount;
 	}
@@ -66,11 +68,12 @@ final class ClassificationResult {
 	}
 
 	/**
-	 * @return An <em>n</em>-best list of possible target referents for a given
-	 *         {@code Round}.
+	 * @return A list of {@link Weighted} instances representing the confidence
+	 *         score of each {@link Referent} being the target referent for the
+	 *         given game round.
 	 */
-	List<Referent> getRanking() {
-		return ranking;
+	List<Weighted<Referent>> getScoredReferents() {
+		return scoredReferents;
 	}
 
 	/**

@@ -19,7 +19,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -30,7 +29,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
@@ -38,7 +36,6 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.Pair;
 
 import se.kth.speech.HashedCollections;
-import se.kth.speech.MapCollectors;
 import se.kth.speech.NumberTypeConversions;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Round;
@@ -231,8 +228,8 @@ public class LogisticModel {
 				oovObservationCount++;
 			}
 		}
-
-		final Map<Referent, Double> scores = refs.stream().collect(MapCollectors.toMap(Function.identity(), ref -> {
+		
+		final Stream<Weighted<Referent>> scoredRefs = refs.stream().map(ref -> {
 			final Instance inst = createInstance(ref);
 			final DoubleStream wordScores = Arrays.stream(words).mapToDouble(word -> {
 				final Logistic wordClassifier = wordClassifiers.get(word);
@@ -242,16 +239,12 @@ public class LogisticModel {
 				}
 				return score;
 			});
-			return wordScores.average().orElse(Double.NaN);
-		}, refs.size()));
-		final List<Referent> ranking = new ArrayList<>(refs);
-		ranking.sort(new Comparator<Referent>() {
-			@Override
-			public int compare(final Referent o1, final Referent o2) {
-				return scores.get(o2).compareTo(scores.get(o1));
-			}
+			final double score = wordScores.average().orElse(Double.NaN);
+			return new Weighted<Referent>(ref, score);
 		});
-		return new ClassificationResult(ranking, words, oovObservationCount);
+		@SuppressWarnings("unchecked")
+		final List<Weighted<Referent>> scoredRefList = Arrays.asList(scoredRefs.toArray(Weighted[]::new));
+		return new ClassificationResult(scoredRefList, words, oovObservationCount);
 	}
 
 	/**
