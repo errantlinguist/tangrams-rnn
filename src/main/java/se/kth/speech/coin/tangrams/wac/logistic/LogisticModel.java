@@ -340,18 +340,18 @@ public class LogisticModel {
 	 */
 	double eval(final SessionSet set) throws ClassificationException {
 		final Mean mean = new Mean();
+		// NOTE: Values are retrieved directly from the map instead of
+		// e.g.
+		// assigning
+		// them to a final field because it's possible that the map
+		// values
+		// change at another place in the code and performance isn't an
+		// issue
+		// here anyway
+		final double updateWeight = ((Number) modelParams.get(ModelParameter.UPDATE_WEIGHT)).doubleValue();
 		for (final Session session : set.getSessions()) {
 			for (final Round round : session.getRounds()) {
 				mean.increment(targetRank(round));
-				// NOTE: Values are retrieved directly from the map instead of
-				// e.g.
-				// assigning
-				// them to a final field because it's possible that the map
-				// values
-				// change at another place in the code and performance isn't an
-				// issue
-				// here anyway
-				final double updateWeight = ((Number) modelParams.get(ModelParameter.UPDATE_WEIGHT)).doubleValue();
 				if (updateWeight > 0.0) {
 					updateModel(round);
 				}
