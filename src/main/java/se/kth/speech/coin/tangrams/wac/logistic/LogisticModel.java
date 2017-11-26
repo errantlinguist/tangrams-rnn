@@ -34,7 +34,6 @@ import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.math3.stat.descriptive.moment.Mean;
 
 import se.kth.speech.MapCollectors;
 import se.kth.speech.NumberTypeConversions;
@@ -339,7 +338,6 @@ public class LogisticModel {
 	 * Evaluates a SessionSet and returns the mean rank
 	 */
 	double eval(final SessionSet set) throws ClassificationException {
-		final Mean mean = new Mean();
 		// NOTE: Values are retrieved directly from the map instead of
 		// e.g.
 		// assigning
@@ -349,15 +347,13 @@ public class LogisticModel {
 		// issue
 		// here anyway
 		final double updateWeight = ((Number) modelParams.get(ModelParameter.UPDATE_WEIGHT)).doubleValue();
-		for (final Session session : set.getSessions()) {
-			for (final Round round : session.getRounds()) {
-				mean.increment(targetRank(round));
-				if (updateWeight > 0.0) {
-					updateModel(round);
-				}
+		return set.getSessions().stream().map(Session::getRounds).flatMap(List::stream).mapToDouble(round -> {
+			final double rank = targetRank(round);
+			if (updateWeight > 0.0) {
+				updateModel(round);
 			}
-		}
-		return mean.getResult();
+			return rank;
+		}).average().getAsDouble();
 	}
 
 	/**

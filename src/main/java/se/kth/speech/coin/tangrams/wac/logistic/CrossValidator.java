@@ -19,7 +19,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -38,7 +40,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -189,18 +190,18 @@ public class CrossValidator {
 	 * Performs cross validation on a SessionSet and returns the mean rank
 	 */
 	public double crossValidate(final SessionSet set) {
-		final Mean crossMean = new Mean();
+		final List<Double> crossMeans = new ArrayList<>(set.size());
 		set.crossValidate((training, testing) -> {
 			try {
 				final LogisticModel model = modelFactory.get();
 				model.train(training);
 				final double meanRank = model.eval(new SessionSet(testing));
-				crossMean.increment(meanRank);
+				crossMeans.add(meanRank);
 			} catch (final ClassificationException e) {
 				throw new Exception(training, testing, e);
 			}
 		});
-		return crossMean.getResult();
+		return crossMeans.stream().mapToDouble(Double::doubleValue).average().getAsDouble();
 	}
 
 	private void run(final SessionSet set, final CSVPrinter printer) throws IOException {
