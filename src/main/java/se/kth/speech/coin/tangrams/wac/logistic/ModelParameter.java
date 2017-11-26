@@ -29,24 +29,44 @@ public enum ModelParameter {
 	 * Only build model for words with more or equal number of instances than
 	 * this; This should be a positive {@link Integer}.
 	 */
-	DISCOUNT,
+	DISCOUNT {
+		@Override
+		protected Object parseValue(final String input) {
+			return Integer.valueOf(input);
+		}
+	},
 
 	/**
 	 * Only use language from the instructor, i.e.&nbsp;ignore language from the
 	 * manipulator; This should be a {@link Boolean}.
 	 */
-	ONLY_INSTRUCTOR,
+	ONLY_INSTRUCTOR {
+		@Override
+		protected Object parseValue(final String input) {
+			return Boolean.valueOf(input);
+		}
+	},
 
 	/**
 	 * Weight for incremental updates (relative to 1.0 for background model);
 	 * This should be a non-negative {@link Number}.
 	 */
-	UPDATE_WEIGHT,
+	UPDATE_WEIGHT {
+		@Override
+		protected Object parseValue(final String input) {
+			return parseNonNegativeBigDecimal(input);
+		}
+	},
 
 	/**
 	 * Weight score by word frequency; This should be a {@link Boolean}.
 	 */
-	WEIGHT_BY_FREQ;
+	WEIGHT_BY_FREQ {
+		@Override
+		protected Object parseValue(final String input) {
+			return Boolean.valueOf(input);
+		}
+	};
 
 	/**
 	 * Creates a {@link Map} of {@link ModelParameter} values largely analogous
@@ -84,4 +104,27 @@ public enum ModelParameter {
 		assert result.size() == ModelParameter.values().length;
 		return result;
 	}
+
+	/**
+	 * Parses a {@link BigDecimal} from a given string, ensuring that the value
+	 * is non-negative.
+	 *
+	 * @param input
+	 *            The {@link String} to parse.
+	 * @return A new {@code BigDecimal} instance representing a non-negative
+	 *         value.
+	 * @throws IllegalArgumentException
+	 *             if the value is negative.
+	 *
+	 */
+	private static BigDecimal parseNonNegativeBigDecimal(final String input) {
+		final BigDecimal result = new BigDecimal(input);
+		if (BigDecimal.ZERO.compareTo(result) > 0) {
+			throw new IllegalArgumentException(
+					String.format("Value must be non-negative but received \"%s\" as input.", input));
+		}
+		return result;
+	}
+
+	protected abstract Object parseValue(String input);
 }
