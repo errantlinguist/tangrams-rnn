@@ -112,6 +112,11 @@ public final class Round {
 	 * Returns a list of words that have been used in this round
 	 */
 	public Stream<String> getWords(final Map<ModelParameter, Object> modelParams) {
+		// NOTE: Values are retrieved directly from the map instead of
+		// e.g. assigning them to a final field because it's possible that the
+		// map
+		// values change at another place in the code and performance isn't an
+		// issue here anyway
 		final Predicate<Utterance> uttFilter = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR)
 				? Utterance::isInstructor
 				: utt -> true;
