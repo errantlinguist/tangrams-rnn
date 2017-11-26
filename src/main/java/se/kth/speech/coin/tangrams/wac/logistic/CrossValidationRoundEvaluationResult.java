@@ -15,16 +15,29 @@
  */
 package se.kth.speech.coin.tangrams.wac.logistic;
 
+import java.util.Map;
+
 final class CrossValidationRoundEvaluationResult {
 
 	private final int crossValidationIteration;
 
 	private final RoundEvaluationResult evalResult;
 
-	CrossValidationRoundEvaluationResult(final int crossValidationIteration, final RoundEvaluationResult evalResult) {
+	private final Map<ModelParameter, Object> modelParams;
+
+	CrossValidationRoundEvaluationResult(final int crossValidationIteration, final RoundEvaluationResult evalResult,
+			final Map<ModelParameter, Object> modelParams) {
 		this.crossValidationIteration = crossValidationIteration;
 		this.evalResult = evalResult;
+		this.modelParams = modelParams;
 
+	}
+
+	/**
+	 * @return the modelParams
+	 */
+	public Map<ModelParameter, Object> getModelParams() {
+		return modelParams;
 	}
 
 	/**

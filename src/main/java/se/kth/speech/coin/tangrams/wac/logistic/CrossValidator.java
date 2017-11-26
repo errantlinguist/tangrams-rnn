@@ -196,7 +196,7 @@ public class CrossValidator {
 					final LogisticModel model = modelFactory.get();
 					model.train(training);
 					final Stream<RoundEvaluationResult> roundEvalResults = model.eval(new SessionSet(testing));
-					roundEvalResults.map(evalResult -> new CrossValidationRoundEvaluationResult(cvIter, evalResult))
+					roundEvalResults.map(evalResult -> new CrossValidationRoundEvaluationResult(cvIter, evalResult, modelParams))
 							.forEach(resultHandler);
 				} catch (final ClassificationException e) {
 					throw new Exception(training, testing, e);

@@ -21,6 +21,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -278,6 +279,42 @@ public final class CrossValidationRoundEvaluationResultTablularDataWriter {
 				assert refs.stream().filter(Referent::isTarget).count() == 1L;
 				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
 				return Double.toString(targetRef.getPositionY());
+			}
+
+		},
+		DISCOUNT {
+
+			@Override
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
+				return modelParams.get(ModelParameter.DISCOUNT).toString();
+			}
+
+		},
+		ONLY_INSTRUCTOR {
+
+			@Override
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
+				return modelParams.get(ModelParameter.ONLY_INSTRUCTOR).toString();
+			}
+
+		},
+		TRAINING_SET_SIZE_DISCOUNT {
+
+			@Override
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
+				return modelParams.get(ModelParameter.TRAINING_SET_SIZE_DISCOUNT).toString();
+			}
+
+		}, 
+		UPDATE_WEIGHT {
+
+			@Override
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
+				return modelParams.get(ModelParameter.UPDATE_WEIGHT).toString();
 			}
 
 		};
