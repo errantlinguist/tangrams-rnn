@@ -31,6 +31,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
+import se.kth.speech.HashedCollections;
 import se.kth.speech.coin.tangrams.TokenSequenceSingletonFactory;
 
 /**
@@ -40,14 +41,14 @@ import se.kth.speech.coin.tangrams.TokenSequenceSingletonFactory;
  */
 public final class UtteranceReferringTokenMapReader {
 
-	private static final int RESULT_MAP_INITIAL_CAPACITY = 7000;
-
 	private static final Charset DEFAULT_ENCODING = StandardCharsets.UTF_8;
 
 	private static final CSVFormat FORMAT = CSVFormat.TDF.withFirstRecordAsHeader();
 
+	private static final int RESULT_MAP_EXPECTED_SIZE = 3096;
+
 	private static TokenSequenceSingletonFactory createDefaultTokenSeqTransformer() {
-		return new TokenSequenceSingletonFactory(RESULT_MAP_INITIAL_CAPACITY);
+		return new TokenSequenceSingletonFactory(RESULT_MAP_EXPECTED_SIZE);
 	}
 
 	private final Function<? super String, List<String>> tokenSeqFactory;
@@ -72,7 +73,8 @@ public final class UtteranceReferringTokenMapReader {
 
 	public Map<List<String>, List<String>> apply(final Reader reader) throws IOException {
 		final CSVParser parser = FORMAT.parse(reader);
-		final Map<List<String>, List<String>> result = new HashMap<>(RESULT_MAP_INITIAL_CAPACITY);
+		final Map<List<String>, List<String>> result = new HashMap<>(
+				HashedCollections.capacity(RESULT_MAP_EXPECTED_SIZE));
 		// final Object2ObjectOpenHashMap<List<String>, List<String>> result =
 		// new Object2ObjectOpenHashMap<>(
 		// DEFAULT_EXPECTED_UNIQUE_TOKEN_SEQ_COUNT);

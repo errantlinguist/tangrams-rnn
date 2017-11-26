@@ -22,6 +22,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
+import se.kth.speech.HashedCollections;
+
 /**
  * This class is threadsafe.
  *
@@ -33,10 +35,16 @@ public final class TokenSequenceSingletonFactory implements Function<String, Lis
 
 	private static final Pattern TOKEN_DELIMITER_PATTERN = Pattern.compile("\\s+");
 
+	private static final int RESULT_MAP_EXPECTED_SIZE = 3096;
+
 	private final ConcurrentMap<String, List<String>> singletonInstances;
 
+	public TokenSequenceSingletonFactory() {
+		this(RESULT_MAP_EXPECTED_SIZE);
+	}
+
 	public TokenSequenceSingletonFactory(final int instanceCacheInitialCapacity) {
-		singletonInstances = new ConcurrentHashMap<>(instanceCacheInitialCapacity);
+		singletonInstances = new ConcurrentHashMap<>(HashedCollections.capacity(instanceCacheInitialCapacity));
 	}
 
 	@Override

@@ -54,7 +54,7 @@ public final class UtteranceTabularDataReader {
 	private static final CSVFormat FORMAT = CSVFormat.TDF.withHeader(Header.class).withSkipHeaderRecord();
 
 	private static TokenSequenceSingletonFactory createDefaultTokenSeqTransformer() {
-		return new TokenSequenceSingletonFactory(7000);
+		return new TokenSequenceSingletonFactory();
 	}
 
 	private final Function<? super String, List<String>> tokenSeqFactory;
