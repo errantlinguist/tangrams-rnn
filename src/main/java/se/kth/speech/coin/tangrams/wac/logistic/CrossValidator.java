@@ -17,16 +17,16 @@ package se.kth.speech.coin.tangrams.wac.logistic;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -38,8 +38,6 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,10 +126,15 @@ public class CrossValidator {
 				final ForkJoinPool executor = ForkJoinPool.commonPool();
 				LOGGER.info("Will run cross-validation using a(n) {} instance with a parallelism level of {}.",
 						executor.getClass().getSimpleName(), executor.getParallelism());
-				try (CSVPrinter printer = CSVFormat.TDF.withHeader(createColumnNames().toArray(String[]::new))
-						.print(System.out)) {
-					run(executor, set, printer);
-				}
+				final RoundEvaluationResultTablularDataWriter resultWriter = new RoundEvaluationResultTablularDataWriter(
+						System.out);
+				run(executor, set, evalResult -> {
+					try {
+						resultWriter.accept(evalResult);
+					} catch (final IOException e) {
+						throw new UncheckedIOException(e);
+					}
+				});
 			}
 		}
 	}
@@ -147,34 +150,26 @@ public class CrossValidator {
 		}
 	}
 
-	private static Stream<String> createColumnNames() {
-		final Stream.Builder<String> resultBuilder = Stream.builder();
-		resultBuilder.add("TIME");
-		Arrays.stream(ModelParameter.values()).map(Object::toString).forEachOrdered(resultBuilder);
-		resultBuilder.accept("MEAN_RANK");
-		return resultBuilder.build();
-	}
-
-	private static void run(final Executor executor, final SessionSet set, final CSVPrinter printer)
-			throws IOException {
+	private static void run(final Executor executor, final SessionSet set,
+			final Consumer<? super RoundEvaluationResult> resultHandler) throws IOException {
 		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
 		final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
 		final CrossValidator crossValidator = new CrossValidator(modelParams, modelFactory);
 		LOGGER.info("Cross-validating using default parameters.");
-		crossValidator.run(set, printer);
+		crossValidator.run(set, resultHandler);
 		modelParams.put(ModelParameter.ONLY_INSTRUCTOR, false);
 		LOGGER.info("Cross-validating using language from both the instructor and the manipulator.");
-		crossValidator.run(set, printer);
+		crossValidator.run(set, resultHandler);
 		modelParams.put(ModelParameter.UPDATE_WEIGHT, 1.0);
 		LOGGER.info(
 				"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data; All language is used.",
 				modelParams.get(ModelParameter.UPDATE_WEIGHT));
-		crossValidator.run(set, printer);
+		crossValidator.run(set, resultHandler);
 		modelParams.put(ModelParameter.UPDATE_WEIGHT, 5.0);
 		LOGGER.info(
 				"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data; All language is used.",
 				modelParams.get(ModelParameter.UPDATE_WEIGHT));
-		crossValidator.run(set, printer);
+		crossValidator.crossValidate(set, resultHandler);
 	}
 
 	private final Supplier<LogisticModel> modelFactory;
@@ -187,32 +182,24 @@ public class CrossValidator {
 	}
 
 	/**
-	 * Performs cross validation on a SessionSet and returns the mean rank
+	 * Performs cross validation on a {@link SessionSet}.
 	 */
-	public double crossValidate(final SessionSet set) {
-		final List<Double> crossMeans = new ArrayList<>(set.size());
+	public void crossValidate(final SessionSet set, final Consumer<? super RoundEvaluationResult> resultHandler) {
 		set.crossValidate((training, testing) -> {
 			try {
 				final LogisticModel model = modelFactory.get();
 				model.train(training);
-				final double meanRank = model.eval(new SessionSet(testing));
-				crossMeans.add(meanRank);
+				final Stream<RoundEvaluationResult> roundEvalResults = model.eval(new SessionSet(testing));
+				roundEvalResults.forEach(resultHandler);
 			} catch (final ClassificationException e) {
 				throw new Exception(training, testing, e);
 			}
 		});
-		return crossMeans.stream().mapToDouble(Double::doubleValue).average().getAsDouble();
 	}
 
-	private void run(final SessionSet set, final CSVPrinter printer) throws IOException {
-		long t = System.currentTimeMillis();
-		final double score = crossValidate(set);
-		t = (System.currentTimeMillis() - t) / 1000;
-		final Stream.Builder<String> rowBuilder = Stream.builder();
-		rowBuilder.accept(Long.toString(t));
-		Arrays.stream(ModelParameter.values()).map(modelParams::get).map(Object::toString).forEachOrdered(rowBuilder);
-		rowBuilder.accept(Double.toString(score));
-		printer.printRecord((Iterable<String>) rowBuilder.build()::iterator);
+	private void run(final SessionSet set, final Consumer<? super RoundEvaluationResult> resultHandler)
+			throws IOException {
+		crossValidate(set, resultHandler);
 	}
 
 }

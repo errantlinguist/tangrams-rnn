@@ -15,12 +15,15 @@
  */
 package se.kth.speech.coin.tangrams.wac.logistic;
 
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.CompletableFuture;
@@ -35,14 +38,15 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import se.kth.speech.HashedCollections;
 import se.kth.speech.MapCollectors;
 import se.kth.speech.NumberTypeConversions;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.RoundSet;
-import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.Vocabulary;
+import weka.classifiers.Classifier;
 import weka.classifiers.functions.Logistic;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
@@ -50,6 +54,21 @@ import weka.core.Instance;
 import weka.core.Instances;
 
 public class LogisticModel {
+
+	private static class SessionRoundDatum {
+
+		private final String sessionId;
+
+		private final int roundId;
+
+		private final Round round;
+
+		private SessionRoundDatum(final String sessionId, final int roundId, final Round round) {
+			this.sessionId = sessionId;
+			this.roundId = roundId;
+			this.round = round;
+		}
+	}
 
 	private class WordClassifierTrainer implements Supplier<Entry<String, Logistic>> {
 
@@ -76,7 +95,7 @@ public class LogisticModel {
 
 			for (final Weighted<Referent> example : examples) {
 				final Referent ref = example.getWrapped();
-				final Instance inst = toInstance(ref);
+				final Instance inst = createInstance(ref);
 				// The instance's current weight is the weight of the instance's
 				// class; now multiply it by the weight of the word the model is
 				// being trained for
@@ -124,13 +143,13 @@ public class LogisticModel {
 		return rounds.getExampleRounds(word).flatMap(LogisticModel::createClassWeightedReferents);
 	}
 
-	private final Executor asynchronousJobExecutor;
-
-	private ArrayList<Attribute> atts;
-
 	// private Attribute HUE;
 
 	// private Attribute EDGE_COUNT;
+
+	private final Executor asynchronousJobExecutor;
+
+	private ArrayList<Attribute> atts;
 
 	private Attribute BLUE;
 
@@ -185,7 +204,16 @@ public class LogisticModel {
 		return vocab;
 	}
 
-	public List<Referent> rank(final Round round) throws ClassificationException {
+	/**
+	 * Creates an <em>n</em>-best list of possible target referents for a given
+	 * {@link Round}.
+	 *
+	 * @param round
+	 *            The {@code Round} to classify the {@code Referent} instances
+	 *            thereof.
+	 * @return A new {@link ClassificationResult} representing the results.
+	 */
+	public ClassificationResult rank(final Round round) {
 		// NOTE: Values are retrieved directly from the map instead of
 		// e.g. assigning them to a final field because it's possible that the
 		// map
@@ -195,10 +223,21 @@ public class LogisticModel {
 		final int discount = (Integer) modelParams.get(ModelParameter.DISCOUNT);
 		final List<Referent> refs = round.getReferents();
 		final String[] words = round.getWords(modelParams).toArray(String[]::new);
+		final Map<String, Logistic> wordClassifiers = new HashMap<>(HashedCollections.capacity(words.length));
+		int oovObservationCount = 0;
+		for (final String word : words) {
+			final Logistic wordClassifier = wordModels.getOrDefault(word, discountModel);
+			wordClassifiers.put(word, wordClassifier);
+			if (wordClassifier.equals(discountModel)) {
+				oovObservationCount++;
+			}
+		}
+
 		final Map<Referent, Double> scores = refs.stream().collect(MapCollectors.toMap(Function.identity(), ref -> {
-			final Instance inst = toInstance(ref);
+			final Instance inst = createInstance(ref);
 			final DoubleStream wordScores = Arrays.stream(words).mapToDouble(word -> {
-				double score = score(word, inst);
+				final Logistic wordClassifier = wordClassifiers.get(word);
+				double score = score(wordClassifier, inst);
 				if (weightByFreq) {
 					score *= Math.log10(vocab.getCount(word, discount));
 				}
@@ -213,30 +252,39 @@ public class LogisticModel {
 				return scores.get(o2).compareTo(scores.get(o1));
 			}
 		});
-		return ranking;
+		return new ClassificationResult(ranking, words, oovObservationCount);
 	}
 
-	public double score(final String word, final Instance inst) throws ClassificationException {
-		final Logistic model = wordModels.getOrDefault(word, discountModel);
-		double[] dist;
-		try {
-			dist = model.distributionForInstance(inst);
-		} catch (final Exception e) {
-			throw new ClassificationException(e);
-		}
-		return dist[0];
-	}
-
+	/**
+	 *
+	 * @param word
+	 *            The word to use for classification.
+	 * @param ref
+	 *            The {@link Referent} to classify.
+	 * @return The score of the given referent being a target referent,
+	 *         i.e.&nbsp; the true referent the dialogue participants should be
+	 *         referring to in the game in the given round.
+	 * @throws ClassificationException
+	 *             If an {@link Exception} occurs during
+	 *             {@link Classifier#distributionForInstance(Instance)
+	 *             classification}.
+	 */
 	public double score(final String word, final Referent ref) throws ClassificationException {
-		return score(word, toInstance(ref));
+		return score(word, createInstance(ref));
 	}
 
-	public Instance toInstance(final Referent ref) {
-		// NOTE: There is no reason to cache Instance values because
-		// "Instances.add(Instance)" always creates a shallow copy thereof
-		// anyway, so the only possible benefit of a cache would be avoiding the
-		// computational cost of object construction at the cost of extra memory
-		// consumption
+	/**
+	 * Creates a new {@link Instance} representing a given {@link Referent}.
+	 *
+	 * @param ref
+	 *            The {@code Referent} to create an {@code Instance} for.
+	 * @return A new {@code Instance}; There is no reason to cache Instance
+	 *         values because {@link Instances#add(Instance)} always creates a
+	 *         shallow copy thereof anyway, so the only possible benefit of a
+	 *         cache would be avoiding the computational cost of object
+	 *         construction at the cost of greater memory requirements.
+	 */
+	private Instance createInstance(final Referent ref) {
 		final DenseInstance instance = new DenseInstance(atts.size());
 		instance.setValue(SHAPE, ref.getShape());
 		// instance.setValue(EDGE_COUNT, Integer.toString(ref.getEdgeCount()));
@@ -255,19 +303,46 @@ public class LogisticModel {
 	}
 
 	/**
-	 * Returns the rank of the target referent in a round
+	 *
+	 * @param wordClassifier
+	 *            The word to {@link Classifier} to use.
+	 * @param inst
+	 *            The {@link Instance} to classify.
+	 * @return The score of the given referent being a target referent,
+	 *         i.e.&nbsp; the true referent the dialogue participants should be
+	 *         referring to in the game in the given round.
+	 * @throws ClassificationException
+	 *             If an {@link Exception} occurs during
+	 *             {@link Classifier#distributionForInstance(Instance)
+	 *             classification}.
 	 */
-	private int targetRank(final Round round) throws ClassificationException {
-		int rank = 0;
-		final Iterator<Referent> nbestRefIter = rank(round).iterator();
-		while (nbestRefIter.hasNext()) {
-			final Referent ref = nbestRefIter.next();
-			rank++;
-			if (ref.isTarget()) {
-				return rank;
-			}
+	private double score(final Classifier wordClassifier, final Instance inst) throws ClassificationException {
+		double[] dist;
+		try {
+			dist = wordClassifier.distributionForInstance(inst);
+		} catch (final Exception e) {
+			throw new ClassificationException(e);
 		}
-		throw new IllegalArgumentException("No target referent found.");
+		return dist[0];
+	}
+
+	/**
+	 *
+	 * @param word
+	 *            The word to use for classification.
+	 * @param inst
+	 *            The {@link Instance} to classify.
+	 * @return The score of the given referent being a target referent,
+	 *         i.e.&nbsp; the true referent the dialogue participants should be
+	 *         referring to in the game in the given round.
+	 * @throws ClassificationException
+	 *             If an {@link Exception} occurs during
+	 *             {@link Classifier#distributionForInstance(Instance)
+	 *             classification}.
+	 */
+	private double score(final String word, final Instance inst) throws ClassificationException {
+		final Logistic model = wordModels.getOrDefault(word, discountModel);
+		return score(model, inst);
 	}
 
 	/**
@@ -334,26 +409,41 @@ public class LogisticModel {
 				NumberTypeConversions.finiteDoubleValue(updateWeight.doubleValue()));
 	}
 
-	/**
-	 * Evaluates a SessionSet and returns the mean rank
-	 */
-	double eval(final SessionSet set) throws ClassificationException {
-		// NOTE: Values are retrieved directly from the map instead of
-		// e.g.
-		// assigning
-		// them to a final field because it's possible that the map
-		// values
-		// change at another place in the code and performance isn't an
-		// issue
-		// here anyway
+	Stream<RoundEvaluationResult> eval(final SessionSet set) {
+		final Stream<SessionRoundDatum> sessionRoundData = set.getSessions().stream().map(session -> {
+			final String sessionId = session.getName();
+			final List<Round> rounds = session.getRounds();
+			final List<SessionRoundDatum> roundData = new ArrayList<>(rounds.size());
+			final ListIterator<Round> roundIter = rounds.listIterator();
+			while (roundIter.hasNext()) {
+				final Round round = roundIter.next();
+				// Game rounds are 1-indexed, thus calling this after calling
+				// "ListIterator.next()" rather than before
+				final int roundId = roundIter.nextIndex();
+				roundData.add(new SessionRoundDatum(sessionId, roundId, round));
+			}
+			return roundData;
+		}).flatMap(List::stream);
+
+		// NOTE: Values are retrieved directly from the map instead of e.g.
+		// assigning them to a final field because it's possible that the map
+		// values change at another place in the code and performance isn't an
+		// issue here anyway
 		final double updateWeight = ((Number) modelParams.get(ModelParameter.UPDATE_WEIGHT)).doubleValue();
-		return set.getSessions().stream().map(Session::getRounds).flatMap(List::stream).mapToDouble(round -> {
-			final double rank = targetRank(round);
+		return sessionRoundData.map(sessionRoundDatum -> {
+			final Round round = sessionRoundDatum.round;
+			final OffsetDateTime classificationStartTime = OffsetDateTime.now();
+			final ClassificationResult classificationResult = rank(round);
+			// TODO: Currently, this blocks until updating is complete, which
+			// could take a long time; Make this asynchronous and return the
+			// evaluation results, ensuring to block the NEXT evaluation until
+			// updating for THIS iteration is finished
 			if (updateWeight > 0.0) {
 				updateModel(round);
 			}
-			return rank;
-		}).average().getAsDouble();
+			return new RoundEvaluationResult(classificationStartTime, sessionRoundDatum.sessionId,
+					sessionRoundDatum.roundId, round, classificationResult);
+		});
 	}
 
 	/**
