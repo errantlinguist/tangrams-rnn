@@ -22,6 +22,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,21 +40,22 @@ public class WordStats {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(WordStats.class);
 
+	private static final Collector<CharSequence, ?, String> ROW_CELL_JOINER = Collectors.joining("\t");
+
 	public static void main(final String[] args) throws IOException, ClassificationException {
-		if (args.length != 3) {
+		if (args.length != 2) {
 			throw new IllegalArgumentException(
-					String.format("Usage: %s INPATH REFERRING_LANG_FILE OUTPATH", WordStats.class.getName()));
+					String.format("Usage: %s INPATH REFERRING_LANG_FILE", WordStats.class.getName()));
 		} else {
 			final Path inpath = Paths.get(args[0]);
 			final Path refTokenFilePath = Paths.get(args[1]);
-			final Path outpath = Paths.get(args[2]);
 			LOGGER.info("Will read sessions from \"{}\", using referring language read from \"{}\".", inpath,
 					refTokenFilePath);
-			run(inpath, refTokenFilePath, outpath);
+			run(inpath, refTokenFilePath);
 		}
 	}
 
-	private static void run(final Path inpath, final Path refTokenFilePath, final Path outpath) throws IOException {
+	private static void run(final Path inpath, final Path refTokenFilePath) throws IOException {
 		final SessionSet set = new SessionSetReader(refTokenFilePath).apply(inpath);
 		LOGGER.info("Read {} session(s).", set.size());
 		final WordStats stats = new WordStats();
@@ -91,13 +95,15 @@ public class WordStats {
 	}
 
 	public void print() {
+		System.out.println(Stream.of("WORD", "MEAN_TARGET", "MEAN_OFF", "WORD_COUNT").collect(ROW_CELL_JOINER));
 		targetScores.forEach((word, wordTargetScores) -> {
 			final List<Double> wordOffScores = offScores.get(word);
 			if (wordOffScores != null) {
 				final double meanTarget = wordTargetScores.stream().mapToDouble(Double::doubleValue).average()
 						.getAsDouble();
 				final double meanOff = wordOffScores.stream().mapToDouble(Double::doubleValue).average().getAsDouble();
-				System.out.println(word + " " + meanTarget + " " + meanOff + " " + count.get(word));
+				System.out.println(Stream.of(word, meanTarget, meanOff, count.get(word)).map(Object::toString)
+						.collect(ROW_CELL_JOINER));
 			}
 		});
 	}
