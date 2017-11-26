@@ -87,7 +87,6 @@ public class WordStats {
 		final Map<String, List<Double>> scoreMap = target ? targetScores : offScores;
 		scoreMap.computeIfAbsent(word, k -> new ArrayList<>()).add(score);
 		scores.computeIfAbsent(word, k -> new ArrayList<>()).add(score);
-
 		count.put(word, count.getOrDefault(word, 0) + 1);
 	}
 
