@@ -20,7 +20,7 @@ package se.kth.speech.coin.tangrams.wac.logistic;
  * @since Nov 25, 2017
  *
  */
-public final class Weighted<T> implements Comparable<Weighted<T>> {
+public final class Weighted<T> implements Comparable<Weighted<? extends T>> {
 
 	private final T wrapped;
 
@@ -37,7 +37,7 @@ public final class Weighted<T> implements Comparable<Weighted<T>> {
 	 * @see java.lang.Comparable#compareTo(java.lang.Object)
 	 */
 	@Override
-	public int compareTo(final Weighted<T> o) {
+	public int compareTo(final Weighted<? extends T> o) {
 		return Double.compare(weight, o.weight);
 	}
 
