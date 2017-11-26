@@ -316,7 +316,7 @@ public class LogisticModel {
 	 *             {@link Classifier#distributionForInstance(Instance)
 	 *             classification}.
 	 */
-	private double score(final Logistic wordClassifier, final Instance inst) throws ClassificationException {
+	private double score(final Classifier wordClassifier, final Instance inst) throws ClassificationException {
 		double[] dist;
 		try {
 			dist = wordClassifier.distributionForInstance(inst);
