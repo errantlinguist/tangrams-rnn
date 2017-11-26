@@ -15,7 +15,6 @@
  */
 package se.kth.speech.coin.tangrams.wac.logistic;
 
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
