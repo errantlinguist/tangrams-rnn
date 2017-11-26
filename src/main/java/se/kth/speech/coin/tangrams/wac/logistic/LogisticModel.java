@@ -29,7 +29,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
-import java.util.function.DoubleBinaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -188,6 +187,7 @@ public class LogisticModel {
 	public List<Referent> rank(final Round round) throws ClassificationException {
 		final Map<Referent, Double> scores = new HashMap<>();
 		final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
+		final int discount = (Integer) modelParams.get(ModelParameter.DISCOUNT);
 		for (final Referent ref : round.getReferents()) {
 			final Instance inst = toInstance(ref);
 			final Mean mean = new Mean();
@@ -204,7 +204,7 @@ public class LogisticModel {
 				// issue
 				// here anyway
 				if (weightByFreq) {
-					score *= Math.log10(vocab.getCount(word, 3));
+					score *= Math.log10(vocab.getCount(word, discount));
 				}
 				mean.increment(score);
 			}
