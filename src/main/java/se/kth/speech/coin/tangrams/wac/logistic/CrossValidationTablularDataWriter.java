@@ -300,6 +300,15 @@ public final class CrossValidationTablularDataWriter {
 			}
 
 		},
+		RANDOM_SEED {
+
+			@Override
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
+				return modelParams.get(ModelParameter.RANDOM_SEED).toString();
+			}
+
+		},
 		TRAINING_SET_SIZE_DISCOUNT {
 
 			@Override
