@@ -316,9 +316,14 @@ public class LogisticModel {
 	 *             {@link Classifier#distributionForInstance(Instance)
 	 *             classification}.
 	 */
-	private double score(final Classifier wordClassifier, final Instance inst) throws ClassificationException {
+	private double score(final Logistic wordClassifier, final Instance inst) throws ClassificationException {
 		double[] dist;
 		try {
+			// NOTE: This cannot be (much) slower than
+			// "weka.core.BatchPredictor.distributionsForInstances(Instances)"
+			// because the class Logistic simply calls the following method for
+			// each Instance in a given Instances collection, and creating an
+			// Instances is more expensive than a simple e.g. ArrayList
 			dist = wordClassifier.distributionForInstance(inst);
 		} catch (final Exception e) {
 			throw new ClassificationException(e);
