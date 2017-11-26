@@ -113,8 +113,16 @@ public class LogisticModel {
 
 	private static final int DEFAULT_EXPECTED_WORD_CLASS_COUNT = 1000;
 
-	private static final List<String> REFERENT_CLASSIFICATION_VALUES = Arrays.asList(
-			Stream.of(Boolean.TRUE, Boolean.FALSE).map(Object::toString).map(String::intern).toArray(String[]::new));
+	private static final List<String> REFERENT_CLASSIFICATION_VALUES;
+
+	private static final int POSITIVE_REFERENT_CLASSIFICATION_VALUE_IDX;
+
+	static {
+		final String posRefClassificationValue = Boolean.TRUE.toString().intern();
+		final String negRefClassificationValue = Boolean.FALSE.toString().intern();
+		REFERENT_CLASSIFICATION_VALUES = Arrays.asList(posRefClassificationValue, negRefClassificationValue);
+		POSITIVE_REFERENT_CLASSIFICATION_VALUE_IDX = REFERENT_CLASSIFICATION_VALUES.indexOf(posRefClassificationValue);
+	}
 
 	private static Stream<Weighted<Referent>> createClassWeightedReferents(final Round round) {
 		final List<Referent> refs = round.getReferents();
@@ -228,7 +236,7 @@ public class LogisticModel {
 				oovObservationCount++;
 			}
 		}
-		
+
 		final Stream<Weighted<Referent>> scoredRefs = refs.stream().map(ref -> {
 			final Instance inst = createInstance(ref);
 			final DoubleStream wordScores = Arrays.stream(words).mapToDouble(word -> {
@@ -240,7 +248,7 @@ public class LogisticModel {
 				return score;
 			});
 			final double score = wordScores.average().orElse(Double.NaN);
-			return new Weighted<Referent>(ref, score);
+			return new Weighted<>(ref, score);
 		});
 		@SuppressWarnings("unchecked")
 		final List<Weighted<Referent>> scoredRefList = Arrays.asList(scoredRefs.toArray(Weighted[]::new));
@@ -308,14 +316,14 @@ public class LogisticModel {
 	 *             {@link Classifier#distributionForInstance(Instance)
 	 *             classification}.
 	 */
-	private double score(final Classifier wordClassifier, final Instance inst) throws ClassificationException {
+	private double score(final Logistic wordClassifier, final Instance inst) throws ClassificationException {
 		double[] dist;
 		try {
 			dist = wordClassifier.distributionForInstance(inst);
 		} catch (final Exception e) {
 			throw new ClassificationException(e);
 		}
-		return dist[0];
+		return dist[POSITIVE_REFERENT_CLASSIFICATION_VALUE_IDX];
 	}
 
 	/**
