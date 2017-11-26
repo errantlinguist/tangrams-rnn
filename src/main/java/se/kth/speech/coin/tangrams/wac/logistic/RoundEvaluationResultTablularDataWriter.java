@@ -143,6 +143,105 @@ public final class RoundEvaluationResultTablularDataWriter {
 				return Long.toString(tokens.count());
 			}
 
+		}, SHAPE{
+
+			@Override
+			public String apply(RoundEvaluationResult evalResult) {
+				final Round round = evalResult.getRound();
+				final List<Referent> refs = round.getReferents();
+				assert refs.stream().filter(Referent::isTarget).count() == 1L;
+				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
+				return targetRef.getShape();
+			}
+			
+		}, EDGE_COUNT{
+
+			@Override
+			public String apply(RoundEvaluationResult evalResult) {
+				final Round round = evalResult.getRound();
+				final List<Referent> refs = round.getReferents();
+				assert refs.stream().filter(Referent::isTarget).count() == 1L;
+				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
+				return Integer.toString(targetRef.getEdgeCount());
+			}
+			
+		}, SIZE{
+
+			@Override
+			public String apply(RoundEvaluationResult evalResult) {
+				final Round round = evalResult.getRound();
+				final List<Referent> refs = round.getReferents();
+				assert refs.stream().filter(Referent::isTarget).count() == 1L;
+				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
+				return Double.toString(targetRef.getSize());
+			}
+			
+		}, RED{
+
+			@Override
+			public String apply(RoundEvaluationResult evalResult) {
+				final Round round = evalResult.getRound();
+				final List<Referent> refs = round.getReferents();
+				assert refs.stream().filter(Referent::isTarget).count() == 1L;
+				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
+				return Float.toString(targetRef.getRed());
+			}
+			
+		}, GREEN{
+
+			@Override
+			public String apply(RoundEvaluationResult evalResult) {
+				final Round round = evalResult.getRound();
+				final List<Referent> refs = round.getReferents();
+				assert refs.stream().filter(Referent::isTarget).count() == 1L;
+				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
+				return Float.toString(targetRef.getGreen());
+			}
+			
+		}, BLUE{
+
+			@Override
+			public String apply(RoundEvaluationResult evalResult) {
+				final Round round = evalResult.getRound();
+				final List<Referent> refs = round.getReferents();
+				assert refs.stream().filter(Referent::isTarget).count() == 1L;
+				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
+				return Float.toString(targetRef.getBlue());
+			}
+			
+		}, HUE{
+
+			@Override
+			public String apply(RoundEvaluationResult evalResult) {
+				final Round round = evalResult.getRound();
+				final List<Referent> refs = round.getReferents();
+				assert refs.stream().filter(Referent::isTarget).count() == 1L;
+				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
+				return Float.toString(targetRef.getHue());
+			}
+			
+		}, POSITION_X{
+
+			@Override
+			public String apply(RoundEvaluationResult evalResult) {
+				final Round round = evalResult.getRound();
+				final List<Referent> refs = round.getReferents();
+				assert refs.stream().filter(Referent::isTarget).count() == 1L;
+				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
+				return Double.toString(targetRef.getPositionX());
+			}
+			
+		}, POSITION_Y{
+
+			@Override
+			public String apply(RoundEvaluationResult evalResult) {
+				final Round round = evalResult.getRound();
+				final List<Referent> refs = round.getReferents();
+				assert refs.stream().filter(Referent::isTarget).count() == 1L;
+				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
+				return Double.toString(targetRef.getPositionY());
+			}
+			
 		};
 
 //		private static final List<Datum> ORDERING = createOrderingList();
