@@ -30,9 +30,12 @@ public enum ModelParameter {
 	 * this; This should be a positive {@link Integer}.
 	 */
 	DISCOUNT {
+		/**
+		 * @return A positive {@link Integer} value.
+		 */
 		@Override
 		protected Object parseValue(final String input) {
-			return Integer.valueOf(input);
+			return parsePositiveInteger(input);
 		}
 	},
 
@@ -41,6 +44,9 @@ public enum ModelParameter {
 	 * manipulator; This should be a {@link Boolean}.
 	 */
 	ONLY_INSTRUCTOR {
+		/**
+		 * @return A {@link Boolean} value.
+		 */
 		@Override
 		protected Object parseValue(final String input) {
 			return Boolean.valueOf(input);
@@ -52,6 +58,9 @@ public enum ModelParameter {
 	 * This should be a non-negative {@link Number}.
 	 */
 	UPDATE_WEIGHT {
+		/**
+		 * A non-negative {@link BigDecimal} instance.
+		 */
 		@Override
 		protected Object parseValue(final String input) {
 			return parseNonNegativeBigDecimal(input);
@@ -62,6 +71,9 @@ public enum ModelParameter {
 	 * Weight score by word frequency; This should be a {@link Boolean}.
 	 */
 	WEIGHT_BY_FREQ {
+		/**
+		 * @return A {@link Boolean} value.
+		 */
 		@Override
 		protected Object parseValue(final String input) {
 			return Boolean.valueOf(input);
@@ -126,5 +138,32 @@ public enum ModelParameter {
 		return result;
 	}
 
+	/**
+	 * Parses a {@link Integer} from a given string, ensuring that the value is
+	 * positive.
+	 *
+	 * @param input
+	 *            The {@link String} to parse.
+	 * @return An {@code Integer} instance representing a positive value.
+	 * @throws IllegalArgumentException
+	 *             if the value is non-positive.
+	 *
+	 */
+	private static Integer parsePositiveInteger(final String input) {
+		final Integer result = Integer.valueOf(input);
+		if (result < 1) {
+			throw new IllegalArgumentException(
+					String.format("Value must be positive but received \"%s\" as input.", input));
+		}
+		return result;
+	}
+
+	/**
+	 * Parses a string as a value for this {@link ModelParameter parameter}.
+	 *
+	 * @param input
+	 *            The {@link String} to parse.
+	 * @return The parsed value.
+	 */
 	protected abstract Object parseValue(String input);
 }
