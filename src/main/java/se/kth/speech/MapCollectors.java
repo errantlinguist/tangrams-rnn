@@ -110,10 +110,10 @@ public final class MapCollectors {
 	 *         whose keys and values are the result of applying mapping
 	 *         functions to the input elements
 	 *
-	 * @see #CollectorstoMap(Function, Function)
-	 * @see #CollectorstoMap(Function, Function, BinaryOperator)
-	 * @see #CollectorstoMap(Function, Function, BinaryOperator, Supplier)
-	 * @see #CollectorstoConcurrentMap(Function, Function)
+	 * @see Collectors#toMap(Function, Function)
+	 * @see Collectors#toMap(Function, Function, BinaryOperator)
+	 * @see Collectors#toMap(Function, Function, BinaryOperator, Supplier)
+	 * @see Collectors#toConcurrentMap(Function, Function)
 	 */
 	public static <T, K, U> Collector<T, ?, Map<K, U>> toMap(final Function<? super T, ? extends K> keyMapper,
 			final Function<? super T, ? extends U> valueMapper, final int expectedSize) {
