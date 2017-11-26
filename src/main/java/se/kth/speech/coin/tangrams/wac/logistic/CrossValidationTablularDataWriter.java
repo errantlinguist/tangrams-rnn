@@ -34,7 +34,7 @@ import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.Utterance;
 
-public final class CrossValidationRoundEvaluationResultTablularDataWriter {
+public final class CrossValidationTablularDataWriter {
 
 	// @formatter:off
 	private enum Datum implements Function<CrossValidationRoundEvaluationResult, String> {
@@ -349,11 +349,11 @@ public final class CrossValidationRoundEvaluationResultTablularDataWriter {
 
 	private final CSVPrinter printer;
 
-	private CrossValidationRoundEvaluationResultTablularDataWriter(final CSVPrinter printer) {
+	private CrossValidationTablularDataWriter(final CSVPrinter printer) {
 		this.printer = printer;
 	}
 
-	CrossValidationRoundEvaluationResultTablularDataWriter(final Appendable out) throws IOException {
+	CrossValidationTablularDataWriter(final Appendable out) throws IOException {
 		this(FORMAT.print(out));
 	}
 

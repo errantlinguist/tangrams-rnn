@@ -126,7 +126,7 @@ public class CrossValidator {
 				final ForkJoinPool executor = ForkJoinPool.commonPool();
 				LOGGER.info("Will run cross-validation using a(n) {} instance with a parallelism level of {}.",
 						executor.getClass().getSimpleName(), executor.getParallelism());
-				final CrossValidationRoundEvaluationResultTablularDataWriter resultWriter = new CrossValidationRoundEvaluationResultTablularDataWriter(
+				final CrossValidationTablularDataWriter resultWriter = new CrossValidationTablularDataWriter(
 						System.out);
 				run(executor, set, evalResult -> {
 					try {
