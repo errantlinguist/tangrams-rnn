@@ -115,8 +115,7 @@ public class CrossValidator {
 		} else {
 			final Path[] inpaths = cl.getArgList().stream().map(Paths::get).toArray(Path[]::new);
 			if (inpaths.length < 1) {
-				throw new IllegalArgumentException(
-						String.format("Usage: %s INPATH", DialogueReferentDescriptionWriter.class.getSimpleName()));
+				throw new ParseException("No input paths specified.");
 			} else {
 				LOGGER.info("Will read sessions from {}.", Arrays.toString(inpaths));
 				final Path refTokenFilePath = ((File) cl.getParsedOptionValue(Parameter.REFERRING_TOKENS.optName))
