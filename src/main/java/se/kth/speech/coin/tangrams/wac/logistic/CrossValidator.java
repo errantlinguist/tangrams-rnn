@@ -156,15 +156,15 @@ public class CrossValidator {
 		final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
 		final CrossValidator crossValidator = new CrossValidator(modelFactory);
 		LOGGER.info("Cross-validating using default parameters.");
-		crossValidator.run(set, resultHandler);
+		crossValidator.crossValidate(set, resultHandler);
 		modelParams.put(ModelParameter.ONLY_INSTRUCTOR, false);
 		LOGGER.info("Cross-validating using language from both the instructor and the manipulator.");
-		crossValidator.run(set, resultHandler);
+		crossValidator.crossValidate(set, resultHandler);
 		modelParams.put(ModelParameter.UPDATE_WEIGHT, 1.0);
 		LOGGER.info(
 				"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data; All language is used.",
 				modelParams.get(ModelParameter.UPDATE_WEIGHT));
-		crossValidator.run(set, resultHandler);
+		crossValidator.crossValidate(set, resultHandler);
 		modelParams.put(ModelParameter.UPDATE_WEIGHT, 5.0);
 		LOGGER.info(
 				"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data; All language is used.",
@@ -192,11 +192,6 @@ public class CrossValidator {
 				throw new Exception(training, testing, e);
 			}
 		});
-	}
-
-	private void run(final SessionSet set, final Consumer<? super RoundEvaluationResult> resultHandler)
-			throws IOException {
-		crossValidate(set, resultHandler);
 	}
 
 }
