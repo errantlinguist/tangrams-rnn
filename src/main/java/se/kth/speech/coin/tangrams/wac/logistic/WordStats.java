@@ -73,6 +73,7 @@ public class WordStats {
 	}
 
 	private final Map<String, List<Double>> targetScores = new HashMap<>();
+
 	private final Map<String, List<Double>> offScores = new HashMap<>();
 
 	private final Map<String, List<Double>> scores = new HashMap<>();
@@ -83,17 +84,8 @@ public class WordStats {
 		// if (target && score < 0.2) {
 		// System.out.println(word + " " + round.prettyDialog());
 		// }
-		if (target) {
-			if (!targetScores.containsKey(word)) {
-				targetScores.put(word, new ArrayList<>());
-			}
-			targetScores.get(word).add(score);
-		} else {
-			if (!offScores.containsKey(word)) {
-				offScores.put(word, new ArrayList<>());
-			}
-			offScores.get(word).add(score);
-		}
+		final Map<String, List<Double>> scoreMap = target ? targetScores : offScores;
+		scoreMap.computeIfAbsent(word, k -> new ArrayList<>()).add(score);
 		scores.computeIfAbsent(word, k -> new ArrayList<>()).add(score);
 
 		count.put(word, count.getOrDefault(word, 0) + 1);
