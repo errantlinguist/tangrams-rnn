@@ -186,6 +186,10 @@ public class LogisticModel {
 
 	public List<Referent> rank(final Round round) throws ClassificationException {
 		final Map<Referent, Double> scores = new HashMap<>();
+		// NOTE: Values are retrieved directly from the map instead of
+		// e.g. assigning them to a final field because it's possible that the map
+		// values change at another place in the code and performance isn't an
+		// issue here anyway
 		final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
 		final int discount = (Integer) modelParams.get(ModelParameter.DISCOUNT);
 		for (final Referent ref : round.getReferents()) {
@@ -195,14 +199,6 @@ public class LogisticModel {
 			while (wordIter.hasNext()) {
 				final String word = wordIter.next();
 				double score = score(word, inst);
-				// NOTE: Values are retrieved directly from the map instead of
-				// e.g.
-				// assigning
-				// them to a final field because it's possible that the map
-				// values
-				// change at another place in the code and performance isn't an
-				// issue
-				// here anyway
 				if (weightByFreq) {
 					score *= Math.log10(vocab.getCount(word, discount));
 				}
