@@ -35,6 +35,7 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 
+import se.kth.speech.HashedCollections;
 import se.kth.speech.NumberTypeConversions;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Round;
@@ -185,14 +186,15 @@ public class LogisticModel {
 	}
 
 	public List<Referent> rank(final Round round) throws ClassificationException {
-		final Map<Referent, Double> scores = new HashMap<>();
 		// NOTE: Values are retrieved directly from the map instead of
 		// e.g. assigning them to a final field because it's possible that the map
 		// values change at another place in the code and performance isn't an
 		// issue here anyway
 		final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
 		final int discount = (Integer) modelParams.get(ModelParameter.DISCOUNT);
-		for (final Referent ref : round.getReferents()) {
+		final List<Referent> refs = round.getReferents();
+		final Map<Referent, Double> scores = new HashMap<>((HashedCollections.capacity(refs.size())));
+		for (final Referent ref : refs) {
 			final Instance inst = toInstance(ref);
 			final Mean mean = new Mean();
 			final Iterator<String> wordIter = round.getWords(modelParams).iterator();
@@ -206,7 +208,7 @@ public class LogisticModel {
 			}
 			scores.put(ref, mean.getResult());
 		}
-		final List<Referent> ranking = new ArrayList<>(round.getReferents());
+		final List<Referent> ranking = new ArrayList<>(refs);
 		ranking.sort(new Comparator<Referent>() {
 			@Override
 			public int compare(final Referent o1, final Referent o2) {
