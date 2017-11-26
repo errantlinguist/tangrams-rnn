@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Map;
+import java.util.Random;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +40,8 @@ public final class TestDialog {
 
 	public static void main(final String[] args) throws IOException, ClassificationException {
 		if (args.length != 3) {
-			throw new IllegalArgumentException(String.format("Usage: %s INPATH REFERRING_LANG_FILE OUTPATH", TestDialog.class.getName()));
+			throw new IllegalArgumentException(
+					String.format("Usage: %s INPATH REFERRING_LANG_FILE OUTPATH", TestDialog.class.getName()));
 		} else {
 			final Path inpath = Paths.get(args[0]);
 			final Path refTokenFilePath = Paths.get(args[1]);
@@ -51,9 +53,14 @@ public final class TestDialog {
 		}
 	}
 
-	private static void run(final Path inpath, final Path refTokenFilePath, final Path outpath) throws IOException, ClassificationException {
+	private static void run(final Path inpath, final Path refTokenFilePath, final Path outpath)
+			throws IOException, ClassificationException {
 		final SessionSet set = new SessionSetReader(refTokenFilePath).apply(inpath);
 		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
+		// Pass the same Random instance to each cross-validation iteration so
+		// that each iteration is potentially different
+		final long randomSeed = (Long) modelParams.get(ModelParameter.RANDOM_SEED);
+		final Random random = new Random(randomSeed);
 		set.crossValidate((training, testing) -> {
 			final Path outfilePath = outpath.resolve(testing.getName() + ".html");
 			try (PrintWriter pw = new PrintWriter(Files.newBufferedWriter(outfilePath, StandardOpenOption.CREATE,
@@ -75,7 +82,7 @@ public final class TestDialog {
 				throw new UncheckedIOException(e);
 			}
 
-		}, modelParams);
+		}, modelParams, random);
 	}
 
 }
