@@ -138,7 +138,7 @@ public final class Round {
 	 *            The vocabulary of all words to be used as classifiers.
 	 * @param modelParams
 	 *            A {@link Map} of {@link ModelParameter} values.
-	 * @return <code>true</code> if the set of all referring language for the
+	 * @return <code>true</code> iff the set of all referring language for the
 	 *         given round contain words which are not in the given vocabulary.
 	 */
 	public boolean hasDiscount(final Collection<? super String> vocabWords,
@@ -169,7 +169,7 @@ public final class Round {
 	 *            The word to check.
 	 * @param modelParams
 	 *            A {@link Map} of {@link ModelParameter} values.
-	 * @return <code>true</code> If the set of referring language for the round
+	 * @return <code>true</code> Iff the set of referring language for the round
 	 *         contains the given word.
 	 * 
 	 */
