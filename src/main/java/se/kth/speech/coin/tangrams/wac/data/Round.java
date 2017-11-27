@@ -165,7 +165,7 @@ public final class Round {
 	/**
 	 * Checks if the round has a specific word.
 	 * 
-	 * @param vocabWord
+	 * @param word
 	 *            The word to check.
 	 * @param modelParams
 	 *            A {@link Map} of {@link ModelParameter} values.
@@ -173,8 +173,8 @@ public final class Round {
 	 *         contains the given word.
 	 * 
 	 */
-	public boolean hasWord(final String vocabWord, final Map<ModelParameter, Object> modelParams) {
-		return getReferringTokens(modelParams).anyMatch(word -> word.equals(vocabWord));
+	public boolean hasWord(final String word, final Map<ModelParameter, Object> modelParams) {
+		return getReferringTokens(modelParams).anyMatch(word::equals);
 	}
 
 	public boolean isNegative() {
