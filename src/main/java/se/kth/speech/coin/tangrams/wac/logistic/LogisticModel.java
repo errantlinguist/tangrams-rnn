@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -235,6 +236,7 @@ public class LogisticModel {
 				oovObservationCount++;
 			}
 		}
+		assert wordClassifiers.values().stream().noneMatch(Objects::isNull);
 
 		final Stream<Weighted<Referent>> scoredRefs = refs.stream().map(ref -> {
 			final Instance inst = createInstance(ref);
