@@ -383,10 +383,11 @@ public final class CrossValidationTablularDataWriter {
 	}
 
 	public void accept(final CrossValidationRoundEvaluationResult input) throws IOException {
-		final Stream<String> row = Arrays.stream(Datum.values()).map(datum -> datum.apply(input));
+		final List<String> row = Arrays
+				.asList(Arrays.stream(Datum.values()).map(datum -> datum.apply(input)).toArray(String[]::new));
 		writeLock.lock();
 		try {
-			printer.printRecord((Iterable<String>) row::iterator);
+			printer.printRecord(row);
 		} finally {
 			writeLock.unlock();
 		}
