@@ -230,8 +230,7 @@ public class LogisticModel {
 		final Map<String, Logistic> wordClassifiers = new HashMap<>(HashedCollections.capacity(words.length));
 		int oovObservationCount = 0;
 		for (final String word : words) {
-			final Logistic wordClassifier = wordModels.getOrDefault(word, discountModel);
-			wordClassifiers.put(word, wordClassifier);
+			final Logistic wordClassifier = wordModels.computeIfAbsent(word, k -> discountModel);
 			if (wordClassifier.equals(discountModel)) {
 				oovObservationCount++;
 			}
