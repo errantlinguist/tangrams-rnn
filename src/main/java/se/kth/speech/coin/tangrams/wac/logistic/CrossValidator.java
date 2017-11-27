@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Consumer;
@@ -154,9 +155,9 @@ public class CrossValidator {
 			final Consumer<? super CrossValidationRoundEvaluationResult> resultHandler) throws IOException {
 		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
 		final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
-		final CrossValidator crossValidator = new CrossValidator(modelParams, modelFactory);
+		final CrossValidator crossValidator = new CrossValidator(modelParams, modelFactory, executor);
 		LOGGER.info("Cross-validating using default parameters.");
-		crossValidator.crossValidate(set, resultHandler);
+		crossValidator.crossValidateAsynchronously(set, resultHandler);
 		modelParams.put(ModelParameter.ONLY_INSTRUCTOR, false);
 		LOGGER.info("Cross-validating using language from both the instructor and the manipulator.");
 		crossValidator.crossValidate(set, resultHandler);
@@ -176,37 +177,76 @@ public class CrossValidator {
 
 	private final Map<ModelParameter, Object> modelParams;
 
-	public CrossValidator(final Map<ModelParameter, Object> modelParams, final Supplier<LogisticModel> modelFactory) {
+	private final Executor executor;
+
+	public CrossValidator(final Map<ModelParameter, Object> modelParams, final Supplier<LogisticModel> modelFactory,
+			final Executor executor) {
 		this.modelParams = modelParams;
 		this.modelFactory = modelFactory;
+		this.executor = executor;
 	}
 
 	/**
 	 * Performs cross validation on a {@link SessionSet}.
+	 *
+	 * @param set
+	 *            The {@link SessionSet} to perform cross-validation on.
+	 * @param resultHandler
+	 *            A {@link Consumer} of individual
+	 *            {@link CrossValidationRoundEvaluationResult} objects
+	 *            representing the results of testing on a single round in a
+	 *            single session.
 	 */
 	public void crossValidate(final SessionSet set,
 			final Consumer<? super CrossValidationRoundEvaluationResult> resultHandler) {
+		final CompletableFuture<Void> allFinished = CompletableFuture
+				.allOf(crossValidateAsynchronously(set, resultHandler).toArray(CompletableFuture[]::new));
+		allFinished.join();
+	}
+
+	/**
+	 * Performs cross validation on a {@link SessionSet}.
+	 *
+	 * @param set
+	 *            The {@link SessionSet} to perform cross-validation on.
+	 * @param resultHandler
+	 *            A {@link Consumer} of individual
+	 *            {@link CrossValidationRoundEvaluationResult} objects
+	 *            representing the results of testing on a single round in a
+	 *            single session.
+	 * @return A {@link Stream} of <em>n</em> {@link CompletableFuture}, each of
+	 *         which representing the completion of one of <em>n</em>
+	 *         cross-validation test iterations, as defined by
+	 *         {@link ModelParameter#CROSS_VALIDATION_ITER_COUNT}.
+	 */
+	public Stream<CompletableFuture<Void>> crossValidateAsynchronously(final SessionSet set,
+			final Consumer<? super CrossValidationRoundEvaluationResult> resultHandler) {
 		final int cvIterCount = (Integer) modelParams.get(ModelParameter.CROSS_VALIDATION_ITER_COUNT);
-		// Pass the same Random instance to each cross-validation iteration so that each iteration is potentially different
+		// Pass the same Random instance to each cross-validation iteration so
+		// that each iteration is potentially different
 		final long randomSeed = (Long) modelParams.get(ModelParameter.RANDOM_SEED);
 		final Random random = new Random(randomSeed);
+		final Stream.Builder<CompletableFuture<Void>> cvIterationJobs = Stream.builder();
 		for (int i = 1; i <= cvIterCount; ++i) {
 			// This is required to allow binding to the variable in the lambda
 			// below
 			final int cvIter = i;
-			set.crossValidate((training, testing) -> {
-				try {
-					final LogisticModel model = modelFactory.get();
-					model.train(training);
-					final Stream<RoundEvaluationResult> roundEvalResults = model.eval(new SessionSet(testing));
-					roundEvalResults.map(evalResult -> new CrossValidationRoundEvaluationResult(cvIter, evalResult, modelParams))
-							.forEach(resultHandler);
-				} catch (final ClassificationException e) {
-					throw new Exception(training, testing, e);
-				}
-			}, modelParams, random);
+			cvIterationJobs.add(CompletableFuture.runAsync(() -> {
+				set.crossValidate((training, testing) -> {
+					try {
+						final LogisticModel model = modelFactory.get();
+						model.train(training);
+						final Stream<RoundEvaluationResult> roundEvalResults = model.eval(new SessionSet(testing));
+						roundEvalResults.map(
+								evalResult -> new CrossValidationRoundEvaluationResult(cvIter, evalResult, modelParams))
+								.forEach(resultHandler);
+					} catch (final ClassificationException e) {
+						throw new Exception(training, testing, e);
+					}
+				}, modelParams, random);
+			}, executor));
 		}
-
+		return cvIterationJobs.build();
 	}
 
 }
