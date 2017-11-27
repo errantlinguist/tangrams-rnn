@@ -154,9 +154,7 @@ public final class SessionSetReader {
 			throws IOException {
 		LOGGER.info("Reading session at \"{}\".", subdir);
 		final List<ArrayList<Utterance>> roundUtts = uttReader.apply(uttsFile);
-		LOGGER.debug("Reading events file at \"{}\".", eventsFile);
 		final List<Round> rounds = roundReader.apply(eventsFile, roundId -> fetchRoundUtts(roundUtts, roundId));
-		LOGGER.debug("Parsed rounds up to ID {}.", rounds.size());
 		final List<Round> result = trimRounds(rounds);
 		checkWellFormedness(result, subdir);
 		LOGGER.debug("Read {} game round(s) with utterances.", result.size());

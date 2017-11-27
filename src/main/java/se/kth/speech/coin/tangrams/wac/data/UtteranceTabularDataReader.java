@@ -30,6 +30,8 @@ import java.util.function.Function;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import se.kth.speech.Lists;
 import se.kth.speech.coin.tangrams.TokenSequenceSingletonFactory;
@@ -52,6 +54,8 @@ public final class UtteranceTabularDataReader {
 	private static final Charset DEFAULT_INFILE_CHARSET = StandardCharsets.UTF_8;
 
 	private static final CSVFormat FORMAT = CSVFormat.TDF.withHeader(Header.class).withSkipHeaderRecord();
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(UtteranceTabularDataReader.class);
 
 	private static TokenSequenceSingletonFactory createDefaultTokenSeqTransformer() {
 		return new TokenSequenceSingletonFactory();
@@ -85,6 +89,7 @@ public final class UtteranceTabularDataReader {
 	}
 
 	public List<ArrayList<Utterance>> apply(final Path infilePath, final Charset encoding) throws IOException {
+		LOGGER.debug("Reading events file at \"{}\" with encoding \"{}\".", infilePath, encoding);
 		try (BufferedReader reader = Files.newBufferedReader(infilePath, encoding)) {
 			return apply(reader);
 		}
@@ -108,6 +113,7 @@ public final class UtteranceTabularDataReader {
 			final List<Utterance> roundUtts = result.get(roundId);
 			roundUtts.add(utt);
 		}
+		LOGGER.debug("Parsed rounds up to ID {}.", result.size());
 		return result;
 	}
 
