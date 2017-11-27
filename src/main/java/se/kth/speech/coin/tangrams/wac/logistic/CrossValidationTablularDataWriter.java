@@ -23,6 +23,8 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -87,7 +89,7 @@ public final class CrossValidationTablularDataWriter {
 				return Integer.toString(targetRank);
 			}
 
-			private Comparator<Weighted<Referent>> createComparator(){
+			private Comparator<Weighted<Referent>> createComparator() {
 				final Comparator<Weighted<Referent>> naturalOrder = Comparator.naturalOrder();
 				return naturalOrder.reversed();
 			}
@@ -368,8 +370,12 @@ public final class CrossValidationTablularDataWriter {
 
 	private final CSVPrinter printer;
 
+	private final Lock writeLock;
+
 	private CrossValidationTablularDataWriter(final CSVPrinter printer) {
 		this.printer = printer;
+
+		writeLock = new ReentrantLock();
 	}
 
 	CrossValidationTablularDataWriter(final Appendable out) throws IOException {
@@ -378,7 +384,12 @@ public final class CrossValidationTablularDataWriter {
 
 	public void accept(final CrossValidationRoundEvaluationResult input) throws IOException {
 		final Stream<String> row = Arrays.stream(Datum.values()).map(datum -> datum.apply(input));
-		printer.printRecord((Iterable<String>) row::iterator);
+		writeLock.lock();
+		try {
+			printer.printRecord((Iterable<String>) row::iterator);
+		} finally {
+			writeLock.unlock();
+		}
 	}
 
 }
