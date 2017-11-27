@@ -88,7 +88,7 @@ public final class DialogueReferentDescriptionWriter {
 
 		private static void printHelp() {
 			final HelpFormatter formatter = new HelpFormatter();
-			formatter.printHelp(DialogueReferentDescriptionWriter.class.getSimpleName() + " INPATHS...", OPTIONS);
+			formatter.printHelp(DialogueReferentDescriptionWriter.class.getName() + " INPATHS...", OPTIONS);
 		}
 
 		protected final String optName;

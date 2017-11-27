@@ -99,7 +99,7 @@ public class BatchCrossValidator {
 
 		private static void printHelp() {
 			final HelpFormatter formatter = new HelpFormatter();
-			formatter.printHelp(DialogueReferentDescriptionWriter.class.getSimpleName() + " INPATHS...", OPTIONS);
+			formatter.printHelp(BatchCrossValidator.class.getName() + " INPATHS...", OPTIONS);
 		}
 
 		protected final String optName;
