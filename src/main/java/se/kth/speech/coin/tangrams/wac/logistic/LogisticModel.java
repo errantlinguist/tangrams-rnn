@@ -224,7 +224,7 @@ public class LogisticModel {
 		// values change at another place in the code and performance isn't an
 		// issue here anyway
 		final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
-		final int discount = (Integer) modelParams.get(ModelParameter.DISCOUNT);
+		final double discount = ((Integer) modelParams.get(ModelParameter.DISCOUNT)).doubleValue();
 		final List<Referent> refs = round.getReferents();
 		final String[] words = round.getReferringTokens(modelParams).toArray(String[]::new);
 		final Map<String, Logistic> wordClassifiers = new HashMap<>(HashedCollections.capacity(words.length));
@@ -244,7 +244,7 @@ public class LogisticModel {
 				double score = score(wordClassifier, inst);
 				if (weightByFreq) {
 					final Integer seenWordObservationCount = vocab.getCount(word);
-					final int effectiveObservationCount = seenWordObservationCount == null ? discount : seenWordObservationCount;
+					final double effectiveObservationCount = seenWordObservationCount == null ? discount : seenWordObservationCount.doubleValue();
 					score *= Math.log10(effectiveObservationCount);
 				}
 				return score;
