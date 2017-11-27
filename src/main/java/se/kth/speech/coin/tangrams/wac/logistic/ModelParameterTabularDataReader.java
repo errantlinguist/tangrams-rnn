@@ -31,6 +31,8 @@ import java.util.Map;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
@@ -38,6 +40,8 @@ import org.apache.commons.csv.CSVRecord;
  *
  */
 public final class ModelParameterTabularDataReader {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(ModelParameterTabularDataReader.class);
 
 	private static final Charset DEFAULT_ENCODING = StandardCharsets.UTF_8;
 
@@ -62,6 +66,7 @@ public final class ModelParameterTabularDataReader {
 	}
 
 	public List<Map<ModelParameter, Object>> apply(final Path infilePath, final Charset encoding) throws IOException {
+		LOGGER.info("Reading model parameters from \"{}\" with encoding \"{}\".", infilePath, encoding);
 		try (BufferedReader reader = Files.newBufferedReader(infilePath, encoding)) {
 			return apply(reader);
 		}
@@ -74,6 +79,7 @@ public final class ModelParameterTabularDataReader {
 			final Map<ModelParameter, Object> params = createParamValueMap(record);
 			result.add(params);
 		}
+		LOGGER.debug("Read {} model parameter set(s).", result.size());
 		return result;
 	}
 }
