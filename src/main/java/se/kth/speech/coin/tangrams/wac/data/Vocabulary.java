@@ -22,9 +22,9 @@ import java.util.Map;
 
 public final class Vocabulary {
 
-	private final Map<String, Integer> wordObservationCounts;
+	private final Map<String, Long> wordObservationCounts;
 
-	public Vocabulary(final Map<String, Integer> wordObservationCounts) {
+	public Vocabulary(final Map<String, Long> wordObservationCounts) {
 		this.wordObservationCounts = wordObservationCounts;
 	}
 
@@ -55,7 +55,7 @@ public final class Vocabulary {
 		return true;
 	}
 
-	public Integer getCount(final String word) {
+	public Long getCount(final String word) {
 		return wordObservationCounts.get(word);
 	}
 

@@ -245,7 +245,7 @@ public class LogisticModel {
 				assert wordClassifier != null;
 				double score = score(wordClassifier, inst);
 				if (weightByFreq) {
-					final Integer seenWordObservationCount = vocab.getCount(word);
+					final Long seenWordObservationCount = vocab.getCount(word);
 					final double effectiveObservationCount = seenWordObservationCount == null ? discount : seenWordObservationCount.doubleValue();
 					score *= Math.log10(effectiveObservationCount);
 				}

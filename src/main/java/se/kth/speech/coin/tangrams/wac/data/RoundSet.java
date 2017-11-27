@@ -27,8 +27,8 @@ import se.kth.speech.coin.tangrams.wac.logistic.ModelParameter;
 
 public final class RoundSet {
 
-	private static final Collector<String, ?, Map<String, Integer>> VOCAB_COUNTING_COLLECTOR = Collectors
-			.groupingBy(Function.identity(), Collectors.reducing(0, e -> 1, Integer::sum));
+	private static final Collector<String, ?, Map<String, Long>> VOCAB_COUNTING_COLLECTOR = Collectors
+			.groupingBy(Function.identity(), Collectors.counting());
 
 	private final List<Round> rounds;
 
@@ -45,7 +45,7 @@ public final class RoundSet {
 	}
 
 	public Vocabulary createVocabulary() {
-		final Map<String, Integer> counts = rounds.stream().flatMap(round -> round.getReferringTokens(modelParams))
+		final Map<String, Long> counts = rounds.stream().flatMap(round -> round.getReferringTokens(modelParams))
 				.collect(VOCAB_COUNTING_COLLECTOR);
 		return new Vocabulary(counts);
 	}
