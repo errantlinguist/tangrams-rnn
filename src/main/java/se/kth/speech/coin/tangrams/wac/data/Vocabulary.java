@@ -59,15 +59,6 @@ public final class Vocabulary {
 		return wordObservationCounts.get(word);
 	}
 
-	public double getCount(final String word, final int def) {
-		final Integer count = getCount(word);
-		if (count == null) {
-			return def;
-		} else {
-			return count;
-		}
-	}
-
 	public List<String> getUpdatedWordsSince(final Vocabulary oldVocab) {
 		final List<String> newWords = new ArrayList<>();
 		for (final String word : getWords()) {
