@@ -42,7 +42,7 @@ public final class RoundSet {
 	public Vocabulary createVocabulary() {
 		final Vocabulary vocab = new Vocabulary();
 		for (final Round round : rounds) {
-			round.getWords(modelParams).forEach(vocab::add);
+			round.getReferringTokens(modelParams).forEach(vocab::add);
 		}
 		return vocab;
 	}

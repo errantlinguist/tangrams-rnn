@@ -64,7 +64,7 @@ public final class WordStats {
 		model.train(set);
 		final Vocabulary vocab = model.getVocabulary();
 		for (final Round round : new RoundSet(set, modelParams).getRounds()) {
-			round.getWords(modelParams).forEach(word -> {
+			round.getReferringTokens(modelParams).forEach(word -> {
 				if (vocab.has(word)) {
 					for (final Referent ref : round.getReferents()) {
 						final double score = model.score(word, ref);

@@ -226,7 +226,7 @@ public class LogisticModel {
 		final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
 		final int discount = (Integer) modelParams.get(ModelParameter.DISCOUNT);
 		final List<Referent> refs = round.getReferents();
-		final String[] words = round.getWords(modelParams).toArray(String[]::new);
+		final String[] words = round.getReferringTokens(modelParams).toArray(String[]::new);
 		final Map<String, Logistic> wordClassifiers = new HashMap<>(HashedCollections.capacity(words.length));
 		int oovObservationCount = 0;
 		for (final String word : words) {
@@ -388,7 +388,7 @@ public class LogisticModel {
 		final CompletableFuture<Void> discountClassifierTrainingJob = CompletableFuture
 				.supplyAsync(
 						new WordClassifierTrainer("__OUT_OF_VOCABULARY__",
-								() -> createDiscountClassExamples(trainingSet, vocab.getWords()), weight),
+								() -> createDiscountClassExamples(trainingSet, words), weight),
 						asynchronousJobExecutor)
 				.thenAccept(wordClassifier -> discountModel = wordClassifier.getValue());
 		return CompletableFuture

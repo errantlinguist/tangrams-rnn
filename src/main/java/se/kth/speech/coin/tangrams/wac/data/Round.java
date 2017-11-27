@@ -25,13 +25,13 @@ import se.kth.speech.coin.tangrams.wac.logistic.ModelParameter;
 
 public final class Round {
 
-	private final List<Utterance> utts;
-
 	private final List<Referent> referents;
 
 	private final int score;
 
 	private final float time;
+
+	private final List<Utterance> utts;
 
 	public Round(final List<Referent> referents, final List<Utterance> utts, final int score, final float time) {
 		this.referents = referents;
@@ -88,6 +88,28 @@ public final class Round {
 	}
 
 	/**
+	 * Returns a list of all referring-language tokens that have been used in
+	 * this round.
+	 * 
+	 * @param modelParams
+	 *            A {@link Map} of {@link ModelParameter} values.
+	 * @return A {@link Stream} of tokens considered to be referring language
+	 *         for training and classification purposes.
+	 */
+	public Stream<String> getReferringTokens(final Map<ModelParameter, Object> modelParams) {
+		// NOTE: Values are retrieved directly from the map instead of
+		// e.g. assigning them to a final field because it's possible that the
+		// map
+		// values change at another place in the code and performance isn't an
+		// issue here anyway
+		final Predicate<Utterance> uttFilter = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR)
+				? Utterance::isInstructor
+				: utt -> true;
+		final Stream<Utterance> relevantUtts = utts.stream().filter(uttFilter);
+		return relevantUtts.map(Utterance::getReferringTokens).flatMap(List::stream);
+	}
+
+	/**
 	 * @return the score
 	 */
 	public int getScore() {
@@ -109,27 +131,19 @@ public final class Round {
 	}
 
 	/**
-	 * Returns a list of words that have been used in this round
-	 */
-	public Stream<String> getWords(final Map<ModelParameter, Object> modelParams) {
-		// NOTE: Values are retrieved directly from the map instead of
-		// e.g. assigning them to a final field because it's possible that the
-		// map
-		// values change at another place in the code and performance isn't an
-		// issue here anyway
-		final Predicate<Utterance> uttFilter = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR)
-				? Utterance::isInstructor
-				: utt -> true;
-		final Stream<Utterance> relevantUtts = utts.stream().filter(uttFilter);
-		return relevantUtts.map(Utterance::getReferringTokens).flatMap(List::stream);
-	}
-
-	/**
 	 * Checks if the round has a word which is not part of the provided
-	 * collection of words
+	 * collection of words.
+	 * 
+	 * @param vocabWords
+	 *            The vocabulary of all words to be used as classifiers.
+	 * @param modelParams
+	 *            A {@link Map} of {@link ModelParameter} values.
+	 * @return <code>true</code> if the set of all referring language for the
+	 *         given round contain words which are not in the given vocabulary.
 	 */
-	public boolean hasDiscount(final Collection<? super String> words, final Map<ModelParameter, Object> modelParams) {
-		return getWords(modelParams).anyMatch(word -> !words.contains(word));
+	public boolean hasDiscount(final Collection<? super String> vocabWords,
+			final Map<ModelParameter, Object> modelParams) {
+		return getReferringTokens(modelParams).anyMatch(word -> !vocabWords.contains(word));
 	}
 
 	/*
@@ -149,10 +163,18 @@ public final class Round {
 	}
 
 	/**
-	 * Checks if the round has a specific word
+	 * Checks if the round has a specific word.
+	 * 
+	 * @param hasWord
+	 *            The word to check.
+	 * @param modelParams
+	 *            A {@link Map} of {@link ModelParameter} values.
+	 * @return <code>true</code> If the set of referring language for the round
+	 *         contains the given word.
+	 * 
 	 */
 	public boolean hasWord(final String hasWord, final Map<ModelParameter, Object> modelParams) {
-		return getWords(modelParams).anyMatch(word -> word.equals(hasWord));
+		return getReferringTokens(modelParams).anyMatch(word -> word.equals(hasWord));
 	}
 
 	public boolean isNegative() {
