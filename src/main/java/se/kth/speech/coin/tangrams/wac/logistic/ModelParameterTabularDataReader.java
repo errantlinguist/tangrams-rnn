@@ -48,20 +48,18 @@ public final class ModelParameterTabularDataReader {
 	private static final CSVFormat FORMAT = CSVFormat.TDF.withHeader(createColumnHeaders().toArray(String[]::new))
 			.withSkipHeaderRecord();
 
-	private static final ModelParameter[] PARAMS_TO_READ = ModelParameter.values();
-
 	private static final String PARAM_SET_NAME_COL_NAME = "NAME";
 
 	private static Stream<String> createColumnHeaders() {
 		final Stream.Builder<String> resultBuilder = Stream.builder();
 		resultBuilder.add(PARAM_SET_NAME_COL_NAME);
-		Arrays.stream(PARAMS_TO_READ).map(ModelParameter::toString).forEach(resultBuilder);
+		Arrays.stream(ModelParameter.values()).map(ModelParameter::toString).forEach(resultBuilder);
 		return resultBuilder.build();
 	}
 
 	private static Map<ModelParameter, Object> createParamValueMap(final CSVRecord record) {
 		final Map<ModelParameter, Object> result = new EnumMap<>(ModelParameter.class);
-		Arrays.stream(PARAMS_TO_READ).forEach(param -> {
+		Arrays.stream(ModelParameter.values()).forEach(param -> {
 			final String valueStr = record.get(param);
 			assert valueStr != null;
 			final Object parsedValue = param.parseValue(valueStr);

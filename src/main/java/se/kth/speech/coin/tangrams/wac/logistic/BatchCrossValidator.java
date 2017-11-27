@@ -15,23 +15,29 @@
  */
 package se.kth.speech.coin.tangrams.wac.logistic;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.Map;
-import java.util.Random;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -43,6 +49,8 @@ import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import se.kth.speech.FileNames;
+import se.kth.speech.HashedCollections;
 import se.kth.speech.coin.tangrams.wac.data.DialogueReferentDescriptionWriter;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
@@ -60,16 +68,15 @@ public class BatchCrossValidator {
 		MODEL_PARAMS("p") {
 			@Override
 			public Option get() {
-				return Option.builder(optName).longOpt("model-params")
-						.desc("The file to read model parameters from for each individual cross-validation test to run.")
+				return Option.builder(optName).longOpt("model-params").desc(
+						"The file to read model parameters from for each individual cross-validation test to run.")
 						.hasArg().argName("path").type(File.class).required().build();
 			}
 		},
 		OUTDIR("o") {
 			@Override
 			public Option get() {
-				return Option.builder(optName).longOpt("outdir")
-						.desc("The directory to write the output file(s) to.")
+				return Option.builder(optName).longOpt("outdir").desc("The directory to write the output file(s) to.")
 						.hasArg().argName("path").type(File.class).required().build();
 			}
 		},
@@ -127,6 +134,8 @@ public class BatchCrossValidator {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(BatchCrossValidator.class);
 
+	private static final Charset OUTFILE_ENCODING = StandardCharsets.UTF_8;
+
 	public static void main(final CommandLine cl) throws ParseException, IOException {
 		if (cl.hasOption(Parameter.HELP.optName)) {
 			Parameter.printHelp();
@@ -136,31 +145,26 @@ public class BatchCrossValidator {
 				throw new ParseException("No input paths specified.");
 			} else {
 				LOGGER.info("Will read sessions from {}.", Arrays.toString(inpaths));
-				
+
 				final Path outdirPath = ((File) cl.getParsedOptionValue(Parameter.OUTDIR.optName)).toPath();
 				LOGGER.info("Will write results to \"{}\".", outdirPath);
-				
+
 				final Path refTokenFilePath = ((File) cl.getParsedOptionValue(Parameter.REFERRING_TOKENS.optName))
 						.toPath();
 				final SessionSet set = new SessionSetReader(refTokenFilePath).apply(inpaths);
 				LOGGER.info("Will run cross-validation using {} session(s).", set.size());
-				
-				final Path batchModelParamFile = ((File) cl.getParsedOptionValue(Parameter.MODEL_PARAMS.optName)).toPath();
-				Map<String, Map<ModelParameter, Object>> batchModelParams = new ModelParameterTabularDataReader().apply(batchModelParamFile);
-				LOGGER.info("Will run {} cross-validation batch(es).", batchModelParams.size());
-				
+
+				final Path batchModelParamFile = ((File) cl.getParsedOptionValue(Parameter.MODEL_PARAMS.optName))
+						.toPath();
+				final Map<String, Map<ModelParameter, Object>> modelParamSets = new ModelParameterTabularDataReader()
+						.apply(batchModelParamFile);
+				LOGGER.info("Will run {} cross-validation batch(es).", modelParamSets.size());
+
 				final ForkJoinPool executor = ForkJoinPool.commonPool();
 				LOGGER.info("Will run cross-validation using a(n) {} instance with a parallelism level of {}.",
 						executor.getClass().getSimpleName(), executor.getParallelism());
-				final CrossValidationTablularDataWriter resultWriter = new CrossValidationTablularDataWriter(
-						System.out);
-				run(executor, set, evalResult -> {
-					try {
-						resultWriter.accept(evalResult);
-					} catch (final IOException e) {
-						throw new UncheckedIOException(e);
-					}
-				});
+				final BatchCrossValidator batchCrossValidator = new BatchCrossValidator(set, executor);
+				batchCrossValidator.accept(modelParamSets, Files.createDirectories(outdirPath));
 			}
 		}
 	}
@@ -176,102 +180,58 @@ public class BatchCrossValidator {
 		}
 	}
 
-	private static void run(final Executor executor, final SessionSet set,
-			final Consumer<? super CrossValidationRoundEvaluationResult> resultHandler) throws IOException {
-		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
-		final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
-		final BatchCrossValidator crossValidator = new BatchCrossValidator(modelParams, modelFactory, executor);
-		LOGGER.info("Cross-validating using default parameters.");
-		crossValidator.crossValidateAsynchronously(set, resultHandler);
-		modelParams.put(ModelParameter.ONLY_INSTRUCTOR, false);
-		LOGGER.info("Cross-validating using language from both the instructor and the manipulator.");
-		crossValidator.crossValidate(set, resultHandler);
-		modelParams.put(ModelParameter.UPDATE_WEIGHT, 1.0);
-		LOGGER.info(
-				"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data; All language is used.",
-				modelParams.get(ModelParameter.UPDATE_WEIGHT));
-		crossValidator.crossValidate(set, resultHandler);
-		modelParams.put(ModelParameter.UPDATE_WEIGHT, 5.0);
-		LOGGER.info(
-				"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data; All language is used.",
-				modelParams.get(ModelParameter.UPDATE_WEIGHT));
-		crossValidator.crossValidate(set, resultHandler);
-	}
-
-	private final Supplier<LogisticModel> modelFactory;
-
-	private final Map<ModelParameter, Object> modelParams;
+	private final SessionSet set;
 
 	private final Executor executor;
 
-	public BatchCrossValidator(final Map<ModelParameter, Object> modelParams,
-			final Supplier<LogisticModel> modelFactory, final Executor executor) {
-		this.modelParams = modelParams;
-		this.modelFactory = modelFactory;
+	public BatchCrossValidator(final SessionSet set, final Executor executor) {
+		this.set = set;
 		this.executor = executor;
 	}
 
-	/**
-	 * Performs cross validation on a {@link SessionSet}.
-	 *
-	 * @param set
-	 *            The {@link SessionSet} to perform cross-validation on.
-	 * @param resultHandler
-	 *            A {@link Consumer} of individual
-	 *            {@link CrossValidationRoundEvaluationResult} objects
-	 *            representing the results of testing on a single round in a
-	 *            single session.
-	 */
-	public void crossValidate(final SessionSet set,
-			final Consumer<? super CrossValidationRoundEvaluationResult> resultHandler) {
-		final CompletableFuture<Void> allFinished = CompletableFuture
-				.allOf(crossValidateAsynchronously(set, resultHandler).toArray(CompletableFuture[]::new));
-		allFinished.join();
-	}
-
-	/**
-	 * Performs cross validation on a {@link SessionSet} asynchronously.
-	 *
-	 * @param set
-	 *            The {@link SessionSet} to perform cross-validation on.
-	 * @param resultHandler
-	 *            A {@link Consumer} of individual
-	 *            {@link CrossValidationRoundEvaluationResult} objects
-	 *            representing the results of testing on a single round in a
-	 *            single session.
-	 * @return A {@link Stream} of <em>n</em> {@link CompletableFuture}, each of
-	 *         which representing the completion of one of <em>n</em>
-	 *         cross-validation test iterations, as defined by
-	 *         {@link ModelParameter#CROSS_VALIDATION_ITER_COUNT}.
-	 */
-	public Stream<CompletableFuture<Void>> crossValidateAsynchronously(final SessionSet set,
-			final Consumer<? super CrossValidationRoundEvaluationResult> resultHandler) {
-		final int cvIterCount = (Integer) modelParams.get(ModelParameter.CROSS_VALIDATION_ITER_COUNT);
-		// Pass the same Random instance to each cross-validation iteration so
-		// that each iteration is potentially different
-		final long randomSeed = (Long) modelParams.get(ModelParameter.RANDOM_SEED);
-		final Random random = new Random(randomSeed);
-		final Stream.Builder<CompletableFuture<Void>> cvIterationJobs = Stream.builder();
-		for (int i = 1; i <= cvIterCount; ++i) {
-			// This is required to allow binding to the variable in the lambda
-			// below
-			final int cvIter = i;
-			cvIterationJobs.add(CompletableFuture.runAsync(() -> {
-				set.crossValidate((training, testing) -> {
+	public void accept(final Map<String, Map<ModelParameter, Object>> modelParamSets, final Path outdirPath)
+			throws IOException {
+		final Iterator<Entry<String, Map<ModelParameter, Object>>> sortedParamSetIter = modelParamSets.entrySet()
+				.stream().sorted(Comparator.comparing(Entry::getKey)).iterator();
+		final ConcurrentMap<Path, BufferedWriter> outfileWriters = new ConcurrentHashMap<>(
+				HashedCollections.capacity(modelParamSets.size()));
+		try {
+			while (sortedParamSetIter.hasNext()) {
+				final Entry<String, Map<ModelParameter, Object>> sortedParamSet = sortedParamSetIter.next();
+				final String name = sortedParamSet.getKey();
+				final Path outfilePath = outdirPath.resolve(FileNames.sanitize(name + ".tsv", "-"));
+				LOGGER.info("Will write results of cross-validation test named \"{}\" to \"{}\"", name, outfilePath);
+				final Map<ModelParameter, Object> modelParams = sortedParamSet.getValue();
+				final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
+				final CrossValidator crossValidator = new CrossValidator(modelParams, modelFactory, executor);
+				final BufferedWriter newOutfileWriter = Files.newBufferedWriter(outfilePath, OUTFILE_ENCODING,
+						StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+				final BufferedWriter oldOutfileWriter = outfileWriters.put(outfilePath, newOutfileWriter);
+				assert oldOutfileWriter == null;
+				final CrossValidationTablularDataWriter resultWriter = new CrossValidationTablularDataWriter(
+						newOutfileWriter);
+				crossValidator.crossValidate(set, evalResult -> {
 					try {
-						final LogisticModel model = modelFactory.get();
-						model.train(training);
-						final Stream<RoundEvaluationResult> roundEvalResults = model.eval(new SessionSet(testing));
-						roundEvalResults.map(
-								evalResult -> new CrossValidationRoundEvaluationResult(cvIter, evalResult, modelParams))
-								.forEach(resultHandler);
-					} catch (final ClassificationException e) {
-						throw new Exception(training, testing, e);
+						resultWriter.accept(evalResult);
+					} catch (final IOException e) {
+						throw new UncheckedIOException(String.format(
+								"A(n) %s occurred while writing the results of cross-validating while using param set \"%s\" to file \"%s\".",
+								e.getClass().getSimpleName(), name, outfilePath), e);
 					}
-				}, modelParams, random);
-			}, executor));
+				});
+			}
+		} finally {
+			for (final Map.Entry<Path, BufferedWriter> outfileWriter : outfileWriters.entrySet()) {
+				final Path outfilePath = outfileWriter.getKey();
+				final BufferedWriter writer = outfileWriter.getValue();
+				try {
+					writer.close();
+				} catch (final IOException e) {
+					LOGGER.error(String.format("A(n) %s occurred while trying to close the writer for file \"%s\".",
+							e.getClass().getSimpleName(), outfilePath), e);
+				}
+			}
 		}
-		return cvIterationJobs.build();
 	}
 
 }
