@@ -231,7 +231,7 @@ public class LogisticModel {
 		final Map<String, Logistic> wordClassifiers = new HashMap<>(HashedCollections.capacity(words.length));
 		int oovObservationCount = 0;
 		for (final String word : words) {
-			final Logistic wordClassifier = wordModels.computeIfAbsent(word, k -> discountModel);
+			final Logistic wordClassifier = wordClassifiers.computeIfAbsent(word, k -> wordModels.getOrDefault(k, discountModel));
 			if (wordClassifier.equals(discountModel)) {
 				oovObservationCount++;
 			}
@@ -242,6 +242,7 @@ public class LogisticModel {
 			final Instance inst = createInstance(ref);
 			final DoubleStream wordScores = Arrays.stream(words).mapToDouble(word -> {
 				final Logistic wordClassifier = wordClassifiers.get(word);
+				assert wordClassifier != null;
 				double score = score(wordClassifier, inst);
 				if (weightByFreq) {
 					final Integer seenWordObservationCount = vocab.getCount(word);
