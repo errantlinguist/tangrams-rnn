@@ -205,7 +205,7 @@ public class CrossValidator {
 	}
 
 	/**
-	 * Performs cross validation on a {@link SessionSet}.
+	 * Performs cross validation on a {@link SessionSet} asynchronously.
 	 *
 	 * @param set
 	 *            The {@link SessionSet} to perform cross-validation on.
