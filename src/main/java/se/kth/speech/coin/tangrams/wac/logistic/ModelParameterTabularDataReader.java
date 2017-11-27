@@ -22,11 +22,11 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -45,9 +45,19 @@ public final class ModelParameterTabularDataReader {
 
 	private static final Charset DEFAULT_ENCODING = StandardCharsets.UTF_8;
 
-	private static final CSVFormat FORMAT = CSVFormat.TDF.withHeader(ModelParameter.class).withSkipHeaderRecord();
+	private static final CSVFormat FORMAT = CSVFormat.TDF.withHeader(createColumnHeaders().toArray(String[]::new))
+			.withSkipHeaderRecord();
 
 	private static final ModelParameter[] PARAMS_TO_READ = ModelParameter.values();
+
+	private static final String PARAM_SET_NAME_COL_NAME = "NAME";
+
+	private static Stream<String> createColumnHeaders() {
+		final Stream.Builder<String> resultBuilder = Stream.builder();
+		resultBuilder.add(PARAM_SET_NAME_COL_NAME);
+		Arrays.stream(PARAMS_TO_READ).map(ModelParameter::toString).forEach(resultBuilder);
+		return resultBuilder.build();
+	}
 
 	private static Map<ModelParameter, Object> createParamValueMap(final CSVRecord record) {
 		final Map<ModelParameter, Object> result = new EnumMap<>(ModelParameter.class);
@@ -61,23 +71,29 @@ public final class ModelParameterTabularDataReader {
 		return result;
 	}
 
-	public List<Map<ModelParameter, Object>> apply(final Path infilePath) throws IOException {
+	public Map<String, Map<ModelParameter, Object>> apply(final Path infilePath) throws IOException {
 		return apply(infilePath, DEFAULT_ENCODING);
 	}
 
-	public List<Map<ModelParameter, Object>> apply(final Path infilePath, final Charset encoding) throws IOException {
+	public Map<String, Map<ModelParameter, Object>> apply(final Path infilePath, final Charset encoding)
+			throws IOException {
 		LOGGER.info("Reading model parameters from \"{}\" with encoding \"{}\".", infilePath, encoding);
 		try (BufferedReader reader = Files.newBufferedReader(infilePath, encoding)) {
 			return apply(reader);
 		}
 	}
 
-	public List<Map<ModelParameter, Object>> apply(final Reader reader) throws IOException {
+	public Map<String, Map<ModelParameter, Object>> apply(final Reader reader) throws IOException {
 		final CSVParser parser = FORMAT.parse(reader);
-		final List<Map<ModelParameter, Object>> result = new ArrayList<>();
+		final Map<String, Map<ModelParameter, Object>> result = new HashMap<>();
 		for (final CSVRecord record : parser) {
-			final Map<ModelParameter, Object> params = createParamValueMap(record);
-			result.add(params);
+			final Map<ModelParameter, Object> newParams = createParamValueMap(record);
+			final String name = record.get(PARAM_SET_NAME_COL_NAME);
+			final Map<ModelParameter, Object> oldParams = result.put(name, newParams);
+			if (oldParams != null) {
+				throw new IllegalArgumentException(
+						String.format("Duplicate rows for %s \"%s\".", PARAM_SET_NAME_COL_NAME, name));
+			}
 		}
 		LOGGER.debug("Read {} model parameter set(s).", result.size());
 		return result;
