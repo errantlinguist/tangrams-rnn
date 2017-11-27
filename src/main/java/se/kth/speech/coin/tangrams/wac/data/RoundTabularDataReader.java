@@ -31,6 +31,8 @@ import java.util.function.Supplier;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import se.kth.speech.Lists;
 
@@ -54,6 +56,8 @@ public final class RoundTabularDataReader {
 	private static final int DEFAULT_EXPECTED_UNIQUE_ENTITY_COUNT = 20;
 
 	private static final CSVFormat FORMAT = CSVFormat.TDF.withHeader(Header.class).withSkipHeaderRecord();
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(RoundTabularDataReader.class);
 
 	private static Referent fetchReferent(final List<Referent> roundEntities, final int entityId, final int roundId) {
 		final int entityIdx = entityId - 1;
@@ -100,6 +104,7 @@ public final class RoundTabularDataReader {
 
 	public List<Round> apply(final Path infilePath, final IntFunction<List<Utterance>> roundUttListFactory,
 			final Charset encoding) throws IOException {
+		LOGGER.debug("Reading utterances file at \"{}\" with encoding \"{}\".", infilePath, encoding);
 		try (BufferedReader reader = Files.newBufferedReader(infilePath, encoding)) {
 			return apply(reader, roundUttListFactory);
 		}
@@ -135,6 +140,7 @@ public final class RoundTabularDataReader {
 				entity.setTarget(Boolean.parseBoolean(record.get(Header.REFERENT)));
 			}
 		}
+		LOGGER.debug("Parsed utterances for rounds up to ID {}.", result.size());
 		return result;
 	}
 

@@ -153,9 +153,7 @@ public final class SessionSetReader {
 	private List<Round> createDialogueRoundList(final Path subdir, final Path eventsFile, final Path uttsFile)
 			throws IOException {
 		LOGGER.info("Reading session at \"{}\".", subdir);
-		LOGGER.debug("Reading utterances file at \"{}\".", uttsFile);
 		final List<ArrayList<Utterance>> roundUtts = uttReader.apply(uttsFile);
-		LOGGER.debug("Parsed utterances for rounds up to ID {}.", roundUtts.size());
 		LOGGER.debug("Reading events file at \"{}\".", eventsFile);
 		final List<Round> rounds = roundReader.apply(eventsFile, roundId -> fetchRoundUtts(roundUtts, roundId));
 		LOGGER.debug("Parsed rounds up to ID {}.", rounds.size());
