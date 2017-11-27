@@ -28,14 +28,6 @@ public final class Vocabulary {
 		this.wordObservationCounts = wordObservationCounts;
 	}
 
-	public void add(final String word) {
-		if (!wordObservationCounts.containsKey(word)) {
-			wordObservationCounts.put(word, 1);
-		} else {
-			wordObservationCounts.put(word, wordObservationCounts.get(word) + 1);
-		}
-	}
-
 	/*
 	 * (non-Javadoc)
 	 *
