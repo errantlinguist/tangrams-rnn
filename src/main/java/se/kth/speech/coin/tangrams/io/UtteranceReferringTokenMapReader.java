@@ -47,7 +47,7 @@ public final class UtteranceReferringTokenMapReader {
 
 	private static final CSVFormat FORMAT = CSVFormat.TDF.withFirstRecordAsHeader();
 
-	private static final int RESULT_MAP_EXPECTED_SIZE = 3096;
+	private static final int RESULT_MAP_EXPECTED_SIZE = 8095;
 
 	private final static Logger LOGGER = LoggerFactory.getLogger(UtteranceReferringTokenMapReader.class);
 

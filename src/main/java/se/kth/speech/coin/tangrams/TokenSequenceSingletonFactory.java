@@ -35,7 +35,7 @@ public final class TokenSequenceSingletonFactory implements Function<String, Lis
 
 	private static final Pattern TOKEN_DELIMITER_PATTERN = Pattern.compile("\\s+");
 
-	private static final int RESULT_MAP_EXPECTED_SIZE = 3096;
+	private static final int RESULT_MAP_EXPECTED_SIZE = 8095;
 
 	private final ConcurrentMap<String, List<String>> singletonInstances;
 
