@@ -74,12 +74,31 @@ public final class RoundSet {
 		return true;
 	}
 
-	public Stream<Round> getDiscountRounds(final Collection<? super String> words) {
-		return rounds.stream().filter(round -> round.hasDiscount(words, modelParams));
+	/**
+	 * Gets {@link Round} instances which contain words not part of the given
+	 * {@link Collection} of words.
+	 *
+	 * @param vocabWords
+	 *            The vocabulary of all words to be used as classifiers.
+	 * @return A {@link Stream} of {@code Round} instances, each of which
+	 *         featuring at least one referring-language word which is not part
+	 *         of the given {@code Collection} of vocabulary words.
+	 */
+	public Stream<Round> getDiscountRounds(final Collection<? super String> vocabWords) {
+		return rounds.stream().filter(round -> round.hasDiscount(vocabWords, modelParams));
 	}
 
-	public Stream<Round> getExampleRounds(final String hasWord) {
-		return rounds.stream().filter(round -> round.hasWord(hasWord, modelParams));
+	/**
+	 * Gets {@link Round} instances which contains at least one observation of a
+	 * given word used as referring language.
+	 *
+	 * @param vocabWord
+	 *            The word to search for.
+	 * @return A {@link Stream} of {@code Round} instances, each of which
+	 *         featuring usage of the given word as referring language.
+	 */
+	public Stream<Round> getExampleRounds(final String vocabWord) {
+		return rounds.stream().filter(round -> round.hasWord(vocabWord, modelParams));
 	}
 
 	/**
