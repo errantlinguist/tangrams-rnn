@@ -18,12 +18,17 @@ package se.kth.speech.coin.tangrams.wac.data;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import se.kth.speech.coin.tangrams.wac.logistic.ModelParameter;
 
 public final class RoundSet {
+
+	private static final Collector<String, ?, Map<String, Integer>> VOCAB_COUNTING_COLLECTOR = Collectors
+			.groupingBy(Function.identity(), Collectors.reducing(0, e -> 1, Integer::sum));
 
 	private final List<Round> rounds;
 
@@ -40,11 +45,9 @@ public final class RoundSet {
 	}
 
 	public Vocabulary createVocabulary() {
-		final Vocabulary vocab = new Vocabulary();
-		for (final Round round : rounds) {
-			round.getReferringTokens(modelParams).forEach(vocab::add);
-		}
-		return vocab;
+		final Map<String, Integer> counts = rounds.stream().flatMap(round -> round.getReferringTokens(modelParams))
+				.collect(VOCAB_COUNTING_COLLECTOR);
+		return new Vocabulary(counts);
 	}
 
 	/*

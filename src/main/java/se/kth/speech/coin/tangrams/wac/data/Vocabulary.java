@@ -17,25 +17,28 @@ package se.kth.speech.coin.tangrams.wac.data;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public final class Vocabulary {
 
-	private final Map<String, Integer> dict = new HashMap<>();
+	private final Map<String, Integer> wordObservationCounts;
+
+	public Vocabulary(final Map<String, Integer> wordObservationCounts) {
+		this.wordObservationCounts = wordObservationCounts;
+	}
 
 	public void add(final String word) {
-		if (!dict.containsKey(word)) {
-			dict.put(word, 1);
+		if (!wordObservationCounts.containsKey(word)) {
+			wordObservationCounts.put(word, 1);
 		} else {
-			dict.put(word, dict.get(word) + 1);
+			wordObservationCounts.put(word, wordObservationCounts.get(word) + 1);
 		}
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
@@ -50,18 +53,18 @@ public final class Vocabulary {
 			return false;
 		}
 		final Vocabulary other = (Vocabulary) obj;
-		if (dict == null) {
-			if (other.dict != null) {
+		if (wordObservationCounts == null) {
+			if (other.wordObservationCounts != null) {
 				return false;
 			}
-		} else if (!dict.equals(other.dict)) {
+		} else if (!wordObservationCounts.equals(other.wordObservationCounts)) {
 			return false;
 		}
 		return true;
 	}
 
 	public Integer getCount(final String word) {
-		return dict.get(word);
+		return wordObservationCounts.get(word);
 	}
 
 	public double getCount(final String word, final int def) {
@@ -78,7 +81,8 @@ public final class Vocabulary {
 		for (final String word : getWords()) {
 			// System.out.println(word + " " + oldVocab.dict.get(word) + " " +
 			// dict.get(word));
-			if (!oldVocab.dict.containsKey(word) || !oldVocab.dict.get(word).equals(dict.get(word))) {
+			if (!oldVocab.wordObservationCounts.containsKey(word)
+					|| !oldVocab.wordObservationCounts.get(word).equals(wordObservationCounts.get(word))) {
 				newWords.add(word);
 			}
 		}
@@ -86,7 +90,7 @@ public final class Vocabulary {
 	}
 
 	public List<String> getWords() {
-		return new ArrayList<>(dict.keySet());
+		return new ArrayList<>(wordObservationCounts.keySet());
 	}
 
 	public List<String> getWordsSortedByFreq() {
@@ -94,46 +98,46 @@ public final class Vocabulary {
 		words.sort(new Comparator<String>() {
 			@Override
 			public int compare(final String o1, final String o2) {
-				return dict.get(o2).compareTo(dict.get(o1));
+				return wordObservationCounts.get(o2).compareTo(wordObservationCounts.get(o1));
 			}
 		});
 		return words;
 	}
 
 	public boolean has(final String word) {
-		return dict.containsKey(word);
+		return wordObservationCounts.containsKey(word);
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + (dict == null ? 0 : dict.hashCode());
+		result = prime * result + (wordObservationCounts == null ? 0 : wordObservationCounts.hashCode());
 		return result;
 	}
 
 	public void prune(final int n) {
 		for (final String word : getWords()) {
-			if (dict.get(word) < n) {
-				dict.remove(word);
+			if (wordObservationCounts.get(word) < n) {
+				wordObservationCounts.remove(word);
 			}
 		}
 	}
 
 	public int size() {
-		return dict.size();
+		return wordObservationCounts.size();
 	}
 
 	@Override
 	public String toString() {
 		final StringBuilder sb = new StringBuilder();
 		for (final String word : getWordsSortedByFreq()) {
-			sb.append(word + " " + dict.get(word) + System.lineSeparator());
+			sb.append(word + " " + wordObservationCounts.get(word) + System.lineSeparator());
 		}
 		return sb.toString();
 	}
