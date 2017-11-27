@@ -61,7 +61,8 @@ public final class SessionSetReader {
 	}
 
 	private static UtteranceTabularDataReader createUttReader(final Path uttRefLangFilePath) throws IOException {
-		final Map<List<String>, List<String>> uttRefs = readReferringLangMap(uttRefLangFilePath);
+		final Map<List<String>, List<String>> uttRefs = new UtteranceReferringTokenMapReader()
+				.apply(uttRefLangFilePath);
 		return new UtteranceTabularDataReader(uttRefs::get);
 	}
 
@@ -93,14 +94,6 @@ public final class SessionSetReader {
 				break;
 			}
 		}
-		return result;
-	}
-
-	private static Map<List<String>, List<String>> readReferringLangMap(final Path uttRefLangFilePath)
-			throws IOException {
-		LOGGER.info("Reading referring language from \"{}\".", uttRefLangFilePath);
-		final Map<List<String>, List<String>> result = new UtteranceReferringTokenMapReader().apply(uttRefLangFilePath);
-		LOGGER.info("Read referring language for {} unique utterance(s).", result.size());
 		return result;
 	}
 

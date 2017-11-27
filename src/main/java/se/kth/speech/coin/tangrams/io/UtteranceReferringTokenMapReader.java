@@ -30,6 +30,8 @@ import java.util.function.Function;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import se.kth.speech.HashedCollections;
 import se.kth.speech.coin.tangrams.TokenSequenceSingletonFactory;
@@ -46,6 +48,8 @@ public final class UtteranceReferringTokenMapReader {
 	private static final CSVFormat FORMAT = CSVFormat.TDF.withFirstRecordAsHeader();
 
 	private static final int RESULT_MAP_EXPECTED_SIZE = 3096;
+
+	private final static Logger LOGGER = LoggerFactory.getLogger(UtteranceReferringTokenMapReader.class);
 
 	private static TokenSequenceSingletonFactory createDefaultTokenSeqTransformer() {
 		return new TokenSequenceSingletonFactory(RESULT_MAP_EXPECTED_SIZE);
@@ -66,6 +70,7 @@ public final class UtteranceReferringTokenMapReader {
 	}
 
 	public Map<List<String>, List<String>> apply(final Path infilePath, final Charset encoding) throws IOException {
+		LOGGER.info("Reading referring language from \"{}\" with encoding \"{}\".", infilePath, encoding);
 		try (BufferedReader reader = Files.newBufferedReader(infilePath, encoding)) {
 			return apply(reader);
 		}
@@ -86,6 +91,7 @@ public final class UtteranceReferringTokenMapReader {
 			result.put(tokens, refTokens);
 		}
 		// result.trim();
+		LOGGER.info("Read referring language for {} unique utterance(s).", result.size());
 		return result;
 	}
 
