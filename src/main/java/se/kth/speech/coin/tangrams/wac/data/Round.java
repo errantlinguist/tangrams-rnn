@@ -132,7 +132,7 @@ public final class Round {
 
 	/**
 	 * Checks if the round has a word which is not part of the provided
-	 * collection of words.
+	 * {@link Collection} of words.
 	 * 
 	 * @param vocabWords
 	 *            The vocabulary of all words to be used as classifiers.
