@@ -25,6 +25,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -85,7 +86,7 @@ public final class ModelParameterTabularDataReader {
 
 	public Map<String, Map<ModelParameter, Object>> apply(final Reader reader) throws IOException {
 		final CSVParser parser = FORMAT.parse(reader);
-		final Map<String, Map<ModelParameter, Object>> result = new HashMap<>();
+		final Map<String, Map<ModelParameter, Object>> result = new LinkedHashMap<>();
 		for (final CSVRecord record : parser) {
 			final Map<ModelParameter, Object> newParams = createParamValueMap(record);
 			final String name = record.get(PARAM_SET_NAME_COL_NAME);
