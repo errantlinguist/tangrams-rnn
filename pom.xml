@@ -18,7 +18,7 @@
 	<properties>
 		<javac.version>1.8</javac.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<mainClass>se.kth.speech.coin.tangrams.wac.logistic.CrossValidator</mainClass>
+		<mainClass>se.kth.speech.coin.tangrams.wac.logistic.BatchCrossValidator</mainClass>
 	</properties>
 
 	<dependencies>
