@@ -16,8 +16,8 @@
 # Number of MPI processes per node
 #SBATCH --ntasks-per-node=24
 
-PROJECT_DIR="/cfs/klemming/nobackup/t/tcshore/tangrams-restricted"
-#PROJECT_DIR="/afs/pdc.kth.se/home/t/tcshore/Private/tangrams-restricted"
+PROJECT_DIR="/cfs/klemming/nobackup/${LOGNAME:0:1}/${LOGNAME}/tangrams-restricted"
+#PROJECT_DIR="${HOME}/Private/tangrams-restricted"
 
 #SBATCH -e "${PROJECT_DIR}/output/sbatch.err.txt"
 #SBATCH -o "${PROJECT_DIR}/output/sbatch.err.txt"
