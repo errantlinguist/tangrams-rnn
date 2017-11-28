@@ -51,7 +51,6 @@ import org.slf4j.LoggerFactory;
 
 import se.kth.speech.FileNames;
 import se.kth.speech.HashedCollections;
-import se.kth.speech.coin.tangrams.wac.data.DialogueReferentDescriptionWriter;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
