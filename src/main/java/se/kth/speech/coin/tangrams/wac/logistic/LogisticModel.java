@@ -28,6 +28,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Future;
 import java.util.function.Supplier;
 import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
@@ -421,7 +422,8 @@ public class LogisticModel {
 		@SuppressWarnings("unchecked")
 		final List<Callable<Void>> allJobs = Arrays.asList(Stream
 				.concat(wordClassifierTrainingJobs, Stream.of(discountClassifierTrainingJob)).toArray(Callable[]::new));
-		asynchronousJobExecutor.invokeAll(allJobs);
+		final List<Future<Void>> completedJobs = asynchronousJobExecutor.invokeAll(allJobs);
+		assert completedJobs.size() == words.size() + 1;
 	}
 
 	/**
