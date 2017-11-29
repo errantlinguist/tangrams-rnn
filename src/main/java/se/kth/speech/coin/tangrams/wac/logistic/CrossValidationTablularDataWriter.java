@@ -16,8 +16,6 @@
 package se.kth.speech.coin.tangrams.wac.logistic;
 
 import java.io.IOException;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -41,12 +39,20 @@ public final class CrossValidationTablularDataWriter {
 
 	// @formatter:off
 	private enum Datum implements Function<CrossValidationRoundEvaluationResult, String> {
-		CLASSIFICATION_START {
+		START_TIME {
 			@Override
 			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
-				final OffsetDateTime classificationStartTime = evalResult.getClassificationStartTime();
-				return TIMESTAMP_FORMATTER.format(classificationStartTime);
+				final long start = evalResult.getStartNanos();
+				return Long.toString(start);
+			}
+		},
+		END_TIME {
+			@Override
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
+				final long end = evalResult.getEndNanos();
+				return Long.toString(end);
 			}
 		},
 		CROSS_VALIDATION_ITER {
@@ -345,8 +351,6 @@ public final class CrossValidationTablularDataWriter {
 	private static final Collector<CharSequence, ?, String> TOKEN_JOINER = Collectors.joining(",");
 
 	private static final CSVFormat FORMAT = CSVFormat.TDF.withHeader(Datum.class);
-
-	private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
 	/**
 	 * Returns the rank of the target {@link Referent} in a round.

@@ -15,7 +15,6 @@
  */
 package se.kth.speech.coin.tangrams.wac.logistic;
 
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -441,7 +440,7 @@ public class LogisticModel {
 		final double updateWeight = ((Number) modelParams.get(ModelParameter.UPDATE_WEIGHT)).doubleValue();
 		return sessionRoundData.map(sessionRoundDatum -> {
 			final Round round = sessionRoundDatum.round;
-			final OffsetDateTime classificationStartTime = OffsetDateTime.now();
+			final long startNanos = System.nanoTime();
 			final ClassificationResult classificationResult = rank(round);
 			// TODO: Currently, this blocks until updating is complete, which
 			// could take a long time; Make this asynchronous and return the
@@ -450,7 +449,8 @@ public class LogisticModel {
 			if (updateWeight > 0.0) {
 				updateModel(round);
 			}
-			return new RoundEvaluationResult(classificationStartTime, sessionRoundDatum.sessionId,
+			final long endNanos = System.nanoTime();
+			return new RoundEvaluationResult(startNanos, endNanos, sessionRoundDatum.sessionId,
 					sessionRoundDatum.roundId, round, classificationResult);
 		});
 	}

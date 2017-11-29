@@ -155,11 +155,11 @@ public class CrossValidator {
 		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
 		final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
 		final CrossValidator crossValidator = new CrossValidator(modelParams, modelFactory, executor);
-		LOGGER.info("Cross-validating using default parameters.");
-		crossValidator.crossValidate(set, resultHandler);
-		modelParams.put(ModelParameter.ONLY_INSTRUCTOR, false);
-		LOGGER.info("Cross-validating using language from both the instructor and the manipulator.");
-		crossValidator.crossValidate(set, resultHandler);
+//		LOGGER.info("Cross-validating using default parameters.");
+//		crossValidator.crossValidate(set, resultHandler);
+//		modelParams.put(ModelParameter.ONLY_INSTRUCTOR, false);
+//		LOGGER.info("Cross-validating using language from both the instructor and the manipulator.");
+//		crossValidator.crossValidate(set, resultHandler);
 		modelParams.put(ModelParameter.UPDATE_WEIGHT, 1.0);
 		LOGGER.info(
 				"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data; All language is used.",

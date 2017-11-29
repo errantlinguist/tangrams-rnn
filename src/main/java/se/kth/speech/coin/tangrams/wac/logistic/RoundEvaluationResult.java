@@ -15,8 +15,6 @@
  */
 package se.kth.speech.coin.tangrams.wac.logistic;
 
-import java.time.OffsetDateTime;
-
 import se.kth.speech.coin.tangrams.wac.data.Round;
 
 public final class RoundEvaluationResult {
@@ -29,11 +27,14 @@ public final class RoundEvaluationResult {
 
 	private final Round round;
 
-	private final OffsetDateTime classificationStartTime;
+	private final long startNanos;
 
-	RoundEvaluationResult(final OffsetDateTime classificationStartTime, final String sessionId, final int roundId,
+	private final long endNanos;
+
+	RoundEvaluationResult(final long startNanos, final long endNanos, final String sessionId, final int roundId,
 			final Round round, final ClassificationResult classificationResult) {
-		this.classificationStartTime = classificationStartTime;
+		this.startNanos = startNanos;
+		this.endNanos = endNanos;
 		this.sessionId = sessionId;
 		this.roundId = roundId;
 		this.round = round;
@@ -48,10 +49,10 @@ public final class RoundEvaluationResult {
 	}
 
 	/**
-	 * @return the classificationStartTime
+	 * @return the endNanos
 	 */
-	public OffsetDateTime getClassificationStartTime() {
-		return classificationStartTime;
+	public long getEndNanos() {
+		return endNanos;
 	}
 
 	/**
@@ -74,4 +75,12 @@ public final class RoundEvaluationResult {
 	public String getSessionId() {
 		return sessionId;
 	}
+
+	/**
+	 * @return the startNanos
+	 */
+	public long getStartNanos() {
+		return startNanos;
+	}
+
 }
