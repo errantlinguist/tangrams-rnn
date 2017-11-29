@@ -8,8 +8,8 @@
 # The name of the script
 #SBATCH -J tangrams-cv
 
-# Only 1 hour wall-clock time will be given to this job
-#SBATCH -t 1:00:00
+# Wall-clock time that will be given to this job
+#SBATCH -t 24:00:00
 
 # Number of nodes
 #SBATCH --nodes=2
