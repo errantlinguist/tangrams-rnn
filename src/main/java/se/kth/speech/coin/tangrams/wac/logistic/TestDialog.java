@@ -28,11 +28,8 @@ import java.util.Random;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import se.kth.speech.coin.tangrams.wac.data.Round;
-import se.kth.speech.coin.tangrams.wac.data.RoundSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
-import se.kth.speech.coin.tangrams.wac.data.Utterance;
 
 public final class TestDialog {
 
@@ -68,15 +65,15 @@ public final class TestDialog {
 				pw.println("<table>");
 				final LogisticModel model = new LogisticModel(modelParams);
 				model.train(training);
-				for (final Round round : new RoundSet(set, modelParams).getRounds()) {
-					for (final Utterance utt : round.getUtts()) {
-						for (final String word : utt.getTokens()) {
-
-						}
-					}
+//				for (final Round round : new RoundSet(set, modelParams).getRounds()) {
+//					for (final Utterance utt : round.getUtts()) {
+//						for (final String word : utt.getTokens()) {
+//							// TODO: Finish
+//						}
+//					}
 					// new File("turn-0").list;
-					pw.println("<img src=\"" + testing.getName() + "/screenshots/\"></td></tr>");
-				}
+//					pw.println("<img src=\"" + testing.getName() + "/screenshots/\"></td></tr>");
+//				}
 				pw.println("</table>");
 			} catch (final IOException e) {
 				throw new UncheckedIOException(e);
