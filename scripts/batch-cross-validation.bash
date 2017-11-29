@@ -12,7 +12,7 @@
 #SBATCH -t 5:00:00
 
 #SBATCH -e "/cfs/klemming/nobackup/t/tcshore/tangrams-restricted/output/sbatch.err.txt"
-#SBATCH -o "/cfs/klemming/nobackup/t/tcshore/tangrams-restricted/output/sbatch.err.txt"
+#SBATCH -o "/cfs/klemming/nobackup/t/tcshore/tangrams-restricted/output/sbatch.out.txt"
 
 #SBATCH --mail-user=tcshore@kth.se
 #SBATCH --mail-type=ALL
