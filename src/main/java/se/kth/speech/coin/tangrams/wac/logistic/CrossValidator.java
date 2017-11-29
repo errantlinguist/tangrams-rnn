@@ -124,6 +124,7 @@ public class CrossValidator {
 				final SessionSet set = new SessionSetReader(refTokenFilePath).apply(inpaths);
 				LOGGER.info("Will run cross-validation using {} session(s).", set.size());
 				final ForkJoinPool executor = ForkJoinPool.commonPool();
+				// NOTE: No need to explicitly shut down common pool
 				LOGGER.info("Will run cross-validation using a(n) {} instance with a parallelism level of {}.",
 						executor.getClass().getSimpleName(), executor.getParallelism());
 				final CrossValidationTablularDataWriter resultWriter = new CrossValidationTablularDataWriter(
