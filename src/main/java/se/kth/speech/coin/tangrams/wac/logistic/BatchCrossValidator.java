@@ -80,7 +80,7 @@ public class BatchCrossValidator {
 		public Entry<Path, BufferedWriter> get() {
 			final String name = namedParamSet.getKey();
 			final Path outfilePath = outdirPath.resolve(FileNames.sanitize(name + ".tsv", "-"));
-			LOGGER.info("Will write results of cross-validation test named \"{}\" to \"{}\"", name, outfilePath);
+			LOGGER.info("Will write results of cross-validation test named \"{}\" to \"{}\".", name, outfilePath);
 			final Map<ModelParameter, Object> modelParams = namedParamSet.getValue();
 			final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
 			final CrossValidator crossValidator = new CrossValidator(modelParams, modelFactory, executor);
