@@ -151,7 +151,7 @@ public class CrossValidator {
 		}
 	}
 
-	private static void run(final Executor executor, final SessionSet set,
+	private static void run(final ForkJoinPool executor, final SessionSet set,
 			final Consumer<? super CrossValidationRoundEvaluationResult> resultHandler) throws IOException {
 		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
 		final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);

@@ -24,10 +24,9 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Supplier;
 import java.util.stream.DoubleStream;
@@ -66,7 +65,32 @@ public class LogisticModel {
 		}
 	}
 
-	private class WordClassifierTrainer implements Supplier<Entry<String, Logistic>> {
+	private static class WordClassifierMapPopulator implements Callable<Void> {
+
+		private final Callable<Entry<String, Logistic>> wordTrainer;
+
+		private final ConcurrentMap<? super String, Logistic> wordModels;
+
+		private WordClassifierMapPopulator(final Callable<Entry<String, Logistic>> wordTrainer,
+				final ConcurrentMap<? super String, Logistic> wordModels) {
+			this.wordTrainer = wordTrainer;
+			this.wordModels = wordModels;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.util.concurrent.Callable#call()
+		 */
+		@Override
+		public Void call() throws Exception {
+			final Entry<String, Logistic> wordClassifier = wordTrainer.call();
+			wordModels.put(wordClassifier.getKey(), wordClassifier.getValue());
+			return null;
+		}
+	}
+
+	private class WordClassifierTrainer implements Callable<Entry<String, Logistic>> {
 
 		private final Supplier<? extends Stream<Weighted<Referent>>> exampleSupplier;
 
@@ -82,7 +106,7 @@ public class LogisticModel {
 		}
 
 		@Override
-		public Entry<String, Logistic> get() {
+		public Entry<String, Logistic> call() throws WordClassifierTrainingException {
 			final Logistic logistic = new Logistic();
 			@SuppressWarnings("unchecked")
 			final Weighted<Referent>[] examples = exampleSupplier.get().toArray(Weighted[]::new);
@@ -151,7 +175,7 @@ public class LogisticModel {
 
 	// private Attribute EDGE_COUNT;
 
-	private final Executor asynchronousJobExecutor;
+	private final ForkJoinPool asynchronousJobExecutor;
 
 	private ArrayList<Attribute> atts;
 
@@ -193,11 +217,11 @@ public class LogisticModel {
 		this(modelParams, ForkJoinPool.commonPool());
 	}
 
-	public LogisticModel(final Map<ModelParameter, Object> modelParams, final Executor asynchronousJobExecutor) {
+	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool asynchronousJobExecutor) {
 		this(modelParams, asynchronousJobExecutor, DEFAULT_EXPECTED_WORD_CLASS_COUNT);
 	}
 
-	public LogisticModel(final Map<ModelParameter, Object> modelParams, final Executor asynchronousJobExecutor,
+	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool asynchronousJobExecutor,
 			final int expectedWordClassCount) {
 		this.modelParams = modelParams;
 		this.asynchronousJobExecutor = asynchronousJobExecutor;
@@ -230,7 +254,8 @@ public class LogisticModel {
 		final Map<String, Logistic> wordClassifiers = new HashMap<>(HashedCollections.capacity(words.length));
 		int oovObservationCount = 0;
 		for (final String word : words) {
-			final Logistic wordClassifier = wordClassifiers.computeIfAbsent(word, k -> wordModels.getOrDefault(k, discountModel));
+			final Logistic wordClassifier = wordClassifiers.computeIfAbsent(word,
+					k -> wordModels.getOrDefault(k, discountModel));
 			if (wordClassifier.equals(discountModel)) {
 				oovObservationCount++;
 			}
@@ -245,7 +270,8 @@ public class LogisticModel {
 				double score = score(wordClassifier, inst);
 				if (weightByFreq) {
 					final Long seenWordObservationCount = vocab.getCount(word);
-					final double effectiveObservationCount = seenWordObservationCount == null ? discount : seenWordObservationCount.doubleValue();
+					final double effectiveObservationCount = seenWordObservationCount == null ? discount
+							: seenWordObservationCount.doubleValue();
 					score *= Math.log10(effectiveObservationCount);
 				}
 				return score;
@@ -363,40 +389,17 @@ public class LogisticModel {
 	 *            for a given word.
 	 */
 	private void train(final List<String> words, final double weight) {
-		final CompletableFuture<Void> trainingJob = trainAsynchronously(words, weight);
-		trainingJob.join();
-	}
-
-	/**
-	 * Trains models for the specified words asynchronously.
-	 *
-	 * @param words
-	 *            The vocabulary words to train models for.
-	 * @param weight
-	 *            The weight of each datapoint representing a single observation
-	 *            for a given word.
-	 * @return A {@link CompletableFuture} representing the
-	 *         {@link CompletableFuture#complete(Object) completion} of the
-	 *         training of models for all given words.
-	 */
-	private CompletableFuture<Void> trainAsynchronously(final List<String> words, final double weight) {
 		// Train a model for each word
-		final Stream<CompletableFuture<Void>> wordClassifierTrainingJobs = words.stream()
-				.map(word -> CompletableFuture
-						.supplyAsync(new WordClassifierTrainer(word, () -> createWordClassExamples(trainingSet, word),
-								weight), asynchronousJobExecutor)
-						.thenAccept(
-								wordClassifier -> wordModels.put(wordClassifier.getKey(), wordClassifier.getValue())));
+		final Stream<Callable<Void>> wordClassifierTrainingJobs = words.stream()
+				.map(word -> new WordClassifierTrainer(word, () -> createWordClassExamples(trainingSet, word), weight))
+				.map(wordTrainer -> new WordClassifierMapPopulator(wordTrainer, wordModels));
 		// Train the discount model
-		final CompletableFuture<Void> discountClassifierTrainingJob = CompletableFuture
-				.supplyAsync(
-						new WordClassifierTrainer("__OUT_OF_VOCABULARY__",
-								() -> createDiscountClassExamples(trainingSet, words), weight),
-						asynchronousJobExecutor)
-				.thenAccept(wordClassifier -> discountModel = wordClassifier.getValue());
-		return CompletableFuture
-				.allOf(Stream.concat(wordClassifierTrainingJobs, Stream.of(discountClassifierTrainingJob))
-						.toArray(CompletableFuture[]::new));
+		final Callable<Void> discountClassifierTrainingJob = new WordClassifierMapPopulator(new WordClassifierTrainer(
+				"__OUT_OF_VOCABULARY__", () -> createDiscountClassExamples(trainingSet, words), weight), wordModels);
+		@SuppressWarnings("unchecked")
+		final List<Callable<Void>> allJobs = Arrays.asList(Stream
+				.concat(wordClassifierTrainingJobs, Stream.of(discountClassifierTrainingJob)).toArray(Callable[]::new));
+		asynchronousJobExecutor.invokeAll(allJobs);
 	}
 
 	/**
@@ -462,21 +465,6 @@ public class LogisticModel {
 	 *            The {@code SessionSet} to use as training data.
 	 */
 	void train(final SessionSet set) {
-		final CompletableFuture<Void> trainingJob = trainAsynchronously(set);
-		trainingJob.join();
-	}
-
-	/**
-	 * Trains the word models using all data from a {@link SessionSet}
-	 * asynchronously.
-	 *
-	 * @param set
-	 *            The {@code SessionSet} to use as training data.
-	 * @return A {@link CompletableFuture} representing the
-	 *         {@link CompletableFuture#complete(Object) completion} of the
-	 *         training of models for all words in the vocabulary.
-	 */
-	CompletableFuture<Void> trainAsynchronously(final SessionSet set) {
 
 		trainingSet = new RoundSet(set, modelParams);
 		vocab = trainingSet.createVocabulary();
@@ -508,7 +496,7 @@ public class LogisticModel {
 		atts.add(MIDY = new Attribute("midy"));
 		atts.add(TARGET = new Attribute("target", REFERENT_CLASSIFICATION_VALUES));
 
-		return trainAsynchronously(vocab.getWords(), 1.0);
+		train(vocab.getWords(), 1.0);
 	}
 
 }

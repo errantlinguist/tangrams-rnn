@@ -36,7 +36,6 @@ import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -267,11 +266,11 @@ public class BatchCrossValidator {
 		}
 	}
 
-	private final Executor executor;
+	private final ForkJoinPool executor;
 
 	private final SessionSet set;
 
-	public BatchCrossValidator(final SessionSet set, final Executor executor) {
+	public BatchCrossValidator(final SessionSet set, final ForkJoinPool executor) {
 		this.set = set;
 		this.executor = executor;
 	}
