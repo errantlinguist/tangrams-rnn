@@ -9,22 +9,15 @@
 #SBATCH -J tangrams-cv
 
 # Wall-clock time that will be given to this job
-#SBATCH -t 24:00:00
+#SBATCH -t 10:00:00
 
-# Number of nodes
-#SBATCH --nodes=2
-# Number of MPI processes per node
-#SBATCH --ntasks-per-node=24
+#SBATCH -e "$/cfs/klemming/nobackup/t/tcshore/tangrams-restricted/output/sbatch.err.txt"
+#SBATCH -o "/cfs/klemming/nobackup/t/tcshore/tangrams-restricted/output/sbatch.err.txt"
+
+module add jdk/1.8.0_45
 
 PROJECT_DIR="/cfs/klemming/nobackup/${LOGNAME:0:1}/${LOGNAME}/tangrams-restricted"
 #PROJECT_DIR="${HOME}/Private/tangrams-restricted"
-
-#SBATCH -e "${PROJECT_DIR}/output/sbatch.err.txt"
-#SBATCH -o "${PROJECT_DIR}/output/sbatch.err.txt"
-
-# Load the Intel MPI module
-module add intelmpi/17.0.1
-module add jdk/1.8.0_45
 
 CLASSPATH_JARFILE="${PROJECT_DIR}/tangrams-wac-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
 echo "JAR file is \"${CLASSPATH_JARFILE}\"."
@@ -45,5 +38,4 @@ echo "Error output stream is directed to \"${ERR_OUTFILE}\"."
 HEAP_SIZE="10240m"
 echo "Will use heap space size of ${HEAP_SIZE}."
 
-# Run the executable with MPI-rank of 48
-mpirun -n 48 --bind-to none java -server -Xmx${HEAP_SIZE} -jar "${CLASSPATH_JARFILE}" "${INPATH}" -t "${REFLANG_FILE}" -p "${PARAMS_FILE}" -o "${OUTDIR}" > "${STD_OUTFILE}" 2> "${ERR_OUTFILE}"
+java -server -Xmx${HEAP_SIZE} -jar "${CLASSPATH_JARFILE}" "${INPATH}" -t "${REFLANG_FILE}" -p "${PARAMS_FILE}" -o "${OUTDIR}" > "${STD_OUTFILE}" 2> "${ERR_OUTFILE}"
