@@ -79,7 +79,7 @@ public class LogisticModel {
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see java.util.concurrent.Callable#call()
 		 */
 		@Override
@@ -92,12 +92,34 @@ public class LogisticModel {
 
 	private class WordClassifierTrainer implements Callable<Entry<String, Logistic>> {
 
+		/**
+		 * A {@link Supplier} of {@link Weighted} {@link Referent} instances to
+		 * use as training examples.
+		 */
 		private final Supplier<? extends Stream<Weighted<Referent>>> exampleSupplier;
 
+		/**
+		 * The weight of each datapoint representing a single observation for
+		 * the given word.
+		 */
 		private final double weight;
 
+		/**
+		 * The word to train a {@link Logistic} classifier for.
+		 */
 		private final String word;
 
+		/**
+		 *
+		 * @param word
+		 *            The word to train a {@link Logistic} classifier for.
+		 * @param exampleSupplier
+		 *            A {@link Supplier} of {@link Weighted} {@link Referent}
+		 *            instances to use as training examples.
+		 * @param weight
+		 *            The weight of each datapoint representing a single
+		 *            observation for the given word.
+		 */
 		private WordClassifierTrainer(final String word,
 				final Supplier<? extends Stream<Weighted<Referent>>> exampleSupplier, final double weight) {
 			this.word = word;
