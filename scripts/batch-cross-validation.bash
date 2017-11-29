@@ -9,7 +9,7 @@
 #SBATCH -J tangrams-cv
 
 # Wall-clock time that will be given to this job
-#SBATCH -t 10:00:00
+#SBATCH -t 5:00:00
 
 #SBATCH -e "$/cfs/klemming/nobackup/t/tcshore/tangrams-restricted/output/sbatch.err.txt"
 #SBATCH -o "/cfs/klemming/nobackup/t/tcshore/tangrams-restricted/output/sbatch.err.txt"
