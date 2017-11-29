@@ -20,7 +20,7 @@ import java.util.EnumMap;
 import java.util.Map;
 
 /**
- * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
+ * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
  * @since Nov 25, 2017
  *
  */
