@@ -14,6 +14,9 @@
 #SBATCH -e "$/cfs/klemming/nobackup/t/tcshore/tangrams-restricted/output/sbatch.err.txt"
 #SBATCH -o "/cfs/klemming/nobackup/t/tcshore/tangrams-restricted/output/sbatch.err.txt"
 
+#SBATCH --mail-user=tcshore@kth.se
+#SBATCH --mail-type=ALL
+
 module add jdk/1.8.0_45
 
 PROJECT_DIR="/cfs/klemming/nobackup/${LOGNAME:0:1}/${LOGNAME}/tangrams-restricted"
