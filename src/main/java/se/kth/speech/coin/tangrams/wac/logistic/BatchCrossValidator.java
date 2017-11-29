@@ -19,6 +19,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -67,8 +68,8 @@ public class BatchCrossValidator {
 		MODEL_PARAMS("p") {
 			@Override
 			public Option get() {
-				return Option.builder(optName).longOpt("model-params").desc(
-						"The file to read model parameters from for each individual cross-validation test to run.")
+				return Option.builder(optName).longOpt("model-params")
+						.desc("The file to read model parameters from for each individual cross-validation test to run.")
 						.hasArg().argName("path").type(File.class).required().build();
 			}
 		},
@@ -134,6 +135,8 @@ public class BatchCrossValidator {
 	private static final Logger LOGGER = LoggerFactory.getLogger(BatchCrossValidator.class);
 
 	private static final Charset OUTFILE_ENCODING = StandardCharsets.UTF_8;
+
+	private static final BigDecimal BILLION = new BigDecimal("1000000000");
 
 	public static void main(final CommandLine cl) throws ParseException, IOException {
 		if (cl.hasOption(Parameter.HELP.optName)) {
@@ -209,6 +212,7 @@ public class BatchCrossValidator {
 				assert oldOutfileWriter == null;
 				final CrossValidationTablularDataWriter resultWriter = new CrossValidationTablularDataWriter(
 						newOutfileWriter);
+				final long startNanos = System.nanoTime();
 				crossValidator.crossValidate(set, evalResult -> {
 					try {
 						resultWriter.accept(evalResult);
@@ -218,6 +222,10 @@ public class BatchCrossValidator {
 								e.getClass().getSimpleName(), name, outfilePath), e);
 					}
 				});
+				final long endNanos = System.nanoTime();
+				final BigDecimal durationSecs = new BigDecimal(endNanos).subtract(new BigDecimal(startNanos))
+						.divide(BILLION);
+				LOGGER.info("Finished cross-validation batch \"{}\" in {} second(s).", name, durationSecs);
 			}
 		} finally {
 			for (final Map.Entry<Path, BufferedWriter> outfileWriter : outfileWriters.entrySet()) {
