@@ -22,16 +22,17 @@ import se.kth.speech.coin.tangrams.wac.data.Referent;
 final class ClassificationResult {
 
 	/**
+	 * The words which were encountered during classification for which no
+	 * trained model could be found, thus using the discount model for them
+	 * instead.
+	 */
+	private final List<String> oovObservations;
+
+	/**
 	 * A list of {@link Weighted} instances representing the confidence score of
 	 * each {@link Referent} being the target referent for the given game round.
 	 */
 	private final List<Weighted<Referent>> scoredReferents;
-
-	/**
-	 * The count of words for which no pre-trained classifier could be found and
-	 * thus were interpolated.
-	 */
-	private final int oovObservationCount;
 
 	/**
 	 * An array of strings used for choosing word classifiers during
@@ -48,23 +49,23 @@ final class ClassificationResult {
 	 * @param words
 	 *            An array of strings used for choosing word classifiers during
 	 *            classification.
-	 * @param oovObservationCount
-	 *            The count of words for which no pre-trained classifier could
-	 *            be found and thus were interpolated.
+	 * @param oovObservations
+	 *            The words which were encountered during classification for
+	 *            which no trained model could be found, thus using the discount
+	 *            model for them instead.
 	 */
 	ClassificationResult(final List<Weighted<Referent>> scoredReferents, final String[] words,
-			final int oovObservationCount) {
+			final List<String> oovObservations) {
 		this.scoredReferents = scoredReferents;
 		this.words = words;
-		this.oovObservationCount = oovObservationCount;
+		this.oovObservations = oovObservations;
 	}
 
 	/**
-	 * @return The count of words for which no pre-trained classifier could be
-	 *         found and thus were interpolated.
+	 * @return the oovObservations
 	 */
-	int getOovObservationCount() {
-		return oovObservationCount;
+	List<String> getOovObservations() {
+		return oovObservations;
 	}
 
 	/**

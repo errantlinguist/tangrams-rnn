@@ -330,12 +330,12 @@ public class LogisticModel {
 		final List<Referent> refs = round.getReferents();
 		final String[] words = round.getReferringTokens(modelParams).toArray(String[]::new);
 		final Map<String, Logistic> wordClassifiers = new HashMap<>(HashedCollections.capacity(words.length));
-		int oovObservationCount = 0;
+		final List<String> oovObservations = new ArrayList<>();
 		for (final String word : words) {
 			final Logistic wordClassifier = wordClassifiers.computeIfAbsent(word,
 					k -> wordModels.getOrDefault(k, discountModel));
 			if (wordClassifier.equals(discountModel)) {
-				oovObservationCount++;
+				oovObservations.add(word);
 			}
 		}
 		assert wordClassifiers.values().stream().noneMatch(Objects::isNull);
@@ -359,7 +359,7 @@ public class LogisticModel {
 		});
 		@SuppressWarnings("unchecked")
 		final List<Weighted<Referent>> scoredRefList = Arrays.asList(scoredRefs.toArray(Weighted[]::new));
-		return new ClassificationResult(scoredRefList, words, oovObservationCount);
+		return new ClassificationResult(scoredRefList, words, oovObservations);
 	}
 
 	/**

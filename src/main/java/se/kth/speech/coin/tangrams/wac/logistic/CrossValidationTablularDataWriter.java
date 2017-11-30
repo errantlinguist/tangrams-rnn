@@ -138,7 +138,8 @@ public final class CrossValidationTablularDataWriter {
 			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
-				final int count = classificationResult.getWords().length;
+				final String[] refTokens = classificationResult.getWords();
+				final int count = refTokens.length;
 				return Integer.toString(count);
 				// final Round round = evalResult.getRound();
 				// final List<Utterance> utts = round.getUtts();
@@ -153,10 +154,19 @@ public final class CrossValidationTablularDataWriter {
 			@Override
 			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
-				final Round round = evalResult.getRound();
-				final List<Utterance> utts = round.getUtts();
-				final Stream<String> refTokens = utts.stream().map(Utterance::getReferringTokens).flatMap(List::stream);
-				return refTokens.distinct().sorted().collect(TOKEN_JOINER);
+				final ClassificationResult classificationResult = evalResult.getClassificationResult();
+				final String[] refTokens = classificationResult.getWords();
+				return Arrays.stream(refTokens).distinct().sorted().collect(TOKEN_JOINER);
+			}
+
+		},
+		OOV_TYPES {
+
+			@Override
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
+				final ClassificationResult classificationResult = evalResult.getClassificationResult();
+				return classificationResult.getOovObservations().stream().distinct().sorted().collect(TOKEN_JOINER);
 			}
 
 		},
@@ -166,7 +176,7 @@ public final class CrossValidationTablularDataWriter {
 			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
-				return Integer.toString(classificationResult.getOovObservationCount());
+				return Integer.toString(classificationResult.getOovObservations().size());
 			}
 
 		},
