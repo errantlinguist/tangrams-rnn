@@ -25,7 +25,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
@@ -50,30 +51,43 @@ import weka.core.Instances;
 
 public class LogisticModel {
 
-	public static final class TrainingException extends RuntimeException {
-
-		/**
-		 *
-		 */
-		private static final long serialVersionUID = -7481558232819620135L;
-
-		private TrainingException(final Exception cause) {
-			super(cause);
-		}
-	}
-
 	private static class SessionRoundDatum {
 
-		private final Round round;
+		private final String sessionId;
 
 		private final int roundId;
 
-		private final String sessionId;
+		private final Round round;
 
 		private SessionRoundDatum(final String sessionId, final int roundId, final Round round) {
 			this.sessionId = sessionId;
 			this.roundId = roundId;
 			this.round = round;
+		}
+	}
+
+	private static class WordClassifierMapPopulator implements Callable<Void> {
+
+		private final Callable<Entry<String, Logistic>> wordTrainer;
+
+		private final ConcurrentMap<? super String, Logistic> wordModels;
+
+		private WordClassifierMapPopulator(final Callable<Entry<String, Logistic>> wordTrainer,
+				final ConcurrentMap<? super String, Logistic> wordModels) {
+			this.wordTrainer = wordTrainer;
+			this.wordModels = wordModels;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 *
+		 * @see java.util.concurrent.Callable#call()
+		 */
+		@Override
+		public Void call() throws Exception {
+			final Entry<String, Logistic> wordClassifier = wordTrainer.call();
+			wordModels.put(wordClassifier.getKey(), wordClassifier.getValue());
+			return null;
 		}
 	}
 
@@ -146,9 +160,9 @@ public class LogisticModel {
 
 	private static final int DEFAULT_EXPECTED_WORD_CLASS_COUNT = 1000;
 
-	private static final int POSITIVE_REFERENT_CLASSIFICATION_VALUE_IDX;
-
 	private static final List<String> REFERENT_CLASSIFICATION_VALUES;
+
+	private static final int POSITIVE_REFERENT_CLASSIFICATION_VALUE_IDX;
 
 	static {
 		final String posRefClassificationValue = Boolean.TRUE.toString().intern();
@@ -176,13 +190,13 @@ public class LogisticModel {
 		return Arrays.stream(refs).map(ref -> new Weighted<>(ref, weight));
 	}
 
-	// private Attribute HUE;
-
-	// private Attribute EDGE_COUNT;
-
 	private static Stream<Weighted<Referent>> createWordClassExamples(final RoundSet rounds, final String word) {
 		return rounds.getExampleRounds(word).flatMap(LogisticModel::createClassWeightedReferents);
 	}
+
+	// private Attribute HUE;
+
+	// private Attribute EDGE_COUNT;
 
 	private final ForkJoinPool asynchronousJobExecutor;
 
@@ -197,8 +211,6 @@ public class LogisticModel {
 	private Attribute MIDX;
 
 	private Attribute MIDY;
-
-	private final Map<ModelParameter, Object> modelParams;
 
 	private Attribute POSX;
 
@@ -216,7 +228,9 @@ public class LogisticModel {
 
 	private Vocabulary vocab;
 
-	private final Map<String, Logistic> wordModels;
+	private final ConcurrentMap<String, Logistic> wordModels;
+
+	private final Map<ModelParameter, Object> modelParams;
 
 	public LogisticModel() {
 		this(ModelParameter.createDefaultParamValueMap());
@@ -234,7 +248,7 @@ public class LogisticModel {
 			final int expectedWordClassCount) {
 		this.modelParams = modelParams;
 		this.asynchronousJobExecutor = asynchronousJobExecutor;
-		wordModels = new HashMap<>(HashedCollections.capacity(expectedWordClassCount));
+		wordModels = new ConcurrentHashMap<>(expectedWordClassCount);
 	}
 
 	public Vocabulary getVocabulary() {
@@ -399,26 +413,17 @@ public class LogisticModel {
 	 */
 	private void train(final List<String> words, final double weight) {
 		// Train a model for each word
-		final Stream<Callable<Entry<String, Logistic>>> wordClassifierTrainingJobs = words.stream()
-				.map(word -> new WordClassifierTrainer(word, () -> createWordClassExamples(trainingSet, word), weight));
+		final Stream<Callable<Void>> wordClassifierTrainingJobs = words.stream()
+				.map(word -> new WordClassifierTrainer(word, () -> createWordClassExamples(trainingSet, word), weight))
+				.map(wordTrainer -> new WordClassifierMapPopulator(wordTrainer, wordModels));
 		// Train the discount model
-		final Callable<Entry<String, Logistic>> discountClassifierTrainingJob = new WordClassifierTrainer(
-				"__OUT_OF_VOCABULARY__", () -> createDiscountClassExamples(trainingSet, words), weight);
+		final Callable<Void> discountClassifierTrainingJob = new WordClassifierMapPopulator(new WordClassifierTrainer(
+				"__OUT_OF_VOCABULARY__", () -> createDiscountClassExamples(trainingSet, words), weight), wordModels);
 		@SuppressWarnings("unchecked")
-		final List<Callable<Entry<String, Logistic>>> allJobs = Arrays.asList(Stream
+		final List<Callable<Void>> allJobs = Arrays.asList(Stream
 				.concat(wordClassifierTrainingJobs, Stream.of(discountClassifierTrainingJob)).toArray(Callable[]::new));
-		final List<Future<Entry<String, Logistic>>> futureWordClassifiers = asynchronousJobExecutor.invokeAll(allJobs);
-		for (final Future<Entry<String, Logistic>> futureWordClassifier : futureWordClassifiers) {
-			try {
-				final Entry<String, Logistic> wordClassifier = futureWordClassifier.get();
-				final String word = wordClassifier.getKey();
-				final Logistic classifier = wordClassifier.getValue();
-				wordModels.put(word, classifier);
-			} catch (InterruptedException | ExecutionException e) {
-				throw new TrainingException(e);
-			}
-
-		}
+		final List<Future<Void>> completedJobs = asynchronousJobExecutor.invokeAll(allJobs);
+		assert completedJobs.size() == words.size() + 1;
 	}
 
 	/**
