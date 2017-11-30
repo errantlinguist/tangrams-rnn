@@ -51,13 +51,34 @@ import weka.core.Instances;
 
 public class LogisticModel {
 
+	private class DiscountModelTrainer implements Callable<Void> {
+		private final Callable<Entry<String, Logistic>> wordTrainer;
+
+		private DiscountModelTrainer(final Callable<Entry<String, Logistic>> wordTrainer) {
+			this.wordTrainer = wordTrainer;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.util.concurrent.Callable#call()
+		 */
+		@Override
+		public Void call() throws Exception {
+			final Entry<String, Logistic> wordClassifier = wordTrainer.call();
+			assert OOV_CLASS_LABEL.equals(wordClassifier.getKey());
+			discountModel = wordClassifier.getValue();
+			return null;
+		}
+	}
+
 	private static class SessionRoundDatum {
 
-		private final String sessionId;
+		private final Round round;
 
 		private final int roundId;
 
-		private final Round round;
+		private final String sessionId;
 
 		private SessionRoundDatum(final String sessionId, final int roundId, final Round round) {
 			this.sessionId = sessionId;
@@ -66,16 +87,12 @@ public class LogisticModel {
 		}
 	}
 
-	private static class WordClassifierMapPopulator implements Callable<Void> {
+	private class WordClassifierMapPopulator implements Callable<Void> {
 
 		private final Callable<Entry<String, Logistic>> wordTrainer;
 
-		private final ConcurrentMap<? super String, Logistic> wordModels;
-
-		private WordClassifierMapPopulator(final Callable<Entry<String, Logistic>> wordTrainer,
-				final ConcurrentMap<? super String, Logistic> wordModels) {
+		private WordClassifierMapPopulator(final Callable<Entry<String, Logistic>> wordTrainer) {
 			this.wordTrainer = wordTrainer;
-			this.wordModels = wordModels;
 		}
 
 		/*
@@ -160,9 +177,11 @@ public class LogisticModel {
 
 	private static final int DEFAULT_EXPECTED_WORD_CLASS_COUNT = 1000;
 
-	private static final List<String> REFERENT_CLASSIFICATION_VALUES;
+	private static final String OOV_CLASS_LABEL = "__OUT_OF_VOCABULARY__";
 
 	private static final int POSITIVE_REFERENT_CLASSIFICATION_VALUE_IDX;
+
+	private static final List<String> REFERENT_CLASSIFICATION_VALUES;
 
 	static {
 		final String posRefClassificationValue = Boolean.TRUE.toString().intern();
@@ -212,6 +231,8 @@ public class LogisticModel {
 
 	private Attribute MIDY;
 
+	private final Map<ModelParameter, Object> modelParams;
+
 	private Attribute POSX;
 
 	private Attribute POSY;
@@ -229,8 +250,6 @@ public class LogisticModel {
 	private Vocabulary vocab;
 
 	private final ConcurrentMap<String, Logistic> wordModels;
-
-	private final Map<ModelParameter, Object> modelParams;
 
 	public LogisticModel() {
 		this(ModelParameter.createDefaultParamValueMap());
@@ -415,10 +434,10 @@ public class LogisticModel {
 		// Train a model for each word
 		final Stream<Callable<Void>> wordClassifierTrainingJobs = words.stream()
 				.map(word -> new WordClassifierTrainer(word, () -> createWordClassExamples(trainingSet, word), weight))
-				.map(wordTrainer -> new WordClassifierMapPopulator(wordTrainer, wordModels));
-		// Train the discount model
-		final Callable<Void> discountClassifierTrainingJob = new WordClassifierMapPopulator(new WordClassifierTrainer(
-				"__OUT_OF_VOCABULARY__", () -> createDiscountClassExamples(trainingSet, words), weight), wordModels);
+				.map(wordTrainer -> new WordClassifierMapPopulator(wordTrainer));
+		// Train the discount model. NOTE: The discount model should not be in the same map as the classifiers for actually-seen observations
+		final Callable<Void> discountClassifierTrainingJob = new DiscountModelTrainer(new WordClassifierTrainer(
+				OOV_CLASS_LABEL, () -> createDiscountClassExamples(trainingSet, words), weight));
 		@SuppressWarnings("unchecked")
 		final List<Callable<Void>> allJobs = Arrays.asList(Stream
 				.concat(wordClassifierTrainingJobs, Stream.of(discountClassifierTrainingJob)).toArray(Callable[]::new));
