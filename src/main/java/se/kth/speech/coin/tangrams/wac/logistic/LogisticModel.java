@@ -209,6 +209,15 @@ public class LogisticModel {
 		POSITIVE_REFERENT_CLASSIFICATION_VALUE_IDX = REFERENT_CLASSIFICATION_VALUES.indexOf(posRefClassificationValue);
 	}
 
+	private static void consumeTrainedWordClasses(final Iterable<Future<String>> futureTrainedWordClasses)
+			throws InterruptedException, ExecutionException {
+		for (final Future<String> futureTrainedWordClass : futureTrainedWordClasses) {
+			@SuppressWarnings("unused")
+			final String trainedWordClass = futureTrainedWordClass.get();
+			// Do nothing with the result
+		}
+	}
+
 	private static Stream<Weighted<Referent>> createClassWeightedReferents(final Round round) {
 		final List<Referent> refs = round.getReferents();
 		final Referent[] posRefs = refs.stream().filter(Referent::isTarget).toArray(Referent[]::new);
@@ -219,14 +228,14 @@ public class LogisticModel {
 				createWeightedReferents(negRefs, negClassWeight));
 	}
 
+	// private Attribute HUE;
+
+	// private Attribute EDGE_COUNT;
+
 	private static Stream<Weighted<Referent>> createDiscountClassExamples(final RoundSet rounds,
 			final Collection<? super String> words) {
 		return rounds.getDiscountRounds(words).flatMap(LogisticModel::createClassWeightedReferents);
 	}
-
-	// private Attribute HUE;
-
-	// private Attribute EDGE_COUNT;
 
 	private static Stream<Weighted<Referent>> createWeightedReferents(final Referent[] refs, final double weight) {
 		return Arrays.stream(refs).map(ref -> new Weighted<>(ref, weight));
@@ -234,6 +243,14 @@ public class LogisticModel {
 
 	private static Stream<Weighted<Referent>> createWordClassExamples(final RoundSet rounds, final String word) {
 		return rounds.getExampleRounds(word).flatMap(LogisticModel::createClassWeightedReferents);
+	}
+
+	private static void debugTrainedWordClasses(final Iterable<Future<String>> futureTrainedWordClasses)
+			throws InterruptedException, ExecutionException {
+		for (final Future<String> futureTrainedWordClass : futureTrainedWordClasses) {
+			final String trainedWordClass = futureTrainedWordClass.get();
+			LOGGER.debug("Successfully trained word class \"{}\".", trainedWordClass);
+		}
 	}
 
 	private ArrayList<Attribute> atts;
@@ -467,9 +484,10 @@ public class LogisticModel {
 		final List<Future<String>> futureTrainedWordClasses = taskPool.invokeAll(allJobs);
 		assert futureTrainedWordClasses.size() == allJobs.size();
 		try {
-			for (final Future<String> futureTrainedWordClass : futureTrainedWordClasses) {
-				final String trainedWordClass = futureTrainedWordClass.get();
-				LOGGER.debug("Successfully trained word class \"{}\".", trainedWordClass);
+			if (LOGGER.isDebugEnabled()) {
+				debugTrainedWordClasses(futureTrainedWordClasses);
+			} else {
+				consumeTrainedWordClasses(futureTrainedWordClasses);
 			}
 		} catch (InterruptedException | ExecutionException e) {
 			throw new TrainingException(e);
