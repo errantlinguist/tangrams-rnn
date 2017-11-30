@@ -267,7 +267,7 @@ public class LogisticModel {
 			final int expectedWordClassCount) {
 		this.modelParams = modelParams;
 		this.asynchronousJobExecutor = asynchronousJobExecutor;
-		wordModels = new ConcurrentHashMap<>(expectedWordClassCount);
+		wordModels = new ConcurrentHashMap<>(HashedCollections.capacity(expectedWordClassCount));
 	}
 
 	public Vocabulary getVocabulary() {
