@@ -466,13 +466,14 @@ public class LogisticModel {
 		// than e.g. using "CompletableFuture.runAsync(..)"
 		final List<Future<String>> futureTrainedWordClasses = taskPool.invokeAll(allJobs);
 		assert futureTrainedWordClasses.size() == allJobs.size();
-		for (final Future<String> futureTrainedWordClass : futureTrainedWordClasses) {
-			try {
+		try {
+			for (final Future<String> futureTrainedWordClass : futureTrainedWordClasses) {
+
 				final String trainedWordClass = futureTrainedWordClass.get();
 				LOGGER.debug("Successfully trained word class \"{}\".", trainedWordClass);
-			} catch (InterruptedException | ExecutionException e) {
-				throw new TrainingException(e);
 			}
+		} catch (InterruptedException | ExecutionException e) {
+			throw new TrainingException(e);
 		}
 	}
 
