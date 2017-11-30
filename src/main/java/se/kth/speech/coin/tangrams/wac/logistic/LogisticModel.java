@@ -464,9 +464,9 @@ public class LogisticModel {
 		// NOTE: "ForkJoinPool.invokeAll(..)" creates a ForkJoinTask for each
 		// individual Callable passed to it, which is potentially more efficient
 		// than e.g. using "CompletableFuture.runAsync(..)"
-		final List<Future<String>> completedJobs = taskPool.invokeAll(allJobs);
-		assert completedJobs.size() == allJobs.size();
-		for (final Future<String> futureTrainedWordClass : completedJobs) {
+		final List<Future<String>> futureTrainedWordClasses = taskPool.invokeAll(allJobs);
+		assert futureTrainedWordClasses.size() == allJobs.size();
+		for (final Future<String> futureTrainedWordClass : futureTrainedWordClasses) {
 			try {
 				final String trainedWordClass = futureTrainedWordClass.get();
 				LOGGER.debug("Successfully trained word class \"{}\".", trainedWordClass);
