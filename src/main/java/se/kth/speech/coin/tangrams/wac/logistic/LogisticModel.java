@@ -217,7 +217,7 @@ public class LogisticModel {
 
 	// private Attribute EDGE_COUNT;
 
-	private final ForkJoinPool asynchronousJobExecutor;
+	private final ForkJoinPool taskPool;
 
 	private ArrayList<Attribute> atts;
 
@@ -259,14 +259,14 @@ public class LogisticModel {
 		this(modelParams, ForkJoinPool.commonPool());
 	}
 
-	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool asynchronousJobExecutor) {
-		this(modelParams, asynchronousJobExecutor, DEFAULT_EXPECTED_WORD_CLASS_COUNT);
+	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool taskPool) {
+		this(modelParams, taskPool, DEFAULT_EXPECTED_WORD_CLASS_COUNT);
 	}
 
-	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool asynchronousJobExecutor,
+	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool taskPool,
 			final int expectedWordClassCount) {
 		this.modelParams = modelParams;
-		this.asynchronousJobExecutor = asynchronousJobExecutor;
+		this.taskPool = taskPool;
 		wordModels = new ConcurrentHashMap<>(HashedCollections.capacity(expectedWordClassCount));
 	}
 
@@ -435,13 +435,17 @@ public class LogisticModel {
 		final Stream<Callable<Void>> wordClassifierTrainingJobs = words.stream()
 				.map(word -> new WordClassifierTrainer(word, () -> createWordClassExamples(trainingSet, word), weight))
 				.map(wordTrainer -> new WordClassifierMapPopulator(wordTrainer));
-		// Train the discount model. NOTE: The discount model should not be in the same map as the classifiers for actually-seen observations
+		// Train the discount model. NOTE: The discount model should not be in
+		// the same map as the classifiers for actually-seen observations
 		final Callable<Void> discountClassifierTrainingJob = new DiscountModelTrainer(new WordClassifierTrainer(
 				OOV_CLASS_LABEL, () -> createDiscountClassExamples(trainingSet, words), weight));
 		@SuppressWarnings("unchecked")
 		final List<Callable<Void>> allJobs = Arrays.asList(Stream
 				.concat(wordClassifierTrainingJobs, Stream.of(discountClassifierTrainingJob)).toArray(Callable[]::new));
-		final List<Future<Void>> completedJobs = asynchronousJobExecutor.invokeAll(allJobs);
+		// NOTE: "ForkJoinPool.invokeAll(..)" creates a ForkJoinTask for each
+		// individual Callable passed to it, which is potentially more efficient
+		// than e.g. using "CompletableFuture.runAsync(..)"
+		final List<Future<Void>> completedJobs = taskPool.invokeAll(allJobs);
 		assert completedJobs.size() == words.size() + 1;
 	}
 
