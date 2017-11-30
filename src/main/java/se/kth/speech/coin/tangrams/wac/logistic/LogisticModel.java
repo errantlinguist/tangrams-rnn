@@ -175,7 +175,7 @@ public class LogisticModel {
 
 	}
 
-	private static final int DEFAULT_EXPECTED_WORD_CLASS_COUNT = 1000;
+	private static final int DEFAULT_EXPECTED_WORD_CLASS_COUNT = 1130;
 
 	private static final String OOV_CLASS_LABEL = "__OUT_OF_VOCABULARY__";
 
