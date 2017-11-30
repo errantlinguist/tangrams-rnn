@@ -28,7 +28,7 @@
 # not required if you have set a default allocation
 #SBATCH -A 2017-130
 
-# The name of the script
+# The name of the batch job
 #SBATCH -J tangrams-wac
 
 # Wall-clock time that will be given to this job
