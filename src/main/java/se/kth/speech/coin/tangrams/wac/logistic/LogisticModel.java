@@ -27,6 +27,7 @@ import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
@@ -34,6 +35,8 @@ import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import se.kth.speech.HashedCollections;
 import se.kth.speech.NumberTypeConversions;
@@ -51,6 +54,18 @@ import weka.core.Instances;
 
 public class LogisticModel {
 
+	public static final class TrainingException extends RuntimeException {
+
+		/**
+		 *
+		 */
+		private static final long serialVersionUID = -9069805591747785094L;
+
+		private TrainingException(final Exception cause) {
+			super(cause);
+		}
+	}
+
 	private class DiscountModelTrainer implements Callable<String> {
 		private final Callable<Entry<String, Logistic>> wordTrainer;
 
@@ -60,7 +75,7 @@ public class LogisticModel {
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see java.util.concurrent.Callable#call()
 		 */
 		@Override
@@ -179,6 +194,8 @@ public class LogisticModel {
 
 	private static final int DEFAULT_EXPECTED_WORD_CLASS_COUNT = 1130;
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(LogisticModel.class);
+
 	private static final String OOV_CLASS_LABEL = "__OUT_OF_VOCABULARY__";
 
 	private static final int POSITIVE_REFERENT_CLASSIFICATION_VALUE_IDX;
@@ -207,6 +224,10 @@ public class LogisticModel {
 		return rounds.getDiscountRounds(words).flatMap(LogisticModel::createClassWeightedReferents);
 	}
 
+	// private Attribute HUE;
+
+	// private Attribute EDGE_COUNT;
+
 	private static Stream<Weighted<Referent>> createWeightedReferents(final Referent[] refs, final double weight) {
 		return Arrays.stream(refs).map(ref -> new Weighted<>(ref, weight));
 	}
@@ -214,12 +235,6 @@ public class LogisticModel {
 	private static Stream<Weighted<Referent>> createWordClassExamples(final RoundSet rounds, final String word) {
 		return rounds.getExampleRounds(word).flatMap(LogisticModel::createClassWeightedReferents);
 	}
-
-	// private Attribute HUE;
-
-	// private Attribute EDGE_COUNT;
-
-	private final ForkJoinPool taskPool;
 
 	private ArrayList<Attribute> atts;
 
@@ -246,6 +261,8 @@ public class LogisticModel {
 	private Attribute SIZE;
 
 	private Attribute TARGET;
+
+	private final ForkJoinPool taskPool;
 
 	private RoundSet trainingSet;
 
@@ -448,7 +465,15 @@ public class LogisticModel {
 		// individual Callable passed to it, which is potentially more efficient
 		// than e.g. using "CompletableFuture.runAsync(..)"
 		final List<Future<String>> completedJobs = taskPool.invokeAll(allJobs);
-		assert completedJobs.size() == words.size() + 1;
+		assert completedJobs.size() == allJobs.size();
+		for (final Future<String> futureTrainedWordClass : completedJobs) {
+			try {
+				final String trainedWordClass = futureTrainedWordClass.get();
+				LOGGER.debug("Successfully trained word class \"{}\".", trainedWordClass);
+			} catch (InterruptedException | ExecutionException e) {
+				throw new TrainingException(e);
+			}
+		}
 	}
 
 	/**
