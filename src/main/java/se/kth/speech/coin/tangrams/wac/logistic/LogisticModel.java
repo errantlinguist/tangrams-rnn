@@ -468,7 +468,6 @@ public class LogisticModel {
 		assert futureTrainedWordClasses.size() == allJobs.size();
 		try {
 			for (final Future<String> futureTrainedWordClass : futureTrainedWordClasses) {
-
 				final String trainedWordClass = futureTrainedWordClass.get();
 				LOGGER.debug("Successfully trained word class \"{}\".", trainedWordClass);
 			}
