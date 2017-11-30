@@ -51,7 +51,7 @@ import weka.core.Instances;
 
 public class LogisticModel {
 
-	private class DiscountModelTrainer implements Callable<Void> {
+	private class DiscountModelTrainer implements Callable<String> {
 		private final Callable<Entry<String, Logistic>> wordTrainer;
 
 		private DiscountModelTrainer(final Callable<Entry<String, Logistic>> wordTrainer) {
@@ -64,11 +64,12 @@ public class LogisticModel {
 		 * @see java.util.concurrent.Callable#call()
 		 */
 		@Override
-		public Void call() throws Exception {
+		public String call() throws Exception {
 			final Entry<String, Logistic> wordClassifier = wordTrainer.call();
-			assert OOV_CLASS_LABEL.equals(wordClassifier.getKey());
+			final String result = wordClassifier.getKey();
+			assert OOV_CLASS_LABEL.equals(result);
 			discountModel = wordClassifier.getValue();
-			return null;
+			return result;
 		}
 	}
 
@@ -87,7 +88,7 @@ public class LogisticModel {
 		}
 	}
 
-	private class WordClassifierMapPopulator implements Callable<Void> {
+	private class WordClassifierMapPopulator implements Callable<String> {
 
 		private final Callable<Entry<String, Logistic>> wordTrainer;
 
@@ -101,10 +102,11 @@ public class LogisticModel {
 		 * @see java.util.concurrent.Callable#call()
 		 */
 		@Override
-		public Void call() throws Exception {
+		public String call() throws Exception {
 			final Entry<String, Logistic> wordClassifier = wordTrainer.call();
-			wordModels.put(wordClassifier.getKey(), wordClassifier.getValue());
-			return null;
+			final String result = wordClassifier.getKey();
+			wordModels.put(result, wordClassifier.getValue());
+			return result;
 		}
 	}
 
@@ -432,20 +434,20 @@ public class LogisticModel {
 	 */
 	private void train(final List<String> words, final double weight) {
 		// Train a model for each word
-		final Stream<Callable<Void>> wordClassifierTrainingJobs = words.stream()
+		final Stream<Callable<String>> wordClassifierTrainingJobs = words.stream()
 				.map(word -> new WordClassifierTrainer(word, () -> createWordClassExamples(trainingSet, word), weight))
 				.map(wordTrainer -> new WordClassifierMapPopulator(wordTrainer));
 		// Train the discount model. NOTE: The discount model should not be in
 		// the same map as the classifiers for actually-seen observations
-		final Callable<Void> discountClassifierTrainingJob = new DiscountModelTrainer(new WordClassifierTrainer(
+		final Callable<String> discountClassifierTrainingJob = new DiscountModelTrainer(new WordClassifierTrainer(
 				OOV_CLASS_LABEL, () -> createDiscountClassExamples(trainingSet, words), weight));
 		@SuppressWarnings("unchecked")
-		final List<Callable<Void>> allJobs = Arrays.asList(Stream
+		final List<Callable<String>> allJobs = Arrays.asList(Stream
 				.concat(wordClassifierTrainingJobs, Stream.of(discountClassifierTrainingJob)).toArray(Callable[]::new));
 		// NOTE: "ForkJoinPool.invokeAll(..)" creates a ForkJoinTask for each
 		// individual Callable passed to it, which is potentially more efficient
 		// than e.g. using "CompletableFuture.runAsync(..)"
-		final List<Future<Void>> completedJobs = taskPool.invokeAll(allJobs);
+		final List<Future<String>> completedJobs = taskPool.invokeAll(allJobs);
 		assert completedJobs.size() == words.size() + 1;
 	}
 
