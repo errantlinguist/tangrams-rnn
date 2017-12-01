@@ -43,11 +43,11 @@ public final class Lists {
 	 * @see <a href="http://stackoverflow.com/a/41128993/1391325">Original SO
 	 *      answer</a>
 	 */
-	public static <T> Comparator<T> comparingByIndex(final List<? extends T> ordering) {
+	public static <T> Comparator<T> comparingByIndex(final List<? extends T> ordering) { // NO_UCD (unused code)
 		return (elem1, elem2) -> Integer.compareUnsigned(ordering.indexOf(elem1), ordering.indexOf(elem2));
 	}
 
-	public static <T> Set<Integer> createMatchingElementIndexSet(final List<? extends T> list,
+	public static <T> Set<Integer> createMatchingElementIndexSet(final List<? extends T> list, // NO_UCD (unused code)
 			final Predicate<T> matcher) {
 		final Set<Integer> result = new HashSet<>();
 		for (final ListIterator<? extends T> listIter = list.listIterator(); listIter.hasNext();) {
@@ -60,7 +60,7 @@ public final class Lists {
 		return result;
 	}
 
-	public static <T> void ensureIndexIdenticalValues(final List<? super T> list, final int index,
+	public static <T> void ensureIndexIdenticalValues(final List<? super T> list, final int index, // NO_UCD (unused code)
 			final T defaultValue) {
 		final int minSize = index + 1;
 		final int sizeDiff = minSize - list.size();

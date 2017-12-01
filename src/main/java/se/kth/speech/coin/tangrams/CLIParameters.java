@@ -45,7 +45,7 @@ public final class CLIParameters {
 		return parseOutpath(outfile, DEFAULT_OUTPUT_ENCODING);
 	}
 
-	public static ThrowingSupplier<PrintStream, IOException> parseOutpath(final File outfile,
+	public static ThrowingSupplier<PrintStream, IOException> parseOutpath(final File outfile, // NO_UCD (use private)
 			final Charset outputEncoding) throws IOException { // NO_UCD
 		final ThrowingSupplier<PrintStream, IOException> result;
 		if (outfile == null) {

@@ -39,7 +39,7 @@ public final class FileNames {
 	 * @see <a href=
 	 *      "http://stackoverflow.com/a/894133/1391325">StackOverflow</a>
 	 */
-	public static final Pattern ILLEGAL_CHAR_PATTERN;
+	public static final Pattern ILLEGAL_CHAR_PATTERN; // NO_UCD (use private)
 
 	/**
 	 * An array of characters which are invalid as parts of either Windows or
@@ -48,7 +48,7 @@ public final class FileNames {
 	 * @see <a href=
 	 *      "http://stackoverflow.com/a/894133/1391325">StackOverflow</a>
 	 */
-	public static final char[] ILLEGAL_CHARACTERS;
+	public static final char[] ILLEGAL_CHARACTERS; // NO_UCD (use private)
 
 	/**
 	 * @see <a href=
@@ -64,7 +64,7 @@ public final class FileNames {
 		ILLEGAL_CHAR_PATTERN = Pattern.compile(regex);
 	}
 
-	public static Map<Path, String> createMinimalPathLeafNameMap(final Collection<Path> paths,
+	public static Map<Path, String> createMinimalPathLeafNameMap(final Collection<Path> paths, // NO_UCD (unused code)
 			final Function<? super String, String> transformer) {
 		int depth = 1;
 		Map<Path, String> result = createPathLeafNameMap(paths, depth, transformer);
@@ -76,7 +76,7 @@ public final class FileNames {
 		return result;
 	}
 
-	public static Map<Path, String> createPathLeafNameMap(final Collection<Path> paths, final int depth,
+	public static Map<Path, String> createPathLeafNameMap(final Collection<Path> paths, final int depth, // NO_UCD (use private)
 			final Function<? super String, String> transformer) {
 		if (depth < 1) {
 			throw new IllegalArgumentException("Depth must be a positive value.");
@@ -110,7 +110,7 @@ public final class FileNames {
 		return ILLEGAL_CHAR_PATTERN.matcher(fileName).replaceAll(replacement);
 	}
 
-	public static String[] splitBase(final String path) {
+	public static String[] splitBase(final String path) { // NO_UCD (unused code)
 		return FILE_EXT_SPLITTING_PATTERN.split(path);
 	}
 
