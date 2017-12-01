@@ -120,7 +120,7 @@ public final class SessionSetReader {
 		this(createUttReader(uttRefLangFilePath));
 	}
 
-	public SessionSetReader(final String uttsFilename, final UtteranceTabularDataReader uttReader,
+	public SessionSetReader(final String uttsFilename, final UtteranceTabularDataReader uttReader, // NO_UCD (use private)
 			final String eventsFilename, final RoundTabularDataReader roundReader) {
 		this.uttReader = uttReader;
 		this.roundReader = roundReader;
@@ -128,7 +128,7 @@ public final class SessionSetReader {
 		this.eventsFilename = eventsFilename;
 	}
 
-	public SessionSetReader(final UtteranceTabularDataReader uttReader) {
+	public SessionSetReader(final UtteranceTabularDataReader uttReader) { // NO_UCD (use private)
 		this(DEFAULT_UTTS_FILENAME, uttReader, DEFAULT_EVENTS_FILENAME, new RoundTabularDataReader());
 	}
 

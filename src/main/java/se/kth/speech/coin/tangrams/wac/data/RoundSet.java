@@ -34,7 +34,7 @@ public final class RoundSet {
 
 	private final Map<ModelParameter, Object> modelParams;
 
-	public RoundSet(final List<Round> rounds, final Map<ModelParameter, Object> modelParams) {
+	public RoundSet(final List<Round> rounds, final Map<ModelParameter, Object> modelParams) { // NO_UCD (use private)
 		this.rounds = rounds;
 		this.modelParams = modelParams;
 	}

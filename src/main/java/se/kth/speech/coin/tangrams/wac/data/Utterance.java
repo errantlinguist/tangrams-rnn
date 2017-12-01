@@ -35,7 +35,7 @@ public final class Utterance implements Comparable<Utterance> {
 
 	private float endTime;
 
-	public Utterance(final float startTime, final float endTime, final String speakerId, final boolean isInstructor,
+	public Utterance(final float startTime, final float endTime, final String speakerId, final boolean isInstructor, // NO_UCD (use default)
 			final List<String> tokens, final List<String> referringTokens) {
 		this.speakerId = speakerId;
 		this.isInstructor = isInstructor;
@@ -52,7 +52,6 @@ public final class Utterance implements Comparable<Utterance> {
 	 */
 	@Override
 	public int compareTo(final Utterance o) {
-		// TODO Auto-generated method stub
 		return NATURAL_COMPARATOR.compare(this, o);
 	}
 

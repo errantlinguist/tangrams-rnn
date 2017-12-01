@@ -52,7 +52,7 @@ import se.kth.speech.function.ThrowingSupplier;
  * @since 23 Nov 2017
  *
  */
-public final class DialogueReferentDescriptionWriter {
+public final class DialogueReferentDescriptionWriter { // NO_UCD (use default)
 
 	private enum Parameter implements Supplier<Option> {
 		HELP("?") {
@@ -353,7 +353,7 @@ public final class DialogueReferentDescriptionWriter {
 
 	private static final UtteranceDialogueRepresentationStringFactory UTT_DIAG_REPR_FACTORY = new UtteranceDialogueRepresentationStringFactory();
 
-	public static void main(final CommandLine cl) throws IOException, ParseException {
+	public static void main(final CommandLine cl) throws IOException, ParseException { // NO_UCD (use private)
 		if (cl.hasOption(Parameter.HELP.optName)) {
 			Parameter.printHelp();
 		} else {

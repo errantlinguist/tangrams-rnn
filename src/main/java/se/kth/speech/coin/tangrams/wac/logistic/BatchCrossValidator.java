@@ -31,14 +31,11 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.cli.CommandLine;
@@ -54,7 +51,6 @@ import org.slf4j.LoggerFactory;
 
 import se.kth.speech.FileNames;
 import se.kth.speech.HashedCollections;
-import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 
@@ -174,35 +170,13 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 
 	}
 
-	final static class Exception extends RuntimeException {
-
-		/**
-		 *
-		 */
-		private static final long serialVersionUID = -1636897113752283942L;
-
-		private static final String createMessage(final SessionSet training, final Session testing,
-				final java.lang.Exception cause) {
-			final Set<String> trainingSessionNames = training.getSessions().stream().map(Session::getName)
-					.collect(Collectors.toCollection(() -> new TreeSet<>()));
-			return String.format(
-					"A(n) %s occurred while cross-validating with a training set of %d session(s) and testing on session \"%s\". Training sets: %s",
-					cause, training.size(), testing.getName(), trainingSessionNames);
-		}
-
-		private Exception(final SessionSet training, final Session testing, final java.lang.Exception cause) {
-			super(createMessage(training, testing, cause), cause);
-		}
-
-	}
-
 	private static final BigDecimal BILLION = new BigDecimal("1000000000");
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(BatchCrossValidator.class);
 
 	private static final Charset OUTFILE_ENCODING = StandardCharsets.UTF_8;
 
-	public static void main(final CommandLine cl) throws ParseException, IOException {
+	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD (use private)
 		if (cl.hasOption(Parameter.HELP.optName)) {
 			Parameter.printHelp();
 		} else {
@@ -270,12 +244,12 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 
 	private final SessionSet set;
 
-	public BatchCrossValidator(final SessionSet set, final ForkJoinPool executor) {
+	public BatchCrossValidator(final SessionSet set, final ForkJoinPool executor) { // NO_UCD (use private)
 		this.set = set;
 		this.executor = executor;
 	}
 
-	public void accept(final Map<String, Map<ModelParameter, Object>> namedParamSets, final Path outdirPath) {
+	public void accept(final Map<String, Map<ModelParameter, Object>> namedParamSets, final Path outdirPath) { // NO_UCD (use private)
 		final Stream<Entry<String, Map<ModelParameter, Object>>> sortedNamedParamSets = namedParamSets.entrySet()
 				.stream().sorted(Comparator.comparing(Entry::getKey));
 		final ConcurrentMap<Path, BufferedWriter> outfileWriters = new ConcurrentHashMap<>(

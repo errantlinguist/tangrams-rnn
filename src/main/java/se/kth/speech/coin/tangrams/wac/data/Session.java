@@ -23,7 +23,7 @@ public final class Session {
 
 	private final String name;
 
-	public Session(final String name, final List<Round> rounds) {
+	public Session(final String name, final List<Round> rounds) { // NO_UCD (use default)
 		this.name = name;
 		this.rounds = rounds;
 	}

@@ -17,7 +17,7 @@ package se.kth.speech.coin.tangrams.wac.logistic;
 
 import se.kth.speech.coin.tangrams.wac.data.Round;
 
-public final class RoundEvaluationResult {
+public final class RoundEvaluationResult { // NO_UCD (use default)
 
 	private final String sessionId;
 

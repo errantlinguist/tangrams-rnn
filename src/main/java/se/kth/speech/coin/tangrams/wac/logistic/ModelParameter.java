@@ -147,7 +147,7 @@ public enum ModelParameter {
 	 *
 	 * @return A new {@link Map} of training parameters.
 	 */
-	public static Map<ModelParameter, Object> createDefaultParamValueMap() {
+	public static Map<ModelParameter, Object> createDefaultParamValueMap() { // NO_UCD (use default)
 		final Map<ModelParameter, Object> result = new EnumMap<>(ModelParameter.class);
 		result.put(CROSS_VALIDATION_ITER_COUNT, 1);
 		result.put(DISCOUNT, 3);

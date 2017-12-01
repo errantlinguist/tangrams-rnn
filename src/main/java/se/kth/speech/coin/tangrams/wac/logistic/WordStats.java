@@ -36,7 +36,7 @@ import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.coin.tangrams.wac.data.Vocabulary;
 
-public final class WordStats {
+public final class WordStats { // NO_UCD (unused code)
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(WordStats.class);
 

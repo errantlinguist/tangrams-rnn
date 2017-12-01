@@ -62,7 +62,7 @@ final class UtteranceDialogueRepresentationStringFactory implements Function<Ite
 		this(DataLanguageDefaults.getLocale(), DEFAULT_WORD_JOINER, DEFAULT_SENTENCE_JOINER);
 	}
 
-	UtteranceDialogueRepresentationStringFactory(final Locale uttLocale) {
+	UtteranceDialogueRepresentationStringFactory(final Locale uttLocale) { // NO_UCD (unused code)
 		this(uttLocale, DEFAULT_WORD_JOINER, DEFAULT_SENTENCE_JOINER);
 	}
 

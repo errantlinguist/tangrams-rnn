@@ -49,6 +49,28 @@ import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 
 public final class CrossValidator { // NO_UCD (use default)
 
+	public static final class Exception extends RuntimeException { // NO_UCD (use private)
+
+		/**
+		 *
+		 */
+		private static final long serialVersionUID = -1636897113752283942L;
+
+		private static final String createMessage(final SessionSet training, final Session testing,
+				final java.lang.Exception cause) {
+			final Set<String> trainingSessionNames = training.getSessions().stream().map(Session::getName)
+					.collect(Collectors.toCollection(() -> new TreeSet<>()));
+			return String.format(
+					"A(n) %s occurred while cross-validating with a training set of %d session(s) and testing on session \"%s\". Training sets: %s",
+					cause, training.size(), testing.getName(), trainingSessionNames);
+		}
+
+		private Exception(final SessionSet training, final Session testing, final java.lang.Exception cause) {
+			super(createMessage(training, testing, cause), cause);
+		}
+
+	}
+
 	private enum Parameter implements Supplier<Option> {
 		HELP("?") {
 			@Override
@@ -86,31 +108,9 @@ public final class CrossValidator { // NO_UCD (use default)
 
 	}
 
-	final static class Exception extends RuntimeException {
-
-		/**
-		 *
-		 */
-		private static final long serialVersionUID = -1636897113752283942L;
-
-		private static final String createMessage(final SessionSet training, final Session testing,
-				final java.lang.Exception cause) {
-			final Set<String> trainingSessionNames = training.getSessions().stream().map(Session::getName)
-					.collect(Collectors.toCollection(() -> new TreeSet<>()));
-			return String.format(
-					"A(n) %s occurred while cross-validating with a training set of %d session(s) and testing on session \"%s\". Training sets: %s",
-					cause, training.size(), testing.getName(), trainingSessionNames);
-		}
-
-		private Exception(final SessionSet training, final Session testing, final java.lang.Exception cause) {
-			super(createMessage(training, testing, cause), cause);
-		}
-
-	}
-
 	private static final Logger LOGGER = LoggerFactory.getLogger(CrossValidator.class);
 
-	public static void main(final CommandLine cl) throws ParseException, IOException {
+	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD (use private)
 		if (cl.hasOption(Parameter.HELP.optName)) {
 			Parameter.printHelp();
 		} else {
@@ -173,13 +173,13 @@ public final class CrossValidator { // NO_UCD (use default)
 		crossValidator.crossValidate(set, resultHandler);
 	}
 
+	private final Executor executor;
+
 	private final Supplier<LogisticModel> modelFactory;
 
 	private final Map<ModelParameter, Object> modelParams;
 
-	private final Executor executor;
-
-	public CrossValidator(final Map<ModelParameter, Object> modelParams, final Supplier<LogisticModel> modelFactory,
+	public CrossValidator(final Map<ModelParameter, Object> modelParams, final Supplier<LogisticModel> modelFactory, // NO_UCD (use default)
 			final Executor executor) {
 		this.modelParams = modelParams;
 		this.modelFactory = modelFactory;
@@ -197,7 +197,7 @@ public final class CrossValidator { // NO_UCD (use default)
 	 *            representing the results of testing on a single round in a
 	 *            single session.
 	 */
-	public void crossValidate(final SessionSet set,
+	public void crossValidate(final SessionSet set, // NO_UCD (use default)
 			final Consumer<? super CrossValidationRoundEvaluationResult> resultHandler) {
 		final CompletableFuture<Void> allFinished = CompletableFuture
 				.allOf(crossValidateAsynchronously(set, resultHandler).toArray(CompletableFuture[]::new));
@@ -219,7 +219,7 @@ public final class CrossValidator { // NO_UCD (use default)
 	 *         cross-validation test iterations, as defined by
 	 *         {@link ModelParameter#CROSS_VALIDATION_ITER_COUNT}.
 	 */
-	public Stream<CompletableFuture<Void>> crossValidateAsynchronously(final SessionSet set,
+	public Stream<CompletableFuture<Void>> crossValidateAsynchronously(final SessionSet set, // NO_UCD (use private)
 			final Consumer<? super CrossValidationRoundEvaluationResult> resultHandler) {
 		final int cvIterCount = (Integer) modelParams.get(ModelParameter.CROSS_VALIDATION_ITER_COUNT);
 		// Pass the same Random instance to each cross-validation iteration so

@@ -41,7 +41,7 @@ import se.kth.speech.coin.tangrams.TokenSequenceSingletonFactory;
  * @since Nov 23, 2017
  *
  */
-public final class UtteranceTabularDataReader {
+public final class UtteranceTabularDataReader { // NO_UCD (use default)
 
 	// @formatter:off
 	private enum Header {

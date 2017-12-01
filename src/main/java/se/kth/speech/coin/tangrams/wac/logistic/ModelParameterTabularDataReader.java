@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  * @since Nov 26, 2017
  *
  */
-public final class ModelParameterTabularDataReader {
+public final class ModelParameterTabularDataReader { // NO_UCD (use default)
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ModelParameterTabularDataReader.class);
 
@@ -69,11 +69,11 @@ public final class ModelParameterTabularDataReader {
 		return result;
 	}
 
-	public Map<String, Map<ModelParameter, Object>> apply(final Path infilePath) throws IOException {
+	public Map<String, Map<ModelParameter, Object>> apply(final Path infilePath) throws IOException { // NO_UCD (use default)
 		return apply(infilePath, DEFAULT_ENCODING);
 	}
 
-	public Map<String, Map<ModelParameter, Object>> apply(final Path infilePath, final Charset encoding)
+	public Map<String, Map<ModelParameter, Object>> apply(final Path infilePath, final Charset encoding) // NO_UCD (use private)
 			throws IOException {
 		LOGGER.info("Reading model parameters from \"{}\" with encoding \"{}\".", infilePath, encoding);
 		try (BufferedReader reader = Files.newBufferedReader(infilePath, encoding)) {
@@ -81,7 +81,7 @@ public final class ModelParameterTabularDataReader {
 		}
 	}
 
-	public Map<String, Map<ModelParameter, Object>> apply(final Reader reader) throws IOException {
+	public Map<String, Map<ModelParameter, Object>> apply(final Reader reader) throws IOException { // NO_UCD (use private)
 		final CSVParser parser = FORMAT.parse(reader);
 		final Map<String, Map<ModelParameter, Object>> result = new LinkedHashMap<>();
 		for (final CSVRecord record : parser) {

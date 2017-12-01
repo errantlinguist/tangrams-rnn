@@ -53,9 +53,9 @@ import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
 
-public class LogisticModel {
+public final class LogisticModel { // NO_UCD (use default)
 
-	public static final class TrainingException extends RuntimeException {
+	public static final class TrainingException extends RuntimeException { // NO_UCD (use private)
 
 		/**
 		 *
@@ -386,15 +386,15 @@ public class LogisticModel {
 		this(ModelParameter.createDefaultParamValueMap());
 	}
 
-	public LogisticModel(final Map<ModelParameter, Object> modelParams) {
+	public LogisticModel(final Map<ModelParameter, Object> modelParams) { // NO_UCD (use default)
 		this(modelParams, ForkJoinPool.commonPool());
 	}
 
-	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool taskPool) {
+	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool taskPool) { // NO_UCD (use default)
 		this(modelParams, taskPool, DEFAULT_EXPECTED_WORD_CLASS_COUNT);
 	}
 
-	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool taskPool,
+	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool taskPool, // NO_UCD (use private)
 			final int expectedWordClassCount) {
 		this.modelParams = modelParams;
 		this.taskPool = taskPool;

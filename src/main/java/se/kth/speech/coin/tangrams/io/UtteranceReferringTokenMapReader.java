@@ -69,14 +69,14 @@ public final class UtteranceReferringTokenMapReader {
 		return apply(infilePath, DEFAULT_ENCODING);
 	}
 
-	public Map<List<String>, List<String>> apply(final Path infilePath, final Charset encoding) throws IOException {
+	public Map<List<String>, List<String>> apply(final Path infilePath, final Charset encoding) throws IOException { // NO_UCD (use private)
 		LOGGER.info("Reading referring language from \"{}\" with encoding \"{}\".", infilePath, encoding);
 		try (BufferedReader reader = Files.newBufferedReader(infilePath, encoding)) {
 			return apply(reader);
 		}
 	}
 
-	public Map<List<String>, List<String>> apply(final Reader reader) throws IOException {
+	public Map<List<String>, List<String>> apply(final Reader reader) throws IOException { // NO_UCD (use private)
 		final CSVParser parser = FORMAT.parse(reader);
 		final Map<List<String>, List<String>> result = new HashMap<>(
 				HashedCollections.capacity(RESULT_MAP_EXPECTED_SIZE));

@@ -41,7 +41,7 @@ import se.kth.speech.Lists;
  * @since Nov 23, 2017
  *
  */
-public final class RoundTabularDataReader {
+public final class RoundTabularDataReader { // NO_UCD (use default)
 
 	// @formatter:off
 	private enum Header {
@@ -93,16 +93,16 @@ public final class RoundTabularDataReader {
 		this(DEFAULT_REFERRING_NAME);
 	}
 
-	public RoundTabularDataReader(final String referringEventName) {
+	public RoundTabularDataReader(final String referringEventName) { // NO_UCD (use private)
 		this.referringEventName = referringEventName;
 	}
 
-	public List<Round> apply(final Path infilePath, final IntFunction<List<Utterance>> roundUttListFactory)
+	public List<Round> apply(final Path infilePath, final IntFunction<List<Utterance>> roundUttListFactory) // NO_UCD (use default)
 			throws IOException {
 		return apply(infilePath, roundUttListFactory, DEFAULT_INFILE_CHARSET);
 	}
 
-	public List<Round> apply(final Path infilePath, final IntFunction<List<Utterance>> roundUttListFactory,
+	public List<Round> apply(final Path infilePath, final IntFunction<List<Utterance>> roundUttListFactory, // NO_UCD (use private)
 			final Charset encoding) throws IOException {
 		LOGGER.debug("Reading utterances file at \"{}\" with encoding \"{}\".", infilePath, encoding);
 		try (BufferedReader reader = Files.newBufferedReader(infilePath, encoding)) {
@@ -110,7 +110,7 @@ public final class RoundTabularDataReader {
 		}
 	}
 
-	public List<Round> apply(final Reader reader, final IntFunction<List<Utterance>> roundUttListFactory)
+	public List<Round> apply(final Reader reader, final IntFunction<List<Utterance>> roundUttListFactory) // NO_UCD (use private)
 			throws IOException {
 		final CSVParser parser = FORMAT.parse(reader);
 		final List<Round> result = new ArrayList<>(75);
