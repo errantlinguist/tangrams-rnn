@@ -41,7 +41,7 @@ public final class SessionSet {
 
 	private final List<Session> sessions;
 
-	public SessionSet(final List<Session> sessions) {
+	public SessionSet(final List<Session> sessions) { // NO_UCD (use default)
 		this.sessions = sessions;
 	}
 
@@ -107,16 +107,6 @@ public final class SessionSet {
 		int result = 1;
 		result = prime * result + (sessions == null ? 0 : sessions.hashCode());
 		return result;
-	}
-
-	public void printNegatives() {
-		for (final Session sess : sessions) {
-			for (final Round round : sess.getRounds()) {
-				if (round.isNegative()) {
-					System.out.println(round.prettyDialog());
-				}
-			}
-		}
 	}
 
 	public int size() {
