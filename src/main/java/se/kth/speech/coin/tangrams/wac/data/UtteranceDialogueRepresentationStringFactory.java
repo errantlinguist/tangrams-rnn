@@ -33,7 +33,7 @@ import org.apache.commons.lang3.tuple.Pair;
  * @since 19 May 2017
  *
  */
-public final class UtteranceDialogueRepresentationStringFactory implements Function<Iterator<Utterance>, String> {
+final class UtteranceDialogueRepresentationStringFactory implements Function<Iterator<Utterance>, String> {
 
 	private static final Collector<CharSequence, ?, String> DEFAULT_SENTENCE_JOINER = Collectors.joining(" ");
 
@@ -62,7 +62,7 @@ public final class UtteranceDialogueRepresentationStringFactory implements Funct
 		this(DataLanguageDefaults.getLocale(), DEFAULT_WORD_JOINER, DEFAULT_SENTENCE_JOINER);
 	}
 
-	public UtteranceDialogueRepresentationStringFactory(final Locale uttLocale) {
+	UtteranceDialogueRepresentationStringFactory(final Locale uttLocale) {
 		this(uttLocale, DEFAULT_WORD_JOINER, DEFAULT_SENTENCE_JOINER);
 	}
 
