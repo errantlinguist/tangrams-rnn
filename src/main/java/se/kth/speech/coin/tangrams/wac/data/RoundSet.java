@@ -34,7 +34,9 @@ public final class RoundSet {
 
 	private final Map<ModelParameter, Object> modelParams;
 
-	public RoundSet(final List<Round> rounds, final Map<ModelParameter, Object> modelParams) { // NO_UCD (use private)
+	public RoundSet(final List<Round> rounds, final Map<ModelParameter, Object> modelParams) { // NO_UCD
+																								// (use
+																								// private)
 		this.rounds = rounds;
 		this.modelParams = modelParams;
 	}
@@ -45,7 +47,8 @@ public final class RoundSet {
 	}
 
 	public Vocabulary createVocabulary() {
-		final Map<String, Long> counts = rounds.stream().flatMap(round -> round.getReferringTokens(modelParams))
+		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
+		final Map<String, Long> counts = rounds.stream().flatMap(round -> round.getReferringTokens(onlyInstructor))
 				.collect(VOCAB_COUNTING_COLLECTOR);
 		return new Vocabulary(counts);
 	}
