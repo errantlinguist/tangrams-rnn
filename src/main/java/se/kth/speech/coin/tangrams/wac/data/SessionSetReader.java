@@ -56,7 +56,7 @@ public final class SessionSetReader {
 			}
 		}
 		if (rounds.size() < 5) {
-			throw new RuntimeException(String.format("Session \"%s\" has only %d round(s).", rounds.size()));
+			throw new RuntimeException(String.format("Session \"%s\" has only %d round(s).", dir, rounds.size()));
 		}
 	}
 
