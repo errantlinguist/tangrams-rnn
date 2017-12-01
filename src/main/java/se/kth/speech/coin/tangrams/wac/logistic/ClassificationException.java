@@ -31,7 +31,7 @@ public class ClassificationException extends RuntimeException { // NO_UCD (use d
 	 * @param message
 	 * @param cause
 	 */
-	public ClassificationException(final String message, final Throwable cause) {
+	public ClassificationException(final String message, final Throwable cause) { // NO_UCD (unused code)
 		super(message, cause);
 
 	}
@@ -42,7 +42,7 @@ public class ClassificationException extends RuntimeException { // NO_UCD (use d
 	 * @param enableSuppression
 	 * @param writableStackTrace
 	 */
-	public ClassificationException(final String message, final Throwable cause, final boolean enableSuppression,
+	public ClassificationException(final String message, final Throwable cause, final boolean enableSuppression, // NO_UCD (unused code)
 			final boolean writableStackTrace) {
 		super(message, cause, enableSuppression, writableStackTrace);
 
@@ -51,7 +51,7 @@ public class ClassificationException extends RuntimeException { // NO_UCD (use d
 	/**
 	 * @param cause
 	 */
-	public ClassificationException(final Throwable cause) {
+	public ClassificationException(final Throwable cause) { // NO_UCD (use default)
 		super(cause);
 
 	}
