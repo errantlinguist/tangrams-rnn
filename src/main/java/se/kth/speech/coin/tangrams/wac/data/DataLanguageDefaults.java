@@ -22,9 +22,9 @@ import java.util.Locale;
  * @since 11 Aug 2017
  *
  */
-public final class DataLanguageDefaults {
+final class DataLanguageDefaults {
 
-	public static Locale getLocale() {
+	static Locale getLocale() {
 		return Locale.US;
 	}
 
