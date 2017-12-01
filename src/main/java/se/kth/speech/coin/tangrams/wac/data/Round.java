@@ -106,24 +106,6 @@ public final class Round {
 	}
 
 	/**
-	 * Returns a list of all referring-language tokens that have been used in
-	 * this round.
-	 *
-	 * @param modelParams
-	 *            A {@link Map} of {@link ModelParameter} values.
-	 * @return A {@link Stream} of tokens considered to be referring language
-	 *         for training and classification purposes.
-	 */
-	public Stream<String> getReferringTokens(final Map<ModelParameter, Object> modelParams) {
-		// NOTE: Values are retrieved directly from the map instead of
-		// e.g. assigning them to a final field because it's possible that the
-		// map
-		// values change at another place in the code and performance isn't an
-		// issue here anyway
-		return getReferringTokens((Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR));
-	}
-
-	/**
 	 * @return the score
 	 */
 	public int getScore() {
@@ -155,9 +137,8 @@ public final class Round {
 	 * @return <code>true</code> iff the set of all referring language for the
 	 *         given round contain words which are not in the given vocabulary.
 	 */
-	public boolean hasDiscount(final Collection<? super String> vocabWords,
-			final Map<ModelParameter, Object> modelParams) {
-		return getReferringTokens(modelParams).anyMatch(word -> !vocabWords.contains(word));
+	public boolean hasDiscount(final Collection<? super String> vocabWords, final boolean onlyInstructor) {
+		return getReferringTokens(onlyInstructor).anyMatch(word -> !vocabWords.contains(word));
 	}
 
 	/*
@@ -187,8 +168,8 @@ public final class Round {
 	 *         contains the given word.
 	 *
 	 */
-	public boolean hasWord(final String word, final Map<ModelParameter, Object> modelParams) {
-		return getReferringTokens(modelParams).anyMatch(word::equals);
+	public boolean hasWord(final String word, final boolean onlyInstructor) {
+		return getReferringTokens(onlyInstructor).anyMatch(word::equals);
 	}
 
 	public boolean isNegative() {

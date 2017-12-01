@@ -63,8 +63,9 @@ public final class WordStats { // NO_UCD (unused code)
 		final LogisticModel model = new LogisticModel(modelParams);
 		model.train(set);
 		final Vocabulary vocab = model.getVocabulary();
-		for (final Round round : new RoundSet(set, modelParams).getRounds()) {
-			round.getReferringTokens(modelParams).forEach(word -> {
+		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
+		for (final Round round : new RoundSet(set, onlyInstructor).getRounds()) {
+			round.getReferringTokens(onlyInstructor).forEach(word -> {
 				if (vocab.has(word)) {
 					for (final Referent ref : round.getReferents()) {
 						final double score = model.score(word, ref);

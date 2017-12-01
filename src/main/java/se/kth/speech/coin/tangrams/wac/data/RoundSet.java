@@ -23,8 +23,6 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import se.kth.speech.coin.tangrams.wac.logistic.ModelParameter;
-
 public final class RoundSet {
 
 	private static final Collector<String, ?, Map<String, Long>> VOCAB_COUNTING_COLLECTOR = Collectors
@@ -32,22 +30,21 @@ public final class RoundSet {
 
 	private final List<Round> rounds;
 
-	private final Map<ModelParameter, Object> modelParams;
+	private final boolean onlyInstructor;
 
-	public RoundSet(final List<Round> rounds, final Map<ModelParameter, Object> modelParams) { // NO_UCD
-																								// (use
-																								// private)
+	public RoundSet(final List<Round> rounds, final boolean onlyInstructor) { // NO_UCD
+																				// (use
+																				// private)
 		this.rounds = rounds;
-		this.modelParams = modelParams;
+		this.onlyInstructor = onlyInstructor;
 	}
 
-	public RoundSet(final SessionSet set, final Map<ModelParameter, Object> modelParams) {
+	public RoundSet(final SessionSet set, final boolean onlyInstructor) {
 		this(set.getSessions().stream().map(Session::getRounds).flatMap(List::stream).collect(Collectors.toList()),
-				modelParams);
+				onlyInstructor);
 	}
 
 	public Vocabulary createVocabulary() {
-		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
 		final Map<String, Long> counts = rounds.stream().flatMap(round -> round.getReferringTokens(onlyInstructor))
 				.collect(VOCAB_COUNTING_COLLECTOR);
 		return new Vocabulary(counts);
@@ -55,7 +52,7 @@ public final class RoundSet {
 
 	/*
 	 * (non-Javadoc)
-	 *
+	 * 
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
@@ -70,6 +67,9 @@ public final class RoundSet {
 			return false;
 		}
 		final RoundSet other = (RoundSet) obj;
+		if (onlyInstructor != other.onlyInstructor) {
+			return false;
+		}
 		if (rounds == null) {
 			if (other.rounds != null) {
 				return false;
@@ -91,7 +91,7 @@ public final class RoundSet {
 	 *         of the given {@code Collection} of vocabulary words.
 	 */
 	public Stream<Round> getDiscountRounds(final Collection<? super String> vocabWords) {
-		return rounds.stream().filter(round -> round.hasDiscount(vocabWords, modelParams));
+		return rounds.stream().filter(round -> round.hasDiscount(vocabWords, onlyInstructor));
 	}
 
 	/**
@@ -104,7 +104,7 @@ public final class RoundSet {
 	 *         featuring usage of the given word as referring language.
 	 */
 	public Stream<Round> getExampleRounds(final String vocabWord) {
-		return rounds.stream().filter(round -> round.hasWord(vocabWord, modelParams));
+		return rounds.stream().filter(round -> round.hasWord(vocabWord, onlyInstructor));
 	}
 
 	/**
@@ -116,27 +116,30 @@ public final class RoundSet {
 
 	/*
 	 * (non-Javadoc)
-	 *
+	 * 
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + (onlyInstructor ? 1231 : 1237);
 		result = prime * result + (rounds == null ? 0 : rounds.hashCode());
 		return result;
 	}
 
 	/*
 	 * (non-Javadoc)
-	 *
+	 * 
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
 	public String toString() {
-		final StringBuilder builder = new StringBuilder(64 * (rounds.size() + 1));
+		final StringBuilder builder = new StringBuilder();
 		builder.append("RoundSet [rounds=");
 		builder.append(rounds);
+		builder.append(", onlyInstructor=");
+		builder.append(onlyInstructor);
 		builder.append("]");
 		return builder.toString();
 	}

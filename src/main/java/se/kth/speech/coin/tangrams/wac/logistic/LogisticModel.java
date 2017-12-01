@@ -55,7 +55,9 @@ import weka.core.Instances;
 
 public final class LogisticModel { // NO_UCD (use default)
 
-	public static final class TrainingException extends RuntimeException { // NO_UCD (use private)
+	public static final class TrainingException extends RuntimeException { // NO_UCD
+																			// (use
+																			// private)
 
 		/**
 		 *
@@ -104,13 +106,13 @@ public final class LogisticModel { // NO_UCD (use default)
 				instance.setValue(getAttr(attrMap), ref.getGreen());
 			}
 		},
-//		HUE {
-//			@Override
-//			protected void setValue(final Instance instance, final Referent ref,
-//					final Map<ReferentFeature, Attribute> attrMap) {
-//				instance.setValue(getAttr(attrMap), ref.getHue());
-//			}
-//		},
+		// HUE {
+		// @Override
+		// protected void setValue(final Instance instance, final Referent ref,
+		// final Map<ReferentFeature, Attribute> attrMap) {
+		// instance.setValue(getAttr(attrMap), ref.getHue());
+		// }
+		// },
 		MID_X {
 			@Override
 			protected void setValue(final Instance instance, final Referent ref,
@@ -386,15 +388,21 @@ public final class LogisticModel { // NO_UCD (use default)
 		this(ModelParameter.createDefaultParamValueMap());
 	}
 
-	public LogisticModel(final Map<ModelParameter, Object> modelParams) { // NO_UCD (use default)
+	public LogisticModel(final Map<ModelParameter, Object> modelParams) { // NO_UCD
+																			// (use
+																			// default)
 		this(modelParams, ForkJoinPool.commonPool());
 	}
 
-	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool taskPool) { // NO_UCD (use default)
+	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool taskPool) { // NO_UCD
+																										// (use
+																										// default)
 		this(modelParams, taskPool, DEFAULT_EXPECTED_WORD_CLASS_COUNT);
 	}
 
-	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool taskPool, // NO_UCD (use private)
+	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool taskPool, // NO_UCD
+																										// (use
+																										// private)
 			final int expectedWordClassCount) {
 		this.modelParams = modelParams;
 		this.taskPool = taskPool;
@@ -423,8 +431,9 @@ public final class LogisticModel { // NO_UCD (use default)
 		// issue here anyway
 		final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
 		final double discount = ((Integer) modelParams.get(ModelParameter.DISCOUNT)).doubleValue();
-		final List<Referent> refs = round.getReferents();
-		final String[] words = round.getReferringTokens(modelParams).toArray(String[]::new);
+
+		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
+		final String[] words = round.getReferringTokens(onlyInstructor).toArray(String[]::new);
 		final Map<String, Logistic> wordClassifiers = new HashMap<>(HashedCollections.capacity(words.length));
 		final List<String> oovObservations = new ArrayList<>();
 		for (final String word : words) {
@@ -436,6 +445,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		}
 		assert wordClassifiers.values().stream().noneMatch(Objects::isNull);
 
+		final List<Referent> refs = round.getReferents();
 		final Stream<Weighted<Referent>> scoredRefs = refs.stream().map(ref -> {
 			final Instance inst = createInstance(ref);
 			final DoubleStream wordScores = Arrays.stream(words).mapToDouble(word -> {
@@ -643,7 +653,8 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *            The {@code SessionSet} to use as training data.
 	 */
 	void train(final SessionSet set) {
-		trainingSet = new RoundSet(set, modelParams);
+		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
+		trainingSet = new RoundSet(set, onlyInstructor);
 		vocab = trainingSet.createVocabulary();
 		// NOTE: Values are retrieved directly from the map instead of e.g.
 		// assigning
