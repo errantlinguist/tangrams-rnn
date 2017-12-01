@@ -32,7 +32,7 @@ import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 
-public class TestColor {
+public final class TestColor {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(TestColor.class);
 
