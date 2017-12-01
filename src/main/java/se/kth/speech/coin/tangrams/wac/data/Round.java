@@ -33,7 +33,9 @@ public final class Round {
 
 	private final List<Utterance> utts;
 
-	public Round(final List<Referent> referents, final List<Utterance> utts, final int score, final float time) { // NO_UCD (use default)
+	public Round(final List<Referent> referents, final List<Utterance> utts, final int score, final float time) { // NO_UCD
+																													// (use
+																													// default)
 		this.referents = referents;
 		this.utts = utts;
 		this.score = score;
@@ -90,7 +92,23 @@ public final class Round {
 	/**
 	 * Returns a list of all referring-language tokens that have been used in
 	 * this round.
-	 * 
+	 *
+	 * @param onlyInstructor
+	 *            A flag that, when set, ensures that only instructor utterances
+	 *            are returned.
+	 * @return A {@link Stream} of tokens considered to be referring language
+	 *         for training and classification purposes.
+	 */
+	public Stream<String> getReferringTokens(final boolean onlyInstructor) {
+		final Predicate<Utterance> uttFilter = onlyInstructor ? Utterance::isInstructor : utt -> true;
+		final Stream<Utterance> relevantUtts = utts.stream().filter(uttFilter);
+		return relevantUtts.map(Utterance::getReferringTokens).flatMap(List::stream);
+	}
+
+	/**
+	 * Returns a list of all referring-language tokens that have been used in
+	 * this round.
+	 *
 	 * @param modelParams
 	 *            A {@link Map} of {@link ModelParameter} values.
 	 * @return A {@link Stream} of tokens considered to be referring language
@@ -102,11 +120,7 @@ public final class Round {
 		// map
 		// values change at another place in the code and performance isn't an
 		// issue here anyway
-		final Predicate<Utterance> uttFilter = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR)
-				? Utterance::isInstructor
-				: utt -> true;
-		final Stream<Utterance> relevantUtts = utts.stream().filter(uttFilter);
-		return relevantUtts.map(Utterance::getReferringTokens).flatMap(List::stream);
+		return getReferringTokens((Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR));
 	}
 
 	/**
@@ -133,7 +147,7 @@ public final class Round {
 	/**
 	 * Checks if the round has a word which is not part of the provided
 	 * {@link Collection} of words.
-	 * 
+	 *
 	 * @param vocabWords
 	 *            The vocabulary of all words to be used as classifiers.
 	 * @param modelParams
@@ -164,14 +178,14 @@ public final class Round {
 
 	/**
 	 * Checks if the round has a specific word.
-	 * 
+	 *
 	 * @param word
 	 *            The word to check.
 	 * @param modelParams
 	 *            A {@link Map} of {@link ModelParameter} values.
 	 * @return <code>true</code> Iff the set of referring language for the round
 	 *         contains the given word.
-	 * 
+	 *
 	 */
 	public boolean hasWord(final String word, final Map<ModelParameter, Object> modelParams) {
 		return getReferringTokens(modelParams).anyMatch(word::equals);
