@@ -24,7 +24,7 @@ public final class Vocabulary {
 
 	private final Map<String, Long> wordObservationCounts;
 
-	public Vocabulary(final Map<String, Long> wordObservationCounts) {
+	Vocabulary(final Map<String, Long> wordObservationCounts) {
 		this.wordObservationCounts = wordObservationCounts;
 	}
 
@@ -110,10 +110,6 @@ public final class Vocabulary {
 				wordObservationCounts.remove(word);
 			}
 		}
-	}
-
-	public int size() {
-		return wordObservationCounts.size();
 	}
 
 	@Override
