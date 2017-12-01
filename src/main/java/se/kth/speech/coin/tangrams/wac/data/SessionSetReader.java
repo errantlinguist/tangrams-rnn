@@ -169,7 +169,9 @@ public final class SessionSetReader {
 			final Path uttsFile = subdir.resolve(uttsFilename);
 			if (Files.isRegularFile(eventsFile) && Files.isRegularFile(uttsFile)) {
 				final List<Round> rounds = createDialogueRoundList(subdir, eventsFile, uttsFile);
-				final Session session = new Session(subdir.getFileName().toString(), rounds);
+				final Path subdirFileName = subdir.getFileName();
+				assert subdirFileName != null;
+				final Session session = new Session(subdirFileName.toString(), rounds);
 				sessions.add(session);
 			}
 		}
