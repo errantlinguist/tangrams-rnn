@@ -18,6 +18,7 @@ package se.kth.speech.coin.tangrams.wac.logistic;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -86,6 +87,107 @@ public class LogisticModel {
 			discountModel = wordClassifier.getValue();
 			return result;
 		}
+	}
+
+	private enum ReferentFeature {
+		BLUE {
+			@Override
+			protected void setValue(final Instance instance, final Referent ref,
+					final Map<ReferentFeature, Attribute> attrMap) {
+				instance.setValue(getAttr(attrMap), ref.getBlue());
+			}
+		},
+		GREEN {
+			@Override
+			protected void setValue(final Instance instance, final Referent ref,
+					final Map<ReferentFeature, Attribute> attrMap) {
+				instance.setValue(getAttr(attrMap), ref.getGreen());
+			}
+		},
+//		HUE {
+//			@Override
+//			protected void setValue(final Instance instance, final Referent ref,
+//					final Map<ReferentFeature, Attribute> attrMap) {
+//				instance.setValue(getAttr(attrMap), ref.getHue());
+//			}
+//		},
+		MID_X {
+			@Override
+			protected void setValue(final Instance instance, final Referent ref,
+					final Map<ReferentFeature, Attribute> attrMap) {
+				instance.setValue(getAttr(attrMap), ref.getMidX());
+			}
+		},
+		MID_Y {
+			@Override
+			protected void setValue(final Instance instance, final Referent ref,
+					final Map<ReferentFeature, Attribute> attrMap) {
+				instance.setValue(getAttr(attrMap), ref.getMidY());
+			}
+		},
+		POSITION_X {
+			@Override
+			protected void setValue(final Instance instance, final Referent ref,
+					final Map<ReferentFeature, Attribute> attrMap) {
+				instance.setValue(getAttr(attrMap), ref.getPositionX());
+			}
+		},
+		POSITION_Y {
+
+			@Override
+			protected void setValue(final Instance instance, final Referent ref,
+					final Map<ReferentFeature, Attribute> attrMap) {
+				instance.setValue(getAttr(attrMap), ref.getPositionY());
+			}
+		},
+		RED {
+			@Override
+			protected void setValue(final Instance instance, final Referent ref,
+					final Map<ReferentFeature, Attribute> attrMap) {
+				instance.setValue(getAttr(attrMap), ref.getRed());
+			}
+		},
+		SHAPE {
+			@Override
+			protected Attribute createAttribute(final List<String> shapeUniqueValues) {
+				return new Attribute(name(), shapeUniqueValues);
+			}
+
+			@Override
+			protected void setValue(final Instance instance, final Referent ref,
+					final Map<ReferentFeature, Attribute> attrMap) {
+				instance.setValue(getAttr(attrMap), ref.getShape());
+			}
+		},
+		SIZE {
+			@Override
+			protected void setValue(final Instance instance, final Referent ref,
+					final Map<ReferentFeature, Attribute> attrMap) {
+				instance.setValue(getAttr(attrMap), ref.getSize());
+			}
+		},
+		TARGET {
+			@Override
+			protected Attribute createAttribute(final List<String> shapeUniqueValues) {
+				return new Attribute(name(), REFERENT_CLASSIFICATION_VALUES);
+			}
+
+			@Override
+			protected void setValue(final Instance instance, final Referent ref,
+					final Map<ReferentFeature, Attribute> attrMap) {
+				instance.setValue(getAttr(attrMap), Boolean.toString(ref.isTarget()));
+			}
+		};
+
+		protected Attribute createAttribute(final List<String> shapeUniqueValues) {
+			return new Attribute(name());
+		}
+
+		protected final Attribute getAttr(final Map<ReferentFeature, Attribute> attrMap) {
+			return attrMap.get(this);
+		}
+
+		protected abstract void setValue(Instance instance, Referent ref, Map<ReferentFeature, Attribute> attrMap);
 	}
 
 	private static class SessionRoundDatum {
@@ -167,8 +269,8 @@ public class LogisticModel {
 			final Logistic logistic = new Logistic();
 			@SuppressWarnings("unchecked")
 			final Weighted<Referent>[] examples = exampleSupplier.get().toArray(Weighted[]::new);
-			final Instances dataset = new Instances("Dataset", atts, examples.length);
-			dataset.setClass(TARGET);
+			final Instances dataset = new Instances("Dataset", featureAttrs.getValue(), examples.length);
+			dataset.setClass(featureAttrs.getKey().get(ReferentFeature.TARGET));
 
 			for (final Weighted<Referent> example : examples) {
 				final Referent ref = example.getWrapped();
@@ -228,13 +330,26 @@ public class LogisticModel {
 				createWeightedReferents(negRefs, negClassWeight));
 	}
 
+	private static Stream<Weighted<Referent>> createDiscountClassExamples(final RoundSet rounds,
+			final Collection<? super String> words) {
+		return rounds.getDiscountRounds(words).flatMap(LogisticModel::createClassWeightedReferents);
+	}
+
+	private static Entry<Map<ReferentFeature, Attribute>, ArrayList<Attribute>> createFeatureAttributes() {
+		return createFeatureAttributes(Arrays.asList(Referent.getShapes().stream().toArray(String[]::new)));
+	}
+
 	// private Attribute HUE;
 
 	// private Attribute EDGE_COUNT;
 
-	private static Stream<Weighted<Referent>> createDiscountClassExamples(final RoundSet rounds,
-			final Collection<? super String> words) {
-		return rounds.getDiscountRounds(words).flatMap(LogisticModel::createClassWeightedReferents);
+	private static Entry<Map<ReferentFeature, Attribute>, ArrayList<Attribute>> createFeatureAttributes(
+			final List<String> shapeUniqueValues) {
+		final Map<ReferentFeature, Attribute> attrMap = new EnumMap<>(ReferentFeature.class);
+		Arrays.stream(ReferentFeature.values())
+				.forEach(feature -> attrMap.put(feature, feature.createAttribute(shapeUniqueValues)));
+		final ArrayList<Attribute> attrList = new ArrayList<>(attrMap.values());
+		return Pair.of(attrMap, attrList);
 	}
 
 	private static Stream<Weighted<Referent>> createWeightedReferents(final Referent[] refs, final double weight) {
@@ -253,31 +368,11 @@ public class LogisticModel {
 		}
 	}
 
-	private ArrayList<Attribute> atts;
-
-	private Attribute BLUE;
-
 	private Logistic discountModel;
 
-	private Attribute GREEN;
-
-	private Attribute MIDX;
-
-	private Attribute MIDY;
+	private Entry<Map<ReferentFeature, Attribute>, ArrayList<Attribute>> featureAttrs;
 
 	private final Map<ModelParameter, Object> modelParams;
-
-	private Attribute POSX;
-
-	private Attribute POSY;
-
-	private Attribute RED;
-
-	private Attribute SHAPE;
-
-	private Attribute SIZE;
-
-	private Attribute TARGET;
 
 	private final ForkJoinPool taskPool;
 
@@ -304,6 +399,7 @@ public class LogisticModel {
 		this.modelParams = modelParams;
 		this.taskPool = taskPool;
 		wordModels = new ConcurrentHashMap<>(HashedCollections.capacity(expectedWordClassCount));
+		featureAttrs = createFeatureAttributes();
 	}
 
 	public Vocabulary getVocabulary() {
@@ -392,20 +488,10 @@ public class LogisticModel {
 	 *         construction at the cost of greater memory requirements.
 	 */
 	private Instance createInstance(final Referent ref) {
-		final DenseInstance instance = new DenseInstance(atts.size());
-		instance.setValue(SHAPE, ref.getShape());
-		// instance.setValue(EDGE_COUNT, Integer.toString(ref.getEdgeCount()));
-		instance.setValue(SIZE, ref.getSize());
-		instance.setValue(RED, ref.getRed());
-		instance.setValue(GREEN, ref.getGreen());
-		instance.setValue(BLUE, ref.getBlue());
-		// instance.setValue(HUE, ref.hue);
-		instance.setValue(POSX, ref.getPositionX());
-		instance.setValue(POSY, ref.getPositionY());
-		instance.setValue(MIDX, ref.getMidX());
-		instance.setValue(MIDY, ref.getMidY());
-
-		instance.setValue(TARGET, Boolean.toString(ref.isTarget()));
+		final Map<ReferentFeature, Attribute> attrMap = featureAttrs.getKey();
+		final DenseInstance instance = new DenseInstance(attrMap.size());
+		Arrays.stream(ReferentFeature.values()).forEach(feature -> feature.setValue(instance, ref, attrMap));
+		assert instance.numAttributes() == attrMap.size();
 		return instance;
 	}
 
@@ -557,7 +643,6 @@ public class LogisticModel {
 	 *            The {@code SessionSet} to use as training data.
 	 */
 	void train(final SessionSet set) {
-
 		trainingSet = new RoundSet(set, modelParams);
 		vocab = trainingSet.createVocabulary();
 		// NOTE: Values are retrieved directly from the map instead of e.g.
@@ -566,28 +651,7 @@ public class LogisticModel {
 		// change at another place in the code and performance isn't an issue
 		// here anyway
 		vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
-
-		atts = new ArrayList<>();
-
-		final List<String> shapeUniqueValues = new ArrayList<>(Referent.getShapes());
-		atts.add(SHAPE = new Attribute("shape", shapeUniqueValues));
-		// final List<String> edgeCountUniqueValues = Arrays
-		// .asList(Referent.getEdgeCounts().stream().map(Number::toString).toArray(String[]::new));
-		// atts.add(EDGE_COUNT = new Attribute("edge_count",
-		// edgeCountUniqueValues));
-		atts.add(SIZE = new Attribute("size"));
-		atts.add(RED = new Attribute("red"));
-		atts.add(GREEN = new Attribute("green"));
-		atts.add(BLUE = new Attribute("blue"));
-		// atts.add(HUE = new Attribute("hue"));
-
-		atts.add(POSX = new Attribute("posx"));
-		atts.add(POSY = new Attribute("posy"));
-
-		atts.add(MIDX = new Attribute("midx"));
-		atts.add(MIDY = new Attribute("midy"));
-		atts.add(TARGET = new Attribute("target", REFERENT_CLASSIFICATION_VALUES));
-
+		featureAttrs = createFeatureAttributes();
 		train(vocab.getWords(), 1.0);
 	}
 
