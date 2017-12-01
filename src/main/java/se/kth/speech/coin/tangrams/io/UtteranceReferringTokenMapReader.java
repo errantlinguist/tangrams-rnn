@@ -61,7 +61,7 @@ public final class UtteranceReferringTokenMapReader {
 		this(createDefaultTokenSeqTransformer());
 	}
 
-	public UtteranceReferringTokenMapReader(final Function<? super String, List<String>> tokenSeqFactory) {
+	public UtteranceReferringTokenMapReader(final Function<? super String, List<String>> tokenSeqFactory) { // NO_UCD (use private)
 		this.tokenSeqFactory = tokenSeqFactory;
 	}
 

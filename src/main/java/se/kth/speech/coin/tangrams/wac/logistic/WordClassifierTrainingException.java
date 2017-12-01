@@ -20,7 +20,7 @@ package se.kth.speech.coin.tangrams.wac.logistic;
  * @since Nov 21, 2017
  *
  */
-public class WordClassifierTrainingException extends Exception {
+public class WordClassifierTrainingException extends Exception { // NO_UCD (use default)
 
 	/**
 	 *
@@ -34,7 +34,7 @@ public class WordClassifierTrainingException extends Exception {
 
 	private final String word;
 
-	public WordClassifierTrainingException(final String word, final String message, final Throwable cause) {
+	public WordClassifierTrainingException(final String word, final String message, final Throwable cause) { // NO_UCD (use private)
 		super(message, cause);
 		this.word = word;
 	}
@@ -43,7 +43,7 @@ public class WordClassifierTrainingException extends Exception {
 	 * @param message
 	 * @param cause
 	 */
-	public WordClassifierTrainingException(final String word, final Throwable cause) {
+	public WordClassifierTrainingException(final String word, final Throwable cause) { // NO_UCD (use default)
 		this(word, createDefaultMessage(word, cause), cause);
 	}
 

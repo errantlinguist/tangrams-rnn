@@ -20,13 +20,13 @@ package se.kth.speech.coin.tangrams.wac.logistic;
  * @since Nov 25, 2017
  *
  */
-public final class Weighted<T> implements Comparable<Weighted<?>> {
+public final class Weighted<T> implements Comparable<Weighted<?>> { // NO_UCD (use default)
 
 	private final T wrapped;
 
 	private final double weight;
 
-	public Weighted(final T wrapped, final double weight) {
+	public Weighted(final T wrapped, final double weight) { // NO_UCD (use default)
 		this.wrapped = wrapped;
 		this.weight = weight;
 	}

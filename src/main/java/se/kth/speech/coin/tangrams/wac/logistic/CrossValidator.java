@@ -47,7 +47,7 @@ import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 
-public final class CrossValidator {
+public final class CrossValidator { // NO_UCD (use default)
 
 	private enum Parameter implements Supplier<Option> {
 		HELP("?") {

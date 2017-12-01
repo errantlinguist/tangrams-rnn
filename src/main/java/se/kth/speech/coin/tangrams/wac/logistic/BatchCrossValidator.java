@@ -58,7 +58,7 @@ import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 
-public final class BatchCrossValidator {
+public final class BatchCrossValidator { // NO_UCD (use default)
 
 	private class BatchRunner implements Supplier<Entry<Path, BufferedWriter>> {
 

@@ -35,7 +35,7 @@ import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.Utterance;
 
-public final class CrossValidationTablularDataWriter {
+public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 
 	// @formatter:off
 	private enum Datum implements Function<CrossValidationRoundEvaluationResult, String> {
