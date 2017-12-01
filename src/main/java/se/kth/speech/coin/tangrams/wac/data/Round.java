@@ -33,7 +33,7 @@ public final class Round {
 
 	private final List<Utterance> utts;
 
-	public Round(final List<Referent> referents, final List<Utterance> utts, final int score, final float time) {
+	public Round(final List<Referent> referents, final List<Utterance> utts, final int score, final float time) { // NO_UCD (use default)
 		this.referents = referents;
 		this.utts = utts;
 		this.score = score;
@@ -184,17 +184,6 @@ public final class Round {
 			}
 		}
 		return false;
-	}
-
-	public String prettyDialog() {
-		final StringBuilder sb = new StringBuilder();
-		for (final Utterance utt : utts) {
-			sb.append(utt.getSpeakerId() + ": ");
-			for (final String word : utt.getTokens()) {
-				sb.append(word + " ");
-			}
-		}
-		return sb.toString();
 	}
 
 	/*
