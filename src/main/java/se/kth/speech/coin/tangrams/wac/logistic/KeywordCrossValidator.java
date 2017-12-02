@@ -89,7 +89,6 @@ public final class KeywordCrossValidator { // NO_UCD (use default)
 						executor.getClass().getSimpleName(), executor.getParallelism());
 				final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
 				final CrossValidator crossValidator = new CrossValidator(modelParams, modelFactory, executor);
-
 				// TODO: Finish
 			}
 		}
