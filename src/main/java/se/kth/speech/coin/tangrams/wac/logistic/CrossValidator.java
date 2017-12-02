@@ -49,7 +49,9 @@ import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 
 public final class CrossValidator { // NO_UCD (use default)
 
-	public static final class Exception extends RuntimeException { // NO_UCD (use private)
+	public static final class Exception extends RuntimeException { // NO_UCD
+																	// (use
+																	// private)
 
 		/**
 		 *
@@ -87,19 +89,6 @@ public final class CrossValidator { // NO_UCD (use default)
 			}
 		};
 
-		private static final Options OPTIONS = createOptions();
-
-		private static Options createOptions() {
-			final Options result = new Options();
-			Arrays.stream(Parameter.values()).map(Parameter::get).forEach(result::addOption);
-			return result;
-		}
-
-		private static void printHelp() {
-			final HelpFormatter formatter = new HelpFormatter();
-			formatter.printHelp(CrossValidator.class.getName() + " INPATHS...", OPTIONS);
-		}
-
 		protected final String optName;
 
 		private Parameter(final String optName) {
@@ -108,17 +97,22 @@ public final class CrossValidator { // NO_UCD (use default)
 
 	}
 
+	private static final Options OPTIONS = createOptions();
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(CrossValidator.class);
 
-	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD (use private)
+	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD
+																						// (use
+																						// private)
 		if (cl.hasOption(Parameter.HELP.optName)) {
-			Parameter.printHelp();
+			printHelp();
 		} else {
 			final Path[] inpaths = cl.getArgList().stream().map(Paths::get).toArray(Path[]::new);
 			if (inpaths.length < 1) {
 				throw new ParseException("No input paths specified.");
 			} else {
 				LOGGER.info("Will read sessions from {}.", Arrays.toString(inpaths));
+				final Map<ModelParameter, Object> modelParams = ModelParameter.createParamValueMap(cl);
 				final Path refTokenFilePath = ((File) cl.getParsedOptionValue(Parameter.REFERRING_TOKENS.optName))
 						.toPath();
 				final SessionSet set = new SessionSetReader(refTokenFilePath).apply(inpaths);
@@ -129,7 +123,12 @@ public final class CrossValidator { // NO_UCD (use default)
 						executor.getClass().getSimpleName(), executor.getParallelism());
 				final CrossValidationTablularDataWriter resultWriter = new CrossValidationTablularDataWriter(
 						System.out);
-				run(executor, set, evalResult -> {
+				final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
+				final CrossValidator crossValidator = new CrossValidator(modelParams, modelFactory, executor);
+				LOGGER.info(
+						"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data; All language is used.",
+						modelParams.get(ModelParameter.UPDATE_WEIGHT));
+				crossValidator.crossValidate(set, evalResult -> {
 					try {
 						resultWriter.accept(evalResult);
 					} catch (final IOException e) {
@@ -143,29 +142,25 @@ public final class CrossValidator { // NO_UCD (use default)
 	public static void main(final String[] args) throws IOException {
 		final CommandLineParser parser = new DefaultParser();
 		try {
-			final CommandLine cl = parser.parse(Parameter.OPTIONS, args);
+			final CommandLine cl = parser.parse(OPTIONS, args);
 			main(cl);
 		} catch (final ParseException e) {
 			System.out.println(String.format("An error occurred while parsing the command-line arguments: %s", e));
-			Parameter.printHelp();
+			printHelp();
 		}
 	}
 
-	private static void run(final ForkJoinPool executor, final SessionSet set,
-			final Consumer<? super CrossValidationRoundEvaluationResult> resultHandler) throws IOException {
-		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
-		final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
-		final CrossValidator crossValidator = new CrossValidator(modelParams, modelFactory, executor);
-		modelParams.put(ModelParameter.UPDATE_WEIGHT, 1.0);
-		LOGGER.info(
-				"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data; All language is used.",
-				modelParams.get(ModelParameter.UPDATE_WEIGHT));
-		crossValidator.crossValidate(set, resultHandler);
-		modelParams.put(ModelParameter.UPDATE_WEIGHT, 5.0);
-		LOGGER.info(
-				"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data; All language is used.",
-				modelParams.get(ModelParameter.UPDATE_WEIGHT));
-		crossValidator.crossValidate(set, resultHandler);
+	private static Options createOptions() {
+		final Options result = new Options();
+		Arrays.stream(Parameter.values()).map(Parameter::get).forEach(result::addOption);
+		Arrays.stream(ModelParameter.values()).map(ModelParameter::createCLIOptionBuilder).map(Option.Builder::build)
+				.forEach(result::addOption);
+		return result;
+	}
+
+	private static void printHelp() {
+		final HelpFormatter formatter = new HelpFormatter();
+		formatter.printHelp(CrossValidator.class.getName() + " INPATHS...", OPTIONS);
 	}
 
 	private final Executor executor;
@@ -174,7 +169,9 @@ public final class CrossValidator { // NO_UCD (use default)
 
 	private final Map<ModelParameter, Object> modelParams;
 
-	public CrossValidator(final Map<ModelParameter, Object> modelParams, final Supplier<LogisticModel> modelFactory, // NO_UCD (use default)
+	public CrossValidator(final Map<ModelParameter, Object> modelParams, final Supplier<LogisticModel> modelFactory, // NO_UCD
+																														// (use
+																														// default)
 			final Executor executor) {
 		this.modelParams = modelParams;
 		this.modelFactory = modelFactory;
@@ -214,7 +211,9 @@ public final class CrossValidator { // NO_UCD (use default)
 	 *         cross-validation test iterations, as defined by
 	 *         {@link ModelParameter#CROSS_VALIDATION_ITER_COUNT}.
 	 */
-	public Stream<CompletableFuture<Void>> crossValidateAsynchronously(final SessionSet set, // NO_UCD (use private)
+	public Stream<CompletableFuture<Void>> crossValidateAsynchronously(final SessionSet set, // NO_UCD
+																								// (use
+																								// private)
 			final Consumer<? super CrossValidationRoundEvaluationResult> resultHandler) {
 		final int cvIterCount = (Integer) modelParams.get(ModelParameter.CROSS_VALIDATION_ITER_COUNT);
 		// Pass the same Random instance to each cross-validation iteration so

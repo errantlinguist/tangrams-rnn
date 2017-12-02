@@ -16,8 +16,14 @@
 package se.kth.speech.coin.tangrams.wac.logistic;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.Map;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
@@ -31,7 +37,14 @@ public enum ModelParameter {
 	 * {@link #TRAINING_SET_SIZE_DISCOUNT} is greater than 0. This should be a
 	 * positive {@link Integer}.
 	 */
-	CROSS_VALIDATION_ITER_COUNT {
+	CROSS_VALIDATION_ITER_COUNT("ci", 1) {
+		@Override
+		public Option.Builder createCLIOptionBuilder() {
+			return Option.builder(getOptName()).longOpt("cviters")
+					.desc("The number of times a full cross-validation should be performed; This is useful for cases where randomization might affect results.")
+					.hasArg().argName("count").type(Number.class);
+		}
+
 		/**
 		 * @return A positive {@link Integer} value.
 		 */
@@ -44,7 +57,14 @@ public enum ModelParameter {
 	 * Only build model for words with more or equal number of instances than
 	 * this; This should be a positive {@link Integer}.
 	 */
-	DISCOUNT {
+	DISCOUNT("sm", 3) {
+		@Override
+		public Option.Builder createCLIOptionBuilder() {
+			return Option.builder(getOptName()).longOpt("smoothing")
+					.desc("Only build model for words with more or equal number of instances than this.").hasArg()
+					.argName("mincount").type(Number.class);
+		}
+
 		/**
 		 * @return A positive {@link Integer} value.
 		 */
@@ -58,7 +78,20 @@ public enum ModelParameter {
 	 * Only use language from the instructor, i.e.&nbsp;ignore language from the
 	 * manipulator; This should be a {@link Boolean}.
 	 */
-	ONLY_INSTRUCTOR {
+	ONLY_INSTRUCTOR("oi", true) {
+		@Override
+		public Option.Builder createCLIOptionBuilder() {
+			// https://stackoverflow.com/a/33379307/1391325
+			return Option.builder(getOptName()).longOpt("only-instructor")
+					.desc("Only use language from the instructor, i.e. ignore language from the manipulator.").hasArg()
+					.argName("boolean").optionalArg(true).numberOfArgs(1);
+		}
+
+		@Override
+		protected Object parseValue(final CommandLine cl) {
+			return parseFlag(cl);
+		}
+
 		/**
 		 * @return A {@link Boolean} value.
 		 */
@@ -71,7 +104,13 @@ public enum ModelParameter {
 	 * The seed used for random number generation; This should be a
 	 * {@link Long}.
 	 */
-	RANDOM_SEED {
+	RANDOM_SEED("rs", 1L) {
+		@Override
+		public Option.Builder createCLIOptionBuilder() {
+			return Option.builder(getOptName()).longOpt("random-seed")
+					.desc("The seed used for random number generation.").hasArg().argName("seed").type(Number.class);
+		}
+
 		/**
 		 * A {@link Long} value.
 		 */
@@ -84,7 +123,14 @@ public enum ModelParameter {
 	 * The number of sessions to discount from each cross-validation training
 	 * set; This should be a non-negative {@link Integer}.
 	 */
-	TRAINING_SET_SIZE_DISCOUNT {
+	TRAINING_SET_SIZE_DISCOUNT("td", 0) {
+		@Override
+		public Option.Builder createCLIOptionBuilder() {
+			return Option.builder(getOptName()).longOpt("training-discount")
+					.desc("The number of sessions to discount from each cross-validation training set.").hasArg()
+					.argName("count").type(Number.class);
+		}
+
 		/**
 		 * @return A non-negative {@link Integer} value.
 		 */
@@ -95,10 +141,17 @@ public enum ModelParameter {
 	},
 
 	/**
-	 * Weight for incremental updates (relative to 1.0 for background model);
-	 * This should be a non-negative {@link Number}.
+	 * Weight for incremental updates (relative to 1.0 for the background
+	 * model); This should be a non-negative {@link Number}.
 	 */
-	UPDATE_WEIGHT {
+	UPDATE_WEIGHT("uw", BigDecimal.ZERO) {
+		@Override
+		public Option.Builder createCLIOptionBuilder() {
+			return Option.builder(getOptName()).longOpt("update-weight")
+					.desc("Weight for incremental updates (relative to 1.0 for the background model).").hasArg()
+					.argName("weight").type(Number.class);
+		}
+
 		/**
 		 * A non-negative {@link BigDecimal} instance.
 		 */
@@ -110,7 +163,17 @@ public enum ModelParameter {
 	/**
 	 * Weight score by word frequency; This should be a {@link Boolean}.
 	 */
-	WEIGHT_BY_FREQ {
+	WEIGHT_BY_FREQ("wf", true) {
+		@Override
+		public Option.Builder createCLIOptionBuilder() {
+			return Option.builder(getOptName()).longOpt("weight-by-freq").desc("Weight score by word frequency.");
+		}
+
+		@Override
+		protected Object parseValue(final CommandLine cl) {
+			return parseFlag(cl);
+		}
+
 		/**
 		 * @return A {@link Boolean} value.
 		 */
@@ -119,6 +182,13 @@ public enum ModelParameter {
 			return Boolean.valueOf(input);
 		}
 	};
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(ModelParameter.class);
+
+	static {
+		final ModelParameter[] params = ModelParameter.values();
+		assert Arrays.stream(params).map(ModelParameter::getOptName).distinct().count() == params.length;
+	}
 
 	/**
 	 * Creates a {@link Map} of {@link ModelParameter} values largely analogous
@@ -147,16 +217,32 @@ public enum ModelParameter {
 	 *
 	 * @return A new {@link Map} of training parameters.
 	 */
-	public static Map<ModelParameter, Object> createDefaultParamValueMap() { // NO_UCD (use default)
+	public static Map<ModelParameter, Object> createDefaultParamValueMap() { // NO_UCD
+																				// (use
+																				// default)
 		final Map<ModelParameter, Object> result = new EnumMap<>(ModelParameter.class);
-		result.put(CROSS_VALIDATION_ITER_COUNT, 1);
-		result.put(DISCOUNT, 3);
-		result.put(ONLY_INSTRUCTOR, true);
-		result.put(RANDOM_SEED, 1L);
-		result.put(TRAINING_SET_SIZE_DISCOUNT, 0);
-		result.put(UPDATE_WEIGHT, BigDecimal.ZERO);
-		result.put(WEIGHT_BY_FREQ, true);
-		assert result.size() == ModelParameter.values().length;
+		final ModelParameter[] params = ModelParameter.values();
+		Arrays.stream(params).forEach(ModelParameter::getDefaultValue);
+		assert result.size() == params.length;
+		return result;
+	}
+
+	/**
+	 * Creates a {@link Map} of {@link ModelParameter} values represented by a
+	 * given {@link CommandLine}.
+	 *
+	 * @param cl
+	 *            The {@code CommandLine} instance to parse values from.
+	 * @return A new {@link Map} of training parameters.
+	 */
+	public static Map<ModelParameter, Object> createParamValueMap(final CommandLine cl) { // NO_UCD (use default)
+		final Map<ModelParameter, Object> result = new EnumMap<>(ModelParameter.class);
+		final ModelParameter[] params = ModelParameter.values();
+		for (final ModelParameter param : params) {
+			final Object parsedValue = param.parseValue(cl);
+			result.put(param, parsedValue);
+		}
+		assert result.size() == params.length;
 		return result;
 	}
 
@@ -221,6 +307,80 @@ public enum ModelParameter {
 		return result;
 	}
 
+	private final Object defaultValue;
+
+	private final String optName;
+
+	private ModelParameter(final String optName, final Object defaultValue) {
+		this.optName = optName;
+		this.defaultValue = defaultValue;
+	}
+
+	public abstract Option.Builder createCLIOptionBuilder();
+
+	/**
+	 * @return the defaultValue
+	 */
+	public Object getDefaultValue() {
+		return defaultValue;
+	}
+
+	protected String createShortOptRepr() {
+		return "-" + getOptName();
+	}
+
+	/**
+	 * @return the optName
+	 */
+	protected String getOptName() {
+		return optName;
+	}
+
+	protected Object parseFlag(final CommandLine cl) {
+		final Object result;
+		final String optName = getOptName();
+		if (cl.hasOption(optName)) {
+			final String optValue = cl.getOptionValue(optName);
+			if (optValue == null) {
+				// A "flag-style" option (i.e. "--flag", without any args)
+				// means "true"
+				result = Boolean.TRUE;
+			} else {
+				result = parseValue(optValue);
+			}
+			LOGGER.info("Parsed a value of \"{}\" for option {} (\"{}\").", result, this, createShortOptRepr());
+		} else {
+			result = getDefaultValue();
+			LOGGER.info("Option {} (\"{}\") not present; using default value of \"{}\" for it.", this,
+					createShortOptRepr(), result);
+		}
+		assert result instanceof Boolean;
+		return result;
+	}
+
+	/**
+	 * Parses the value for the given {@link ModelParameter} represented by a
+	 * given {@link CommandLine}.
+	 *
+	 * @param cl
+	 *            The {@code CommandLine} instance to parse values from.
+	 * @return The parsed value or the {@link #getDefaultValue() default value}
+	 *         if not present.
+	 */
+	protected Object parseValue(final CommandLine cl) {
+		final String optValue = cl.getOptionValue(optName);
+		final Object result;
+		if (optValue == null) {
+			result = getDefaultValue();
+			LOGGER.info("Option {} (\"{}\") not present; using default value of \"{}\" for it.", this,
+					createShortOptRepr(), result);
+		} else {
+			result = parseValue(optValue);
+			LOGGER.info("Parsed a value of \"{}\" for option {} (\"{}\").", result, this, createShortOptRepr());
+		}
+		return result;
+	}
+
 	/**
 	 * Parses a string as a value for this {@link ModelParameter parameter}.
 	 *
@@ -229,4 +389,5 @@ public enum ModelParameter {
 	 * @return The parsed value.
 	 */
 	protected abstract Object parseValue(String input);
+
 }
