@@ -37,6 +37,12 @@ import org.slf4j.LoggerFactory;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 
+/**
+ *
+ * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
+ * @since Dec 2, 2017
+ *
+ */
 public final class KeywordCrossValidator { // NO_UCD (use default)
 
 	private enum Parameter implements Supplier<Option> {
