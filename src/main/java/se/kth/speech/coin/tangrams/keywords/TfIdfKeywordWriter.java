@@ -178,7 +178,7 @@ public final class TfIdfKeywordWriter {
 
 	private static Stream<List<String>> createNgrams(final Session session) {
 		final Stream<List<String>> uttTokenSeqs = session.getRounds().stream().map(Round::getUtts).flatMap(List::stream)
-				.map(Utterance::getTokens);
+				.map(Utterance::getReferringTokens);
 		return uttTokenSeqs.flatMap(TfIdfKeywordWriter::createNgrams);
 	}
 
