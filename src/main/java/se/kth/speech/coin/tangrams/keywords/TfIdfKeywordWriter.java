@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.TreeMap;
@@ -143,26 +144,13 @@ public final class TfIdfKeywordWriter {
 				new SessionSetReader(refTokenFilePath).apply(inpaths).getSessions().forEach(
 						session -> sessionNgrams.put(session, createNgrams(session).collect(Collectors.toList())));
 				LOGGER.info("Will extract keywords from {} session(s).", sessionNgrams.size());
-				final TfIdfCalculator<List<String>> tfidfCalculator = TfIdfCalculator.create(sessionNgrams, false);
+				final TfIdfKeywordWriter keywordWriter = new TfIdfKeywordWriter(sessionNgrams);
 
-				LOGGER.info("Writing to standard output stream.");
+				int rowsWritten = 0;
 				try (CSVPrinter printer = CSVFormat.TDF.withHeader(COL_HEADERS).print(outStreamGetter.get())) {
-					for (final Entry<Session, List<List<String>>> entry : sessionNgrams.entrySet()) {
-						final Session session = entry.getKey();
-						final List<List<String>> ngrams = entry.getValue();
-						final ToDoubleFunction<List<String>> ngramWeighter = word -> tfidfCalculator.applyAsDouble(word,
-								session);
-						final Stream<Weighted<List<String>>> scoredNgrams = ngrams.stream().distinct()
-								.map(ngram -> new Weighted<>(ngram, ngramWeighter.applyAsDouble(ngram)))
-								.sorted(SCORED_NGRAM_COMPARATOR);
-
-						final String sessionName = session.getName();
-						final Stream<Stream<String>> cellValues = scoredNgrams
-								.map(scoredNgram -> createRow(sessionName, scoredNgram));
-						final Stream<List<String>> rows = cellValues.map(stream -> stream.collect(Collectors.toList()));
-						printer.printRecords((Iterable<List<String>>) rows::iterator);
-					}
+					rowsWritten = keywordWriter.applyAsInt(printer);
 				}
+				LOGGER.info("Wrote {} row(s).", rowsWritten);
 			}
 		}
 	}
@@ -225,7 +213,34 @@ public final class TfIdfKeywordWriter {
 		return weight / wrapped.size();
 	}
 
-	private TfIdfKeywordWriter() {
+	private final TfIdfCalculator<List<String>> tfidfCalculator;
+
+	private final Map<Session, ? extends Collection<List<String>>> sessionNgrams;
+
+	public TfIdfKeywordWriter(final Map<Session, ? extends Collection<List<String>>> sessionNgrams) {
+		this.sessionNgrams = sessionNgrams;
+		tfidfCalculator = TfIdfCalculator.create(sessionNgrams, false);
+	}
+
+	public int applyAsInt(final CSVPrinter printer) throws IOException {
+		int result = 0;
+		for (final Entry<Session, ? extends Collection<List<String>>> entry : sessionNgrams.entrySet()) {
+			final Session session = entry.getKey();
+			final Collection<List<String>> ngrams = entry.getValue();
+			final ToDoubleFunction<List<String>> ngramWeighter = word -> tfidfCalculator.applyAsDouble(word, session);
+			final Stream<Weighted<List<String>>> scoredNgrams = ngrams.stream().distinct()
+					.map(ngram -> new Weighted<>(ngram, ngramWeighter.applyAsDouble(ngram)))
+					.sorted(SCORED_NGRAM_COMPARATOR);
+
+			final String sessionName = session.getName();
+			final Stream<Stream<String>> cellValues = scoredNgrams
+					.map(scoredNgram -> createRow(sessionName, scoredNgram));
+			final List<String[]> rows = Arrays
+					.asList(cellValues.map(stream -> stream.toArray(String[]::new)).toArray(String[][]::new));
+			printer.printRecords(rows);
+			result += rows.size();
+		}
+		return result;
 	}
 
 }
