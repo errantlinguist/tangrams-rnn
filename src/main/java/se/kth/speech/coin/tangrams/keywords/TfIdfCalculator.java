@@ -18,7 +18,6 @@ package se.kth.speech.coin.tangrams.keywords;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -36,16 +35,16 @@ public final class TfIdfCalculator<T> implements ToDoubleBiFunction<T, Session> 
 
 	private static final int DEFAULT_INITIAL_WORD_MAP_CAPACITY = HashedCollections.capacity(1000);
 
-	public static <T> TfIdfCalculator<T> create(final Map<Session, List<T>> sessionObservations,
+	public static <T> TfIdfCalculator<T> create(final Map<Session, ? extends Iterable<T>> sessionObservations,
 			final boolean onlyInstructor) {
 		final int initialMapCapcity = HashedCollections.capacity(sessionObservations.size());
 		final Map<Session, Map<T, Double>> observationCountsPerSession = new IdentityHashMap<>(initialMapCapcity);
 		final Map<T, Set<Session>> observationSessions = new HashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY);
-		for (final Entry<Session, List<T>> entry : sessionObservations.entrySet()) {
+		for (final Entry<Session, ? extends Iterable<T>> entry : sessionObservations.entrySet()) {
 			final Session session = entry.getKey();
 			final Map<T, Double> sessionTokenCounts = observationCountsPerSession.computeIfAbsent(session,
 					key -> new HashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY));
-			final List<T> observations = entry.getValue();
+			final Iterable<T> observations = entry.getValue();
 			observations.forEach(observation -> {
 				sessionTokenCounts.compute(observation, (key, oldValue) -> oldValue == null ? 1 : oldValue + 1);
 				observationSessions.computeIfAbsent(observation, key -> new HashSet<>(initialMapCapcity)).add(session);
