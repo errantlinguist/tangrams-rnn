@@ -105,6 +105,9 @@ public final class TfIdfKeywordWriter {
 		TOKEN_JOINER = Collectors.joining(TOKEN_DELIMITER);
 	}
 
+	private static final String[] COL_HEADERS = new String[] { "SESSION", "NGRAM", "TF-IDF", "NGRAM_LENGTH",
+			"NORMALIZED_TF-IDF" };
+
 	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD
 																						// (use
 																						// private)
@@ -127,7 +130,7 @@ public final class TfIdfKeywordWriter {
 				final TfIdfCalculator<List<String>> tfidfCalculator = TfIdfCalculator.create(sessionNgrams, false);
 
 				LOGGER.info("Writing to standard output stream.");
-				try (CSVPrinter printer = CSVFormat.TDF.withHeader("SESSION", "NGRAM", "TF-IDF").print(System.out)) {
+				try (CSVPrinter printer = CSVFormat.TDF.withHeader(COL_HEADERS).print(System.out)) {
 					for (final Entry<Session, List<List<String>>> entry : sessionNgrams.entrySet()) {
 						final Session session = entry.getKey();
 						final List<List<String>> ngrams = entry.getValue();
@@ -140,8 +143,7 @@ public final class TfIdfKeywordWriter {
 						final String sessionName = session.getName();
 						final Stream<Stream<String>> cellValues = scoredNgrams
 								.map(scoredNgram -> createRow(sessionName, scoredNgram));
-						final Stream<List<String>> rows = cellValues
-								.map(stream -> stream.collect(Collectors.toList()));
+						final Stream<List<String>> rows = cellValues.map(stream -> stream.collect(Collectors.toList()));
 						printer.printRecords((Iterable<List<String>>) rows::iterator);
 					}
 				}
@@ -185,7 +187,8 @@ public final class TfIdfKeywordWriter {
 	private static Stream<String> createRow(final String sessionName, final Weighted<List<String>> scoredNgram) {
 		final List<String> ngram = scoredNgram.getWrapped();
 		final double weight = scoredNgram.getWeight();
-		return Stream.of(sessionName, ngram.stream().collect(TOKEN_JOINER), weight).map(Object::toString);
+		return Stream.of(sessionName, ngram.stream().collect(TOKEN_JOINER), weight, ngram.size(), weight / ngram.size())
+				.map(Object::toString);
 	}
 
 	private TfIdfKeywordWriter() {
