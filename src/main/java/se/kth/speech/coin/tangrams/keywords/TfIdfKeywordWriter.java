@@ -133,7 +133,7 @@ public final class TfIdfKeywordWriter {
 						final List<List<String>> ngrams = entry.getValue();
 						final ToDoubleFunction<List<String>> ngramWeighter = word -> tfidfCalculator.applyAsDouble(word,
 								session);
-						final Stream<Weighted<List<String>>> scoredNgrams = ngrams.stream()
+						final Stream<Weighted<List<String>>> scoredNgrams = ngrams.stream().distinct()
 								.map(ngram -> new Weighted<>(ngram, ngramWeighter.applyAsDouble(ngram)))
 								.sorted(Comparator.reverseOrder());
 
