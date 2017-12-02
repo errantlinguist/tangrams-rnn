@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -125,13 +124,9 @@ public final class TfIdfKeywordWriter {
 				new SessionSetReader(refTokenFilePath).apply(inpaths).getSessions().forEach(
 						session -> sessionNgrams.put(session, createNgrams(session).collect(Collectors.toList())));
 				LOGGER.info("Will extract keywords from {} session(s).", sessionNgrams.size());
-				assert containsNgram(sessionNgrams.values(), Arrays.asList("okay")) : String
-						.format("Set of all session n-grams does not contain %s.", Arrays.asList("okay"));
-				assert containsNgram(sessionNgrams.values(), Arrays.asList("a")) : String
-						.format("Set of all session n-grams does not contain %s.", Arrays.asList("a"));
-
 				final TfIdfCalculator<List<String>> tfidfCalculator = TfIdfCalculator.create(sessionNgrams, false);
 
+				LOGGER.info("Writing to standard output stream.");
 				try (CSVPrinter printer = CSVFormat.TDF.withHeader("SESSION", "NGRAM", "TF-IDF").print(System.out)) {
 					for (final Entry<Session, List<List<String>>> entry : sessionNgrams.entrySet()) {
 						final Session session = entry.getKey();
@@ -163,12 +158,6 @@ public final class TfIdfKeywordWriter {
 			System.out.println(String.format("An error occurred while parsing the command-line arguments: %s", e));
 			Parameter.printHelp();
 		}
-	}
-
-	private static boolean containsNgram(final Collection<? extends Collection<List<String>>> sessionNgrams,
-			final List<String> ngram) {
-		final Stream<List<String>> allNgrams = sessionNgrams.stream().flatMap(Collection::stream);
-		return allNgrams.anyMatch(ngram::equals);
 	}
 
 	private static Stream<List<String>> createNgrams(final List<String> tokenSeq) {
