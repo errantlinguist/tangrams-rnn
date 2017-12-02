@@ -138,8 +138,8 @@ public final class TfIdfKeywordWriter {
 								.sorted(Comparator.reverseOrder());
 
 						final String sessionName = session.getName();
-						final Stream<Stream<Object>> cellValues = scoredNgrams.map(scoredNgram -> Stream.of(sessionName,
-								scoredNgram.getWrapped().stream().collect(TOKEN_JOINER), scoredNgram.getWeight()));
+						final Stream<Stream<String>> cellValues = scoredNgrams
+								.map(scoredNgram -> createRow(sessionName, scoredNgram));
 						final Stream<List<String>> rows = cellValues
 								.map(stream -> stream.map(Object::toString).collect(Collectors.toList()));
 						printer.printRecords((Iterable<List<String>>) rows::iterator);
@@ -180,6 +180,12 @@ public final class TfIdfKeywordWriter {
 		final Stream<List<String>> uttTokenSeqs = session.getRounds().stream().map(Round::getUtts).flatMap(List::stream)
 				.map(Utterance::getReferringTokens);
 		return uttTokenSeqs.flatMap(TfIdfKeywordWriter::createNgrams);
+	}
+
+	private static Stream<String> createRow(final String sessionName, final Weighted<List<String>> scoredNgram) {
+		final List<String> ngram = scoredNgram.getWrapped();
+		final double weight = scoredNgram.getWeight();
+		return Stream.of(sessionName, ngram.stream().collect(TOKEN_JOINER), weight).map(Object::toString);
 	}
 
 	private TfIdfKeywordWriter() {
