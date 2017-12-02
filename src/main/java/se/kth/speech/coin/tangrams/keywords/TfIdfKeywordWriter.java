@@ -141,7 +141,7 @@ public final class TfIdfKeywordWriter {
 						final Stream<Stream<String>> cellValues = scoredNgrams
 								.map(scoredNgram -> createRow(sessionName, scoredNgram));
 						final Stream<List<String>> rows = cellValues
-								.map(stream -> stream.map(Object::toString).collect(Collectors.toList()));
+								.map(stream -> stream.collect(Collectors.toList()));
 						printer.printRecords((Iterable<List<String>>) rows::iterator);
 					}
 				}
