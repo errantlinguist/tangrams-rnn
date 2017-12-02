@@ -73,8 +73,8 @@ public final class TfIdfCalculator<T> implements ToDoubleBiFunction<T, Session> 
 		final double tf = tf(observation, session);
 		final double idf = idf(observation);
 		final double result = tf / idf;
-		assert Double.isFinite(result) : String.format("TF-IDF score for \"%s\" is not finite for session \"%s\".",
-				observation, session.getName());
+		assert Double.isFinite(result) : String.format("TF-IDF score for \"%s\" is not finite for session \"%s\"; TF is %f; IDF is %f.",
+				observation, session.getName(), tf, idf);
 		return result;
 	}
 
