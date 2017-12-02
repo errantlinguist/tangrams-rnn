@@ -125,9 +125,6 @@ public final class CrossValidator { // NO_UCD (use default)
 						System.out);
 				final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
 				final CrossValidator crossValidator = new CrossValidator(modelParams, modelFactory, executor);
-				LOGGER.info(
-						"Cross-validating using model which updates itself with intraction data using a weight of {} for the new data; All language is used.",
-						modelParams.get(ModelParameter.UPDATE_WEIGHT));
 				crossValidator.crossValidate(set, evalResult -> {
 					try {
 						resultWriter.accept(evalResult);
