@@ -198,13 +198,12 @@ public final class TfIdfKeywordWriter {
 	private static Comparator<Weighted<? extends List<?>>> createScoredNgramComparator() {
 		// final Comparator<Weighted<? extends List<?>>> weightDescending =
 		// Comparator.reverseOrder();
-		// final Comparator<Weighted<? extends List<?>>> ngramLengthAscending =
-		// Comparator
-		// .comparingInt(scoredNgram -> scoredNgram.getWrapped().size());
+		final Comparator<Weighted<? extends List<?>>> ngramLengthAscending = Comparator
+				.comparingInt(scoredNgram -> scoredNgram.getWrapped().size());
 		// return weightDescending.thenComparing(ngramLengthAscending);
 		final Comparator<Weighted<? extends List<?>>> normalizedWeightAscending = Comparator
 				.comparingDouble(TfIdfKeywordWriter::normalizeWeight);
-		return normalizedWeightAscending.reversed();
+		return normalizedWeightAscending.reversed().thenComparing(ngramLengthAscending.reversed());
 	}
 
 	private static double normalizeWeight(final Weighted<? extends Collection<?>> weightedColl) {
