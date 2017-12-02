@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -94,7 +95,12 @@ public final class TfIdfKeywordWriter {
 
 	}
 
+	private static final String[] COL_HEADERS = new String[] { "SESSION", "NGRAM", "TF-IDF", "NGRAM_LENGTH",
+			"NORMALIZED_TF-IDF" };
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(TfIdfKeywordWriter.class);
+
+	private static final Comparator<Weighted<? extends List<?>>> SCORED_NGRAM_COMPARATOR = createScoredNgramComparator();
 
 	private static final String TOKEN_DELIMITER;
 
@@ -104,9 +110,6 @@ public final class TfIdfKeywordWriter {
 		TOKEN_DELIMITER = " ";
 		TOKEN_JOINER = Collectors.joining(TOKEN_DELIMITER);
 	}
-
-	private static final String[] COL_HEADERS = new String[] { "SESSION", "NGRAM", "TF-IDF", "NGRAM_LENGTH",
-			"NORMALIZED_TF-IDF" };
 
 	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD
 																						// (use
@@ -138,7 +141,7 @@ public final class TfIdfKeywordWriter {
 								session);
 						final Stream<Weighted<List<String>>> scoredNgrams = ngrams.stream().distinct()
 								.map(ngram -> new Weighted<>(ngram, ngramWeighter.applyAsDouble(ngram)))
-								.sorted(Comparator.reverseOrder());
+								.sorted(SCORED_NGRAM_COMPARATOR);
 
 						final String sessionName = session.getName();
 						final Stream<Stream<String>> cellValues = scoredNgrams
@@ -187,8 +190,26 @@ public final class TfIdfKeywordWriter {
 	private static Stream<String> createRow(final String sessionName, final Weighted<List<String>> scoredNgram) {
 		final List<String> ngram = scoredNgram.getWrapped();
 		final double weight = scoredNgram.getWeight();
-		return Stream.of(sessionName, ngram.stream().collect(TOKEN_JOINER), weight, ngram.size(), weight / ngram.size())
-				.map(Object::toString);
+		return Stream.of(sessionName, ngram.stream().collect(TOKEN_JOINER), weight, ngram.size(),
+				normalizeWeight(scoredNgram)).map(Object::toString);
+	}
+
+	private static Comparator<Weighted<? extends List<?>>> createScoredNgramComparator() {
+		// final Comparator<Weighted<? extends List<?>>> weightDescending =
+		// Comparator.reverseOrder();
+		// final Comparator<Weighted<? extends List<?>>> ngramLengthAscending =
+		// Comparator
+		// .comparingInt(scoredNgram -> scoredNgram.getWrapped().size());
+		// return weightDescending.thenComparing(ngramLengthAscending);
+		final Comparator<Weighted<? extends List<?>>> normalizedWeightAscending = Comparator
+				.comparingDouble(TfIdfKeywordWriter::normalizeWeight);
+		return normalizedWeightAscending.reversed();
+	}
+
+	private static double normalizeWeight(final Weighted<? extends Collection<?>> weightedColl) {
+		final double weight = weightedColl.getWeight();
+		final Collection<?> wrapped = weightedColl.getWrapped();
+		return weight / wrapped.size();
 	}
 
 	private TfIdfKeywordWriter() {
