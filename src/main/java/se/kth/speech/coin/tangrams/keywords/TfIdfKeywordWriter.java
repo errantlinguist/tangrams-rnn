@@ -17,6 +17,7 @@ package se.kth.speech.coin.tangrams.keywords;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -44,11 +45,13 @@ import org.apache.commons.csv.CSVPrinter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import se.kth.speech.coin.tangrams.CLIParameters;
 import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.coin.tangrams.wac.data.Utterance;
 import se.kth.speech.coin.tangrams.wac.logistic.Weighted;
+import se.kth.speech.function.ThrowingSupplier;
 import weka.core.tokenizers.NGramTokenizer;
 
 /**
@@ -63,6 +66,14 @@ public final class TfIdfKeywordWriter {
 			@Override
 			public Option get() {
 				return Option.builder(optName).longOpt("help").desc("Prints this message.").build();
+			}
+		},
+		OUTPATH("o") {
+			@Override
+			public Option get() {
+				return Option.builder(optName).longOpt("outpath")
+						.desc("The file to write the results to; If this option is not supplied, the standard output stream will be used.")
+						.hasArg().argName("path").type(File.class).build();
 			}
 		},
 		REFERRING_TOKENS("t") {
@@ -122,6 +133,8 @@ public final class TfIdfKeywordWriter {
 				throw new ParseException("No input paths specified.");
 			} else {
 				LOGGER.info("Will read sessions from {}.", Arrays.toString(inpaths));
+				final ThrowingSupplier<PrintStream, IOException> outStreamGetter = CLIParameters
+						.parseOutpath((File) cl.getParsedOptionValue(Parameter.OUTPATH.optName));
 				final Path refTokenFilePath = ((File) cl.getParsedOptionValue(Parameter.REFERRING_TOKENS.optName))
 						.toPath();
 				final NavigableMap<Session, List<List<String>>> sessionNgrams = new TreeMap<>(
@@ -133,7 +146,7 @@ public final class TfIdfKeywordWriter {
 				final TfIdfCalculator<List<String>> tfidfCalculator = TfIdfCalculator.create(sessionNgrams, false);
 
 				LOGGER.info("Writing to standard output stream.");
-				try (CSVPrinter printer = CSVFormat.TDF.withHeader(COL_HEADERS).print(System.out)) {
+				try (CSVPrinter printer = CSVFormat.TDF.withHeader(COL_HEADERS).print(outStreamGetter.get())) {
 					for (final Entry<Session, List<List<String>>> entry : sessionNgrams.entrySet()) {
 						final Session session = entry.getKey();
 						final List<List<String>> ngrams = entry.getValue();
