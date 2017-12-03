@@ -28,7 +28,7 @@
 # not required if you have set a default allocation
 #SBATCH -A 2017-130
 
-# The name of the batch job
+# The name of the batch job. NOTE: This will properly appear in e.g. email notifications even though the name is truncated in output of "squeue"
 #SBATCH -J tangrams-wac
 
 # Wall-clock time that will be given to this job
