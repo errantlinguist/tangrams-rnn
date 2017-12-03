@@ -108,6 +108,19 @@ public final class TfIdfCalculator<T> implements ToDoubleBiFunction<T, Session> 
 		return tf * idf;
 	}
 
+	/**
+	 * <em>tf(t,d)</em> = 0.5 + 0.5 &sdot; (<em>f</em><sub>t,d</sub> &divide;
+	 * max<sub><em>t&prime;</em> &isin; <em>d</em></sub>
+	 * <em>f</em><sub><em>t&prime;,d</em></sub>)
+	 *
+	 * @param observation
+	 *            The observation to calculate the term frequency of.
+	 * @param session
+	 *            The {@link Session} during which the given observation
+	 *            occurred.
+	 * @return The augmented term frequency for the given observation during the
+	 *         given session.
+	 */
 	private double augmentedTf(final T observation, final Session session) {
 		final Map<T, Double> sessionWordCounts = observationCountsPerSession.get(session);
 		assert sessionWordCounts != null;
@@ -152,6 +165,19 @@ public final class TfIdfCalculator<T> implements ToDoubleBiFunction<T, Session> 
 		return result;
 	}
 
+	/**
+	 * Calculates the term frequency for a given observation in a given
+	 * {@link Session} as the raw counts of a given term <em>t</em> in a given
+	 * document <em>d</em> <em>tf(t,d)</em> = <em>f</em><sub><em>t,d</em></sub>.
+	 *
+	 * @param observation
+	 *            The observation to calculate the term frequency of.
+	 * @param session
+	 *            The {@link Session} during which the given observation
+	 *            occurred.
+	 * @return The natural term frequency for the given observation during the
+	 *         given session.
+	 */
 	private double naturalTf(final T observation, final Session session) {
 		final Map<T, Double> sessionWordCounts = observationCountsPerSession.get(session);
 		assert sessionWordCounts != null;
