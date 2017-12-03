@@ -29,7 +29,7 @@
 #SBATCH -A 2017-130
 
 # The name of the batch job
-#SBATCH -J tangrams-wac
+#SBATCH -J tangrams_wac
 
 # Wall-clock time that will be given to this job
 #SBATCH -t 5:00:00
