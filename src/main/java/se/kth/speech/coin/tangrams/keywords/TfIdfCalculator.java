@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.ToDoubleBiFunction;
+import java.util.stream.DoubleStream;
 
 import se.kth.speech.HashedCollections;
 import se.kth.speech.coin.tangrams.wac.data.Session;
@@ -33,10 +34,38 @@ import se.kth.speech.coin.tangrams.wac.data.Session;
  */
 public final class TfIdfCalculator<T> implements ToDoubleBiFunction<T, Session> {
 
+	/**
+	 * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
+	 * @since Dec 3, 2017
+	 * @see <a href="https://doi.org/10.1017%2FCBO9780511809071.007">Manning,
+	 *      Christopher D. et al (2008). <em>Introduction to Information
+	 *      Retrieval</em>, p.&nbsp;128.</a>
+	 *
+	 */
+	public enum TermFrequencyVariant {
+		/**
+		 * <em>tf(t,d)</em> = 0.5 + 0.5 &sdot; (<em>f</em><sub>t,d</sub>
+		 * &divide; max<sub><em>t&prime;</em> &isin; <em>d</em></sub>
+		 * <em>f</em><sub><em>t&prime;,d</em></sub>)
+		 *
+		 */
+		AUGMENTED,
+		/**
+		 * Raw counts of a given term <em>t</em> in a given document <em>d</em>
+		 * <em>tf(t,d)</em> = <em>f</em><sub><em>t,d</em></sub>.
+		 */
+		NATURAL
+	}
+
 	private static final int DEFAULT_INITIAL_WORD_MAP_CAPACITY = HashedCollections.capacity(1000);
 
 	public static <T> TfIdfCalculator<T> create(final Map<Session, ? extends Iterable<T>> sessionObservations,
 			final boolean onlyInstructor) {
+		return create(sessionObservations, onlyInstructor, TermFrequencyVariant.NATURAL);
+	}
+
+	public static <T> TfIdfCalculator<T> create(final Map<Session, ? extends Iterable<T>> sessionObservations,
+			final boolean onlyInstructor, final TermFrequencyVariant tfVariant) {
 		final int initialMapCapcity = HashedCollections.capacity(sessionObservations.size());
 		final Map<Session, Map<T, Double>> observationCountsPerSession = new IdentityHashMap<>(initialMapCapcity);
 		final Map<T, Set<Session>> observationSessions = new HashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY);
@@ -51,27 +80,43 @@ public final class TfIdfCalculator<T> implements ToDoubleBiFunction<T, Session> 
 			});
 		}
 
-		return new TfIdfCalculator<>(observationCountsPerSession, observationSessions, sessionObservations.size());
+		return new TfIdfCalculator<>(observationCountsPerSession, observationSessions, sessionObservations.size(),
+				tfVariant);
 	}
 
 	private final Map<Session, Map<T, Double>> observationCountsPerSession;
 
 	private final Map<T, Set<Session>> observationSessions;
 
+	private final ToDoubleBiFunction<T, Session> tfCalculator;
+
 	private final double totalSessionCount;
 
 	private TfIdfCalculator(final Map<Session, Map<T, Double>> observationCountsPerSession,
-			final Map<T, Set<Session>> observationSessions, final int totalSessionCount) {
+			final Map<T, Set<Session>> observationSessions, final int totalSessionCount,
+			final TermFrequencyVariant tfVariant) {
 		this.observationCountsPerSession = observationCountsPerSession;
 		this.observationSessions = observationSessions;
 		this.totalSessionCount = totalSessionCount;
+		this.tfCalculator = getTermFrequencyCalculator(tfVariant);
 	}
 
 	@Override
 	public double applyAsDouble(final T observation, final Session session) {
-		final double tf = tf(observation, session);
+		final double tf = tfCalculator.applyAsDouble(observation, session);
 		final double idf = idf(observation);
 		return tf * idf;
+	}
+
+	private double augmentedTf(final T observation, final Session session) {
+		final Map<T, Double> sessionWordCounts = observationCountsPerSession.get(session);
+		assert sessionWordCounts != null;
+		final Double naturalTf = sessionWordCounts.get(observation);
+		assert naturalTf != null : String.format("Term frequency for \"%s\" is null for session \"%s\".", observation,
+				session.getName());
+		final DoubleStream sessionTfs = sessionWordCounts.values().stream().mapToDouble(Double::doubleValue);
+		final double maxSessionTf = sessionTfs.max().getAsDouble();
+		return 0.5 + 0.5 * (naturalTf / maxSessionTf);
 	}
 
 	private double df(final T observation) {
@@ -82,6 +127,24 @@ public final class TfIdfCalculator<T> implements ToDoubleBiFunction<T, Session> 
 		return result;
 	}
 
+	private ToDoubleBiFunction<T, Session> getTermFrequencyCalculator(final TermFrequencyVariant variant) {
+		final ToDoubleBiFunction<T, Session> result;
+		switch (variant) {
+		case AUGMENTED: {
+			result = this::augmentedTf;
+			break;
+		}
+		case NATURAL: {
+			result = this::naturalTf;
+			break;
+		}
+		default:
+			throw new AssertionError("Missing enum-handling logic.");
+
+		}
+		return result;
+	}
+
 	private double idf(final T observation) {
 		final double df = df(observation);
 		final double result = Math.log(totalSessionCount / df);
@@ -89,7 +152,7 @@ public final class TfIdfCalculator<T> implements ToDoubleBiFunction<T, Session> 
 		return result;
 	}
 
-	private double tf(final T observation, final Session session) {
+	private double naturalTf(final T observation, final Session session) {
 		final Map<T, Double> sessionWordCounts = observationCountsPerSession.get(session);
 		assert sessionWordCounts != null;
 		final Double result = sessionWordCounts.get(observation);

@@ -72,8 +72,8 @@ public final class TfIdfKeywordWriter {
 		OUTPATH("o") {
 			@Override
 			public Option get() {
-				return Option.builder(optName).longOpt("outpath")
-						.desc("The file to write the results to; If this option is not supplied, the standard output stream will be used.")
+				return Option.builder(optName).longOpt("outpath").desc(
+						"The file to write the results to; If this option is not supplied, the standard output stream will be used.")
 						.hasArg().argName("path").type(File.class).build();
 			}
 		},
@@ -84,7 +84,21 @@ public final class TfIdfKeywordWriter {
 						.desc("The file to read utterance referring-language mappings from.").hasArg().argName("path")
 						.type(File.class).required().build();
 			}
+		},
+		TERM_FREQUENCY("tf") {
+			@Override
+			public Option get() {
+				final TfIdfCalculator.TermFrequencyVariant[] possibleVals = TfIdfCalculator.TermFrequencyVariant
+						.values();
+				return Option.builder(optName).longOpt("term-frequency")
+						.desc(String.format(
+								"The method of calculating term frequencies. Possible values: %s; Default value: %s\"",
+								Arrays.toString(possibleVals), DEFAULT_TF_VARIANT))
+						.hasArg().argName("name").build();
+			}
 		};
+
+		private static final TfIdfCalculator.TermFrequencyVariant DEFAULT_TF_VARIANT = TfIdfCalculator.TermFrequencyVariant.NATURAL;
 
 		private static final Options OPTIONS = createOptions();
 
@@ -92,6 +106,11 @@ public final class TfIdfKeywordWriter {
 			final Options result = new Options();
 			Arrays.stream(Parameter.values()).map(Parameter::get).forEach(result::addOption);
 			return result;
+		}
+
+		private static TfIdfCalculator.TermFrequencyVariant parseTermFrequencyVariant(final CommandLine cl) {
+			final String name = cl.getOptionValue(Parameter.TERM_FREQUENCY.optName);
+			return name == null ? DEFAULT_TF_VARIANT : TfIdfCalculator.TermFrequencyVariant.valueOf(name);
 		}
 
 		private static void printHelp() {
@@ -134,6 +153,9 @@ public final class TfIdfKeywordWriter {
 				throw new ParseException("No input paths specified.");
 			} else {
 				LOGGER.info("Will read sessions from {}.", Arrays.toString(inpaths));
+				final TfIdfCalculator.TermFrequencyVariant tfVariant = Parameter.parseTermFrequencyVariant(cl);
+				LOGGER.info("Will use term-frequency variant {}.", tfVariant);
+
 				final ThrowingSupplier<PrintStream, IOException> outStreamGetter = CLIParameters
 						.parseOutpath((File) cl.getParsedOptionValue(Parameter.OUTPATH.optName));
 				final Path refTokenFilePath = ((File) cl.getParsedOptionValue(Parameter.REFERRING_TOKENS.optName))
@@ -144,7 +166,7 @@ public final class TfIdfKeywordWriter {
 				new SessionSetReader(refTokenFilePath).apply(inpaths).getSessions().forEach(
 						session -> sessionNgrams.put(session, createNgrams(session).collect(Collectors.toList())));
 				LOGGER.info("Will extract keywords from {} session(s).", sessionNgrams.size());
-				final TfIdfKeywordWriter keywordWriter = new TfIdfKeywordWriter(sessionNgrams);
+				final TfIdfKeywordWriter keywordWriter = new TfIdfKeywordWriter(sessionNgrams, tfVariant);
 
 				int rowsWritten = 0;
 				try (CSVPrinter printer = CSVFormat.TDF.withHeader(COL_HEADERS).print(outStreamGetter.get())) {
@@ -209,13 +231,14 @@ public final class TfIdfKeywordWriter {
 		return weight / wrapped.size();
 	}
 
-	private final TfIdfCalculator<List<String>> tfidfCalculator;
-
 	private final Map<Session, ? extends Collection<List<String>>> sessionNgrams;
 
-	public TfIdfKeywordWriter(final Map<Session, ? extends Collection<List<String>>> sessionNgrams) {
+	private final TfIdfCalculator<List<String>> tfidfCalculator;
+
+	public TfIdfKeywordWriter(final Map<Session, ? extends Collection<List<String>>> sessionNgrams,
+			final TfIdfCalculator.TermFrequencyVariant tfVariant) {
 		this.sessionNgrams = sessionNgrams;
-		tfidfCalculator = TfIdfCalculator.create(sessionNgrams, false);
+		tfidfCalculator = TfIdfCalculator.create(sessionNgrams, false, tfVariant);
 	}
 
 	public int applyAsInt(final CSVPrinter printer) throws IOException {
