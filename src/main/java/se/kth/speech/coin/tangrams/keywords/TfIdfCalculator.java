@@ -28,6 +28,8 @@ import se.kth.speech.HashedCollections;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 
 /**
+ * @param <T>
+ *            The type of observations to calculate TF-IDF scores for.
  * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
  * @since Dec 1, 2017
  *
