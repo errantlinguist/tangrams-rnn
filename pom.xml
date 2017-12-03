@@ -14,6 +14,33 @@
 
 	<name>Tangrams WaC</name>
 	<description>Words-as-classifiers logistic regression for tangrams game target pieces.</description>
+	<url>http://www.coinssf.se/</url>
+	
+	<licenses>
+		<license>
+			<name>Apache License, Version 2.0</name>
+			<url>https://www.apache.org/licenses/LICENSE-2.0</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<scm>
+		<connection>scm:git:git://github.com/errantlinguist/tangrams-wac.git</connection>
+		<developerConnection>scm:git:git@github.com:errantlinguist/tangrams-wac.git</developerConnection>
+		<url>https://github.com/errantlinguist/tangrams-wac</url>
+	</scm>
+
+	<developers>
+		<developer>
+			<id>tshore</id>
+			<name>Todd Shore</name>
+			<email>errantlinguist+github@gmail.com</email>
+			<roles>
+				<role>architect</role>
+				<role>developer</role>
+			</roles>
+		</developer>
+	</developers>
 
 	<properties>
 		<javac.version>1.8</javac.version>
