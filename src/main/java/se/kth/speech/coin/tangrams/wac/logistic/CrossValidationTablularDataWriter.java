@@ -149,6 +149,17 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 			}
 
 		},
+		REFERRING_TOKENS {
+
+			@Override
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
+				final ClassificationResult classificationResult = evalResult.getClassificationResult();
+				final String[] refTokens = classificationResult.getWords();
+				return Arrays.stream(refTokens).collect(TOKEN_JOINER);
+			}
+
+		},
 		REFERRING_TOKEN_TYPES {
 
 			@Override
