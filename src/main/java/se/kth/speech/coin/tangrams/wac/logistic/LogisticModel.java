@@ -49,6 +49,7 @@ import se.kth.speech.coin.tangrams.wac.data.Vocabulary;
 import weka.classifiers.Classifier;
 import weka.classifiers.functions.Logistic;
 import weka.core.Attribute;
+import weka.core.BatchPredictor;
 import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -410,6 +411,10 @@ public final class LogisticModel { // NO_UCD (use default)
 		featureAttrs = createFeatureAttributes();
 	}
 
+	public double getPositiveReferentClassificationConfidence(final double[] dist) {
+		return dist[POSITIVE_REFERENT_CLASSIFICATION_VALUE_IDX];
+	}
+
 	public Vocabulary getVocabulary() {
 		return vocab;
 	}
@@ -482,6 +487,30 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *
 	 * @param wordClassifier
 	 *            The word {@link Classifier classifier} to use.
+	 * @param refs
+	 *            The {@link Referent} instances to classify.
+	 * @return The scores of the given referent being a target referent and not
+	 *         being a target referent.
+	 * @throws ClassificationException
+	 *             If an {@link Exception} occurs during
+	 *             {@link BatchPredictor#distributionForInstances(Instances)
+	 *             classification}.
+	 */
+	public double[][] score(final BatchPredictor wordClassifier, final List<Referent> refs) {
+		final Instances insts = createInstances(refs);
+		double[][] result;
+		try {
+			result = wordClassifier.distributionsForInstances(insts);
+		} catch (final Exception e) {
+			throw new ClassificationException(e);
+		}
+		return result;
+	}
+
+	/**
+	 *
+	 * @param wordClassifier
+	 *            The word {@link Classifier classifier} to use.
 	 * @param ref
 	 *            The {@link Referent} to classify.
 	 * @return The score of the given referent being a target referent,
@@ -516,6 +545,27 @@ public final class LogisticModel { // NO_UCD (use default)
 	}
 
 	/**
+	 * Creates a new {@link Instances} representing the given {@link Referent}
+	 * instances.
+	 *
+	 * @param refs
+	 *            The {@code Referent} instances to create {@code Instance}
+	 *            objects for; Their index in the given {@link List} will be the
+	 *            index of their corresponding {@code Instance} objects in the
+	 *            result data structure.
+	 * @return A new {@code Instances} object containing {@code Instance}
+	 *         objects representing each given {@code Referent}.
+	 */
+	private Instances createInstances(final List<Referent> refs) {
+		final Map<ReferentFeature, Attribute> attrMap = featureAttrs.getKey();
+		final Instances result = new Instances("Referents", featureAttrs.getValue(), refs.size());
+		assert result.numAttributes() == attrMap.size();
+		refs.stream().map(this::createInstance).forEachOrdered(result::add);
+		assert result.size() == refs.size();
+		return result;
+	}
+
+	/**
 	 *
 	 * @param wordClassifier
 	 *            The word {@link Classifier classifier} to use.
@@ -541,7 +591,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		} catch (final Exception e) {
 			throw new ClassificationException(e);
 		}
-		return dist[POSITIVE_REFERENT_CLASSIFICATION_VALUE_IDX];
+		return getPositiveReferentClassificationConfidence(dist);
 	}
 
 	// /**
