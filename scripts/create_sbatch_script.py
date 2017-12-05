@@ -30,10 +30,6 @@ class OptionalRelativePathArgDatum(object):
 		# Always use Unix-style paths because it's run on Unix
 		return default_project_dirpath + self.__default_path
 
-	def create_initial_default_path(self):
-		default_project_dirpath = _create_default_project_dirpath(_DEFAULT_USER)
-		return self.resolve_default_path(default_project_dirpath)
-
 
 @unique
 class OptionalRelativePathArg(Enum):
@@ -48,25 +44,20 @@ class OptionalRelativePathArg(Enum):
 __OPTIONAL_ARG_FACTORIES = {
 	OptionalRelativePathArg.REFERRING_LANGUAGE: lambda parser, arg: parser.add_argument("-r", "--reflang",
 																						dest=arg.dest,
-																						default=arg.create_initial_default_path(),
 																						metavar="FILENAME",
 																						help="The path of the referring-language file to read relative to the root project directory."),
 	OptionalRelativePathArg.MODEL_PARAMS: lambda parser, arg: parser.add_argument("-m", "--model-params",
 																				  dest=arg.dest,
-																				  default=arg.create_initial_default_path(),
 																				  metavar="FILENAME",
 																				  help="The path of the model-parameters file to read relative to the root project directory."),
 	OptionalRelativePathArg.INPUT: lambda parser, arg: parser.add_argument("-i", "--input", dest=arg.dest,
-																		   default=arg.create_initial_default_path(),
 																		   metavar="DIRPATH",
 																		   help="The path of the directory containing the session data to use for cross-validation."),
 	OptionalRelativePathArg.OUTPUT: lambda parser, arg: parser.add_argument("-o", "--output", dest=arg.dest,
-																			default=arg.create_initial_default_path(),
 																			metavar="DIRPATH",
 																			help="The path of the directory to write the cross-validation results to."),
 	OptionalRelativePathArg.CLASSPATH_JARFILE: lambda parser, arg: parser.add_argument("-c", "--classpath-jar",
 																					   dest=arg.dest,
-																					   default=arg.create_initial_default_path(),
 																					   metavar="PATH",
 																					   help="The path of the JAR file to run.")
 }
@@ -113,7 +104,7 @@ def __create_argparser(current_time: datetime.datetime) -> argparse.ArgumentPars
 						help="Set a limit on the total run time of the job allocation.")
 	result.add_argument("-p", "--heap", metavar="HEAPSIZE", default=__DEFAULT_HEAPSIZE,
 						help="Set a limit on the total run time of the job allocation.")
-	result.add_argument("-u", "--user", metavar="USER", default=_DEFAULT_USER,
+	result.add_argument("-u", "--user", metavar="USER", required=True,
 						action=OptionalRelativePathPopulatingAction,
 						help="The system username to use for running the batch script.")
 	for arg, arg_adder in __OPTIONAL_ARG_FACTORIES.items():
