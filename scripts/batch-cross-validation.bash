@@ -21,7 +21,7 @@
 
 # A batch script for running cross-validation using Slurm <https://slurm.schedmd.com/>.
 # 
-# Author: Todd Shore <tcshore@kth.se>
+# Author: Todd Shore <errantlinguist+github@gmail.com>
 # Since: 2017-11-28
 
 # Set the allocation to be charged for this job
