@@ -96,7 +96,7 @@ def __create_argparser(current_time: datetime.datetime) -> argparse.ArgumentPars
 	default_job_name = __create_default_job_name(current_time)
 	result = argparse.ArgumentParser(
 		description="Creates a script for submitting to Slurm to run cross-validation tests.")
-	result.add_argument("-j" "--job-name", dest="job_name", metavar="JOBNAME", default=default_job_name,
+	result.add_argument("-j", "--job-name", dest="job_name", metavar="JOBNAME", default=default_job_name,
 						help="Specify a name for the job allocation. The specified name will appear along with the job id number when querying running jobs on the system.")
 	result.add_argument("-a", "--account", metavar="ACCOUNT", default=__DEFAULT_ACCOUNT,
 						help="Charge resources used by this job to specified account.")
