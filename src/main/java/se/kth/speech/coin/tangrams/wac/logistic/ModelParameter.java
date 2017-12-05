@@ -163,7 +163,7 @@ public enum ModelParameter {
 	/**
 	 * Weight score by word frequency; This should be a {@link Boolean}.
 	 */
-	WEIGHT_BY_FREQ("wf", true) {
+	WEIGHT_BY_FREQ("wf", false) {
 		@Override
 		public Option.Builder createCLIOptionBuilder() {
 			return Option.builder(getOptName()).longOpt("weight-by-freq").desc("Weight score by word frequency.");
@@ -196,9 +196,7 @@ public enum ModelParameter {
 	 * Kennington &amp; Schlangen (2015) but with slight variation to improve
 	 * classification accuracy on the dataset used during development: They used
 	 * {@link #DISCOUNT} of <code>4</code>, whereas this method uses
-	 * <code>3</code> instead. Likewise, this method sets
-	 * {@link #WEIGHT_BY_FREQ} to true <code>true</code>, whereas it is
-	 * (currently) unknown if the other authors did something analogous to this.
+	 * <code>3</code> instead.
 	 *
 	 * @see
 	 *      <ul>
