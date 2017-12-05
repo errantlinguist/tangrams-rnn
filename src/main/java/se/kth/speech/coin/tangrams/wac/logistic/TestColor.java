@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
+import weka.classifiers.functions.Logistic;
 
 public final class TestColor {
 
@@ -86,7 +87,8 @@ public final class TestColor {
 						+ (int) (hue * 1000) + "</td>");
 
 				for (final String w : wlist) {
-					final double score = model.score(w, ref);
+					final Logistic wordClassifier = model.getWordClassifier(w);
+					final double score = model.score(wordClassifier, ref);
 					pw.println("<td style=\"color:" + getHTMLColorString(score) + "\">" + w + "</td>");
 				}
 

@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
+import weka.classifiers.functions.Logistic;
 
 public final class TestSize {
 
@@ -69,7 +70,8 @@ public final class TestSize {
 				pw.println("<tr><td>" + size + "<td>");
 
 				for (final String word : wlist) {
-					final double score = model.score(word, ref);
+					final Logistic wordClassifier = model.getWordClassifier(word);
+					final double score = model.score(wordClassifier, ref);
 					pw.println("<td style=\"color:" + TestColor.getHTMLColorString(score) + "\">" + word + "</td>");
 				}
 

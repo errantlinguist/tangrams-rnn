@@ -415,6 +415,16 @@ public final class LogisticModel { // NO_UCD (use default)
 	}
 
 	/**
+	 *
+	 * @param word
+	 *            The word to get the corresponding {@link Classifier} for.
+	 * @return The {@code Classifier} instance representing the given word.
+	 */
+	public Logistic getWordClassifier(final String word) {
+		return wordModels.get(word);
+	}
+
+	/**
 	 * Creates an <em>n</em>-best list of possible target referents for a given
 	 * {@link Round}.
 	 *
@@ -470,8 +480,8 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	/**
 	 *
-	 * @param word
-	 *            The word to use for classification.
+	 * @param wordClassifier
+	 *            The word {@link Classifier classifier} to use.
 	 * @param ref
 	 *            The {@link Referent} to classify.
 	 * @return The score of the given referent being a target referent,
@@ -482,8 +492,8 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *             {@link Classifier#distributionForInstance(Instance)
 	 *             classification}.
 	 */
-	public double score(final String word, final Referent ref) throws ClassificationException {
-		return score(word, createInstance(ref));
+	public double score(final Classifier wordClassifier, final Referent ref) throws ClassificationException {
+		return score(wordClassifier, createInstance(ref));
 	}
 
 	/**
@@ -508,7 +518,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	/**
 	 *
 	 * @param wordClassifier
-	 *            The word to {@link Classifier} to use.
+	 *            The word {@link Classifier classifier} to use.
 	 * @param inst
 	 *            The {@link Instance} to classify.
 	 * @return The score of the given referent being a target referent,
@@ -519,7 +529,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *             {@link Classifier#distributionForInstance(Instance)
 	 *             classification}.
 	 */
-	private double score(final Logistic wordClassifier, final Instance inst) throws ClassificationException {
+	private double score(final Classifier wordClassifier, final Instance inst) throws ClassificationException {
 		double[] dist;
 		try {
 			// NOTE: This cannot be (much) slower than
@@ -534,24 +544,25 @@ public final class LogisticModel { // NO_UCD (use default)
 		return dist[POSITIVE_REFERENT_CLASSIFICATION_VALUE_IDX];
 	}
 
-	/**
-	 *
-	 * @param word
-	 *            The word to use for classification.
-	 * @param inst
-	 *            The {@link Instance} to classify.
-	 * @return The score of the given referent being a target referent,
-	 *         i.e.&nbsp; the true referent the dialogue participants should be
-	 *         referring to in the game in the given round.
-	 * @throws ClassificationException
-	 *             If an {@link Exception} occurs during
-	 *             {@link Classifier#distributionForInstance(Instance)
-	 *             classification}.
-	 */
-	private double score(final String word, final Instance inst) throws ClassificationException {
-		final Logistic model = wordModels.getOrDefault(word, discountModel);
-		return score(model, inst);
-	}
+	// /**
+	// *
+	// * @param word
+	// * The word to use for classification.
+	// * @param inst
+	// * The {@link Instance} to classify.
+	// * @return The score of the given referent being a target referent,
+	// * i.e.&nbsp; the true referent the dialogue participants should be
+	// * referring to in the game in the given round.
+	// * @throws ClassificationException
+	// * If an {@link Exception} occurs during
+	// * {@link Classifier#distributionForInstance(Instance)
+	// * classification}.
+	// */
+	// private double score(final String word, final Instance inst) throws
+	// ClassificationException {
+	// final Logistic model = wordModels.get(word);
+	// return score(model, inst);
+	// }
 
 	/**
 	 * Trains models for the specified words asynchronously.

@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
+import weka.classifiers.functions.Logistic;
 
 public final class TestSpace {
 
@@ -71,7 +72,8 @@ public final class TestSpace {
 					ref.setPosition(y, x);
 
 					for (final String w : wlist) {
-						final double score = model.score(w, ref);
+						final Logistic wordClassifier = model.getWordClassifier(w);
+						final double score = model.score(wordClassifier, ref);
 						pw.println("<div style=\"color:" + TestColor.getHTMLColorString(score) + "\">" + w + "</div>");
 					}
 

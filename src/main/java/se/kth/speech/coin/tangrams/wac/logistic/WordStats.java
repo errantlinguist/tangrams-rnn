@@ -35,6 +35,7 @@ import se.kth.speech.coin.tangrams.wac.data.RoundSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.coin.tangrams.wac.data.Vocabulary;
+import weka.classifiers.functions.Logistic;
 
 public final class WordStats { // NO_UCD (unused code)
 
@@ -67,8 +68,9 @@ public final class WordStats { // NO_UCD (unused code)
 		for (final Round round : new RoundSet(set, onlyInstructor).getRounds()) {
 			round.getReferringTokens(onlyInstructor).forEach(word -> {
 				if (vocab.has(word)) {
+					final Logistic wordClassifier = model.getWordClassifier(word);
 					for (final Referent ref : round.getReferents()) {
-						final double score = model.score(word, ref);
+						final double score = model.score(wordClassifier, ref);
 						stats.add(round, word, score, ref.isTarget());
 					}
 				}
