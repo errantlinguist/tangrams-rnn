@@ -371,6 +371,10 @@ public final class LogisticModel { // NO_UCD (use default)
 		}
 	}
 
+	private static double getPositiveReferentClassificationConfidence(final double[] dist) {
+		return dist[POSITIVE_REFERENT_CLASSIFICATION_VALUE_IDX];
+	}
+
 	private Logistic discountModel;
 
 	private Entry<Map<ReferentFeature, Attribute>, ArrayList<Attribute>> featureAttrs;
@@ -430,10 +434,6 @@ public final class LogisticModel { // NO_UCD (use default)
 		refs.stream().map(this::createInstance).forEachOrdered(result::add);
 		assert result.size() == refs.size();
 		return result;
-	}
-
-	public double getPositiveReferentClassificationConfidence(final double[] dist) {
-		return dist[POSITIVE_REFERENT_CLASSIFICATION_VALUE_IDX];
 	}
 
 	public Vocabulary getVocabulary() {
@@ -508,24 +508,44 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *
 	 * @param wordClassifier
 	 *            The word {@link Classifier classifier} to use.
-	 * @param refs
-	 *            The {@link Referent} instances to classify.
-	 * @return The scores of the given referent being a target referent and not
-	 *         being a target referent.
+	 * @param insts
+	 *            The {@link Instances} to classify.
+	 * @return The scores of the given referent being a target referent,
+	 *         i.e.&nbsp; the true referent the dialogue participants should be
+	 *         referring to in the game in the given round.
 	 * @throws ClassificationException
 	 *             If an {@link Exception} occurs during
 	 *             {@link BatchPredictor#distributionForInstances(Instances)
 	 *             classification}.
 	 */
-	public double[][] score(final BatchPredictor wordClassifier, final List<Referent> refs) {
-		final Instances insts = createInstances(refs);
-		double[][] result;
+	public DoubleStream score(final BatchPredictor wordClassifier, final Instances insts) {
+		final DoubleStream result;
 		try {
-			result = wordClassifier.distributionsForInstances(insts);
+			final double[][] dists = wordClassifier.distributionsForInstances(insts);
+			result = Arrays.stream(dists).mapToDouble(LogisticModel::getPositiveReferentClassificationConfidence);
 		} catch (final Exception e) {
 			throw new ClassificationException(e);
 		}
 		return result;
+	}
+
+	/**
+	 *
+	 * @param wordClassifier
+	 *            The word {@link Classifier classifier} to use.
+	 * @param refs
+	 *            The {@link Referent} instances to classify.
+	 * @return The scores of the given referent being a target referent,
+	 *         i.e.&nbsp; the true referent the dialogue participants should be
+	 *         referring to in the game in the given round.
+	 * @throws ClassificationException
+	 *             If an {@link Exception} occurs during
+	 *             {@link BatchPredictor#distributionForInstances(Instances)
+	 *             classification}.
+	 */
+	public DoubleStream score(final BatchPredictor wordClassifier, final List<Referent> refs) {
+		final Instances insts = createInstances(refs);
+		return score(wordClassifier, insts);
 	}
 
 	/**
