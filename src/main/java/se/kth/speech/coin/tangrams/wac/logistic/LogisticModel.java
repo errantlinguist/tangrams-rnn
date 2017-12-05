@@ -272,7 +272,7 @@ public final class LogisticModel { // NO_UCD (use default)
 			final Logistic logistic = new Logistic();
 			@SuppressWarnings("unchecked")
 			final Weighted<Referent>[] examples = exampleSupplier.get().toArray(Weighted[]::new);
-			final Instances dataset = new Instances("Dataset", featureAttrs.getValue(), examples.length);
+			final Instances dataset = new Instances("Referents", featureAttrs.getValue(), examples.length);
 			dataset.setClass(featureAttrs.getKey().get(ReferentFeature.TARGET));
 
 			for (final Weighted<Referent> example : examples) {
