@@ -18,7 +18,6 @@ from typing import Callable
 __DEFAULT_ACCOUNT = "2017-130"
 __DEFAULT_TIME = "8:00:00"
 __DEFAULT_HEAPSIZE = "10g"
-_DEFAULT_USER = "tcshore"
 
 
 class OptionalRelativePathArgDatum(object):
