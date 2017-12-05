@@ -411,6 +411,27 @@ public final class LogisticModel { // NO_UCD (use default)
 		featureAttrs = createFeatureAttributes();
 	}
 
+	/**
+	 * Creates a new {@link Instances} representing the given {@link Referent}
+	 * instances.
+	 *
+	 * @param refs
+	 *            The {@code Referent} instances to create {@code Instance}
+	 *            objects for; Their index in the given {@link List} will be the
+	 *            index of their corresponding {@code Instance} objects in the
+	 *            result data structure.
+	 * @return A new {@code Instances} object containing {@code Instance}
+	 *         objects representing each given {@code Referent}.
+	 */
+	public Instances createInstances(final List<Referent> refs) {
+		final Map<ReferentFeature, Attribute> attrMap = featureAttrs.getKey();
+		final Instances result = new Instances("Referents", featureAttrs.getValue(), refs.size());
+		assert result.numAttributes() == attrMap.size();
+		refs.stream().map(this::createInstance).forEachOrdered(result::add);
+		assert result.size() == refs.size();
+		return result;
+	}
+
 	public double getPositiveReferentClassificationConfidence(final double[] dist) {
 		return dist[POSITIVE_REFERENT_CLASSIFICATION_VALUE_IDX];
 	}
@@ -542,27 +563,6 @@ public final class LogisticModel { // NO_UCD (use default)
 		Arrays.stream(ReferentFeature.values()).forEach(feature -> feature.setValue(instance, ref, attrMap));
 		assert instance.numAttributes() == attrMap.size();
 		return instance;
-	}
-
-	/**
-	 * Creates a new {@link Instances} representing the given {@link Referent}
-	 * instances.
-	 *
-	 * @param refs
-	 *            The {@code Referent} instances to create {@code Instance}
-	 *            objects for; Their index in the given {@link List} will be the
-	 *            index of their corresponding {@code Instance} objects in the
-	 *            result data structure.
-	 * @return A new {@code Instances} object containing {@code Instance}
-	 *         objects representing each given {@code Referent}.
-	 */
-	private Instances createInstances(final List<Referent> refs) {
-		final Map<ReferentFeature, Attribute> attrMap = featureAttrs.getKey();
-		final Instances result = new Instances("Referents", featureAttrs.getValue(), refs.size());
-		assert result.numAttributes() == attrMap.size();
-		refs.stream().map(this::createInstance).forEachOrdered(result::add);
-		assert result.size() == refs.size();
-		return result;
 	}
 
 	/**
