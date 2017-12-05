@@ -222,7 +222,7 @@ public enum ModelParameter {
 																				// default)
 		final Map<ModelParameter, Object> result = new EnumMap<>(ModelParameter.class);
 		final ModelParameter[] params = ModelParameter.values();
-		Arrays.stream(params).forEach(ModelParameter::getDefaultValue);
+		Arrays.stream(params).forEach(param -> result.put(param, param.getDefaultValue()));
 		assert result.size() == params.length;
 		return result;
 	}
