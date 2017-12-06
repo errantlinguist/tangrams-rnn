@@ -158,7 +158,7 @@ public final class RoundReferentConfidenceWriter {
 		return Stream.concat(roundColNames, refColNames);
 	}
 
-	private static NavigableSet<Integer> createTargetRefIndexSet(final List<Referent> refs) {
+	private static NavigableSet<Integer> createTargetRefIdSet(final List<Referent> refs) {
 		final NavigableSet<Integer> result = new TreeSet<>();
 		final ListIterator<Referent> refIter = refs.listIterator();
 		while (refIter.hasNext()) {
@@ -206,7 +206,7 @@ public final class RoundReferentConfidenceWriter {
 					// Rounds are 1-indexed
 					final String roundId = Integer.toString(roundIter.nextIndex());
 					final List<Referent> refs = round.getReferents();
-					final String targetRefIdStr = createTargetRefIndexSet(refs).stream().map(Object::toString)
+					final String targetRefIdStr = createTargetRefIdSet(refs).stream().map(Object::toString)
 							.collect(MULTIVALUE_JOINER);
 					final Instances refInsts = model.createInstances(refs);
 					final Stream<String> refTokens = round.getReferringTokens(onlyInstructor);
