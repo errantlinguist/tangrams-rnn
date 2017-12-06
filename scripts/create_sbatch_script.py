@@ -11,6 +11,7 @@ __license__ = "Apache License, Version 2.0"
 
 import argparse
 import datetime
+import posixpath
 import sys
 from enum import Enum, unique
 from typing import Callable
@@ -149,15 +150,15 @@ def __main(args, current_time: datetime.datetime):
 		project_dir = _create_default_project_dirpath(user)
 	print("Project directory root: {}".format(project_dir), file=sys.stderr)
 
-	indir = project_dir + "/" + args.indir
+	indir = posixpath.join(project_dir, args.indir)
 	print("Input directory: {}".format(indir), file=sys.stderr)
-	outdir = project_dir + "/" + args.outdir
+	outdir = posixpath.join(project_dir, args.outdir)
 	print("Output directory: {}".format(outdir), file=sys.stderr)
-	classpath_jar = project_dir + "/" + args.classpath_jar
+	classpath_jar = posixpath.join(project_dir, args.classpath_jar)
 	print("Classpath JAR: {}".format(classpath_jar), file=sys.stderr)
-	reflang_filepath = project_dir + "/" + args.reflang
+	reflang_filepath = posixpath.join(project_dir, args.reflang)
 	print("Referring-language file path: {}".format(reflang_filepath), file=sys.stderr)
-	model_params_filepath = project_dir + "/" + args.model_params
+	model_params_filepath = posixpath.join(project_dir, args.model_params)
 	print("Model-parameters file path: {}".format(model_params_filepath), file=sys.stderr)
 	heap_size = args.heap
 	print("Heap size: {}".format(heap_size), file=sys.stderr)
