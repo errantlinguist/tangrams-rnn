@@ -519,8 +519,8 @@ public final class LogisticModel { // NO_UCD (use default)
 			return classValue;
 		}
 
-		private int getClassValueIdx(final Attribute attr) {
-			return attr.indexOfValue(classValue);
+		private int getClassValueIdx(final Attribute classAttr) {
+			return classAttr.indexOfValue(classValue);
 		}
 
 		private DoubleStream getProbabilities(final double[][] dists, final Instances insts) {
