@@ -444,7 +444,8 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *
 	 * @param word
 	 *            The word to get the corresponding {@link Classifier} for.
-	 * @return The {@code Classifier} instance representing the given word.
+	 * @return The {@code Classifier} instance representing the given word or
+	 *         {@code null} if no {@code Classifier} was found for the given word.
 	 */
 	public Logistic getWordClassifier(final String word) {
 		return wordModels.get(word);
