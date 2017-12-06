@@ -26,11 +26,8 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.apache.commons.cli.CommandLine;
@@ -139,23 +136,8 @@ public final class RoundReferentFeatureConfidenceWriter {
 		}
 	}
 
-	private static Stream<String> createColumnNames(final int referentCols) {
-		final Stream<String> roundColNames = Stream.of("DYAD", "ROUND", "TARGET_ID", "WORD");
-		final Stream<String> refColNames = IntStream.rangeClosed(1, referentCols)
-				.mapToObj(refId -> String.format("REF_%d", refId));
-		return Stream.concat(roundColNames, refColNames);
-	}
-
-	private static int getMatrixColCount(final Stream<Round> rounds) {
-		final int result;
-		final IntStream colCounts = rounds.map(Round::getReferents).mapToInt(List::size);
-		final Set<Integer> uniqueColCounts = colCounts.boxed().collect(Collectors.toSet());
-		if (uniqueColCounts.size() != 1) {
-			throw new IllegalArgumentException("Ill-formed matrix.");
-		} else {
-			result = uniqueColCounts.iterator().next();
-		}
-		return result;
+	private Stream<String> createColumnNames() {
+		return dataToWrite.stream().map(RoundReferentFeatureDescription::toString);
 	}
 
 	private final List<RoundReferentFeatureDescription> dataToWrite;
@@ -177,9 +159,7 @@ public final class RoundReferentFeatureConfidenceWriter {
 		model.train(set);
 		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
 
-		final int referentCols = getMatrixColCount(sessions.stream().map(Session::getRounds).flatMap(List::stream));
-		final Stream<String> colNames = createColumnNames(referentCols);
-		try (CSVPrinter printer = CSVFormat.TDF.withHeader(colNames.toArray(String[]::new))
+		try (CSVPrinter printer = CSVFormat.TDF.withHeader(createColumnNames().toArray(String[]::new))
 				.print(outStreamGetter.get())) {
 			for (final Session session : sessions) {
 				final String dyadId = session.getName();
