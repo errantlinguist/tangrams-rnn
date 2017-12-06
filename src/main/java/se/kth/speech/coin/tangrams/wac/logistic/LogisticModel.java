@@ -68,6 +68,11 @@ public final class LogisticModel { // NO_UCD (use default)
 
 		private final Attribute classAttr;
 
+		/**
+		 * An {@link Instances} object which nothing is ever added to; It's just
+		 * for assigning to new {@link Instance} objects in order to
+		 * e.g.&nbsp;be able to call {@link Instance#classAttribute()}.
+		 */
 		private final Instances dummyInsts;
 
 		private final Map<ReferentFeature, Attribute> featureAttrs;
@@ -132,7 +137,7 @@ public final class LogisticModel { // NO_UCD (use default)
 			final Map<ReferentFeature, Attribute> attrMap = featureAttrs;
 			final DenseInstance instance = new DenseInstance(attrMap.size());
 			Arrays.stream(ReferentFeature.values()).forEach(feature -> feature.setValue(instance, ref, attrMap));
-			// Only required to enable use of "Instance.getClassAttribute()"; No
+			// Only required to enable use of "Instance.classAttribute()"; No
 			// adding to the actual Instances object required
 			instance.setDataset(dummyInsts);
 			assert instance.numAttributes() == attrMap.size();
