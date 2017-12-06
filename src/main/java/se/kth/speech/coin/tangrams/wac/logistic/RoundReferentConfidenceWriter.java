@@ -134,12 +134,6 @@ public final class RoundReferentConfidenceWriter {
 		}
 	}
 
-	// private static String createMatrixRepr(final double[][] m) {
-	// return
-	// Arrays.stream(m).map(Arrays::toString).collect(Collectors.joining(System.lineSeparator(),
-	// "[", "]"));
-	// }
-
 	public static void main(final String[] args) throws IOException {
 		final CommandLineParser parser = new DefaultParser();
 		try {
