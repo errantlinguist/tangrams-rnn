@@ -111,8 +111,7 @@ def __create_argparser(current_time: datetime.datetime) -> argparse.ArgumentPars
 	return result
 
 
-SCRIPT_FORMAT_STR = """
-#!/bin/bash -l
+SCRIPT_FORMAT_STR = """#!/bin/bash -l
 # The -l above is required to get the full environment with modules
 
 # Licensed to the Apache Software Foundation (ASF) under one
