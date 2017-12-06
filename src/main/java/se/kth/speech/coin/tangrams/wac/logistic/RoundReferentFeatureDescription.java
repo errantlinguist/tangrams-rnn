@@ -157,7 +157,24 @@ enum RoundReferentFeatureDescription implements Function<RoundReferentFeatureDes
 			return Double.toString(input.ref.getPositionY());
 		}
 
-	};
+	},
+	MID_X {
+
+		@Override
+		public String apply(final Input input) {
+			return Double.toString(input.ref.getMidX());
+		}
+
+	},
+	MID_Y {
+
+		@Override
+		public String apply(final Input input) {
+			return Double.toString(input.ref.getMidY());
+		}
+
+	};	
+	;
 	// @formatter:on
 
 	static final class Input {
