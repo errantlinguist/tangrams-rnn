@@ -103,6 +103,28 @@ public final class LogisticModel { // NO_UCD (use default)
 		}
 
 		/**
+		 * Creates a new {@link Instance} representing a given {@link Referent}.
+		 *
+		 * @param ref
+		 *            The {@code Referent} to create an {@code Instance} for.
+		 * @return A new {@code Instance}; There is no reason to cache Instance
+		 *         values because {@link Instances#add(Instance)} always creates
+		 *         a shallow copy thereof anyway, so the only possible benefit
+		 *         of a cache would be avoiding the computational cost of object
+		 *         construction at the cost of greater memory requirements.
+		 */
+		public Instance createInstance(final Referent ref) {
+			final Map<ReferentFeature, Attribute> attrMap = featureAttrs;
+			final DenseInstance instance = new DenseInstance(attrMap.size());
+			Arrays.stream(ReferentFeature.values()).forEach(feature -> feature.setValue(instance, ref, attrMap));
+			// Only required to enable use of "Instance.classAttribute()"; No
+			// adding to the actual Instances object required
+			instance.setDataset(dummyInsts);
+			assert instance.numAttributes() == attrMap.size();
+			return instance;
+		}
+
+		/**
 		 * Creates a new {@link Instances} representing the given
 		 * {@link Referent} instances.
 		 *
@@ -120,28 +142,6 @@ public final class LogisticModel { // NO_UCD (use default)
 			refs.stream().map(this::createInstance).forEachOrdered(result::add);
 			assert result.size() == refs.size();
 			return result;
-		}
-
-		/**
-		 * Creates a new {@link Instance} representing a given {@link Referent}.
-		 *
-		 * @param ref
-		 *            The {@code Referent} to create an {@code Instance} for.
-		 * @return A new {@code Instance}; There is no reason to cache Instance
-		 *         values because {@link Instances#add(Instance)} always creates
-		 *         a shallow copy thereof anyway, so the only possible benefit
-		 *         of a cache would be avoiding the computational cost of object
-		 *         construction at the cost of greater memory requirements.
-		 */
-		private Instance createInstance(final Referent ref) {
-			final Map<ReferentFeature, Attribute> attrMap = featureAttrs;
-			final DenseInstance instance = new DenseInstance(attrMap.size());
-			Arrays.stream(ReferentFeature.values()).forEach(feature -> feature.setValue(instance, ref, attrMap));
-			// Only required to enable use of "Instance.classAttribute()"; No
-			// adding to the actual Instances object required
-			instance.setDataset(dummyInsts);
-			assert instance.numAttributes() == attrMap.size();
-			return instance;
 		}
 
 		private Instances createNewInstances(final int capacity) {
