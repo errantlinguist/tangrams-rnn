@@ -25,8 +25,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Supplier;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
@@ -109,6 +112,8 @@ public final class RoundReferentConfidenceWriter {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(RoundReferentConfidenceWriter.class);
 
+	private static final Collector<CharSequence, ?, String> MULTIVALUE_JOINER = Collectors.joining(",");
+
 	public static void main(final CommandLine cl) throws IOException, ClassificationException, ParseException {
 		if (cl.hasOption(Parameter.HELP.optName)) {
 			Parameter.printHelp();
@@ -129,6 +134,12 @@ public final class RoundReferentConfidenceWriter {
 		}
 	}
 
+	// private static String createMatrixRepr(final double[][] m) {
+	// return
+	// Arrays.stream(m).map(Arrays::toString).collect(Collectors.joining(System.lineSeparator(),
+	// "[", "]"));
+	// }
+
 	public static void main(final String[] args) throws IOException {
 		final CommandLineParser parser = new DefaultParser();
 		try {
@@ -140,17 +151,25 @@ public final class RoundReferentConfidenceWriter {
 		}
 	}
 
-	// private static String createMatrixRepr(final double[][] m) {
-	// return
-	// Arrays.stream(m).map(Arrays::toString).collect(Collectors.joining(System.lineSeparator(),
-	// "[", "]"));
-	// }
-
 	private static Stream<String> createColumnNeams(final int referentCols) {
-		final Stream<String> roundColNames = Stream.of("DYAD", "ROUND", "WORD");
+		final Stream<String> roundColNames = Stream.of("DYAD", "ROUND", "TARGET_ID", "WORD");
 		final Stream<String> refColNames = IntStream.rangeClosed(1, referentCols)
 				.mapToObj(refId -> String.format("REF_%d", refId));
 		return Stream.concat(roundColNames, refColNames);
+	}
+
+	private static NavigableSet<Integer> createTargetRefIndexSet(final List<Referent> refs) {
+		final NavigableSet<Integer> result = new TreeSet<>();
+		final ListIterator<Referent> refIter = refs.listIterator();
+		while (refIter.hasNext()) {
+			final Referent ref = refIter.next();
+			if (ref.isTarget()) {
+				// Referents are 1-indexed
+				final int idx = refIter.nextIndex();
+				result.add(idx);
+			}
+		}
+		return result;
 	}
 
 	private static int getMatrixColCount(final Stream<Round> rounds) {
@@ -181,11 +200,14 @@ public final class RoundReferentConfidenceWriter {
 			for (final Session session : sessions) {
 				final String dyadId = session.getName();
 				final List<Round> rounds = session.getRounds();
+
 				for (final ListIterator<Round> roundIter = rounds.listIterator(); roundIter.hasNext();) {
 					final Round round = roundIter.next();
 					// Rounds are 1-indexed
 					final String roundId = Integer.toString(roundIter.nextIndex());
 					final List<Referent> refs = round.getReferents();
+					final String targetRefIdStr = createTargetRefIndexSet(refs).stream().map(Object::toString)
+							.collect(MULTIVALUE_JOINER);
 					final Instances refInsts = model.createInstances(refs);
 					final Stream<String> refTokens = round.getReferringTokens(onlyInstructor);
 					final Stream<Stream<String>> rowCellValues = refTokens.map(word -> {
@@ -202,7 +224,7 @@ public final class RoundReferentConfidenceWriter {
 								throw new ClassificationException(e);
 							}
 						}
-						final Stream<String> roundData = Stream.of(dyadId, roundId, word);
+						final Stream<String> roundData = Stream.of(dyadId, roundId, targetRefIdStr, word);
 						return Stream.concat(roundData, positiveConfidences);
 					});
 					final String[][] rows = rowCellValues.map(rowCells -> rowCells.toArray(String[]::new))
