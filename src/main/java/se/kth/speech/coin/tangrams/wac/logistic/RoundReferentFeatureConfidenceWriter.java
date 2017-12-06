@@ -136,10 +136,6 @@ public final class RoundReferentFeatureConfidenceWriter {
 		}
 	}
 
-	private Stream<String> createColumnNames() {
-		return dataToWrite.stream().map(RoundReferentFeatureDescription::toString);
-	}
-
 	private final List<RoundReferentFeatureDescription> dataToWrite;
 
 	public RoundReferentFeatureConfidenceWriter() {
@@ -158,7 +154,7 @@ public final class RoundReferentFeatureConfidenceWriter {
 		final LogisticModel model = new LogisticModel(modelParams);
 		model.train(set);
 		final LogisticModel.Scorer scorer = model.createScorer();
-		
+
 		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
 
 		try (CSVPrinter printer = CSVFormat.TDF.withHeader(createColumnNames().toArray(String[]::new))
@@ -177,10 +173,13 @@ public final class RoundReferentFeatureConfidenceWriter {
 						final Logistic wordClassifier = model.getWordClassifier(refToken);
 						final Function<Referent, Optional<Double>> refConfidenceScoreFactory = wordClassifier == null
 								? ref -> Optional.empty() : ref -> Optional.of(scorer.score(wordClassifier, ref));
-						for (final Referent ref : refs) {
+						for (final ListIterator<Referent> refIter = refs.listIterator(); refIter.hasNext();) {
+							final Referent ref = refIter.next();
+							// Entities are 1-indexed
+							final String refId = Integer.toString(refIter.nextIndex());
 							final Optional<Double> refConf = refConfidenceScoreFactory.apply(ref);
 							final RoundReferentFeatureDescription.Input descInput = new RoundReferentFeatureDescription.Input(
-									dyadId, roundId, round, ref, refToken, refConf);
+									dyadId, roundId, round, refId, ref, refToken, refConf);
 							final Stream<String> rowCells = createRowCells(descInput);
 							printer.printRecord((Iterable<String>) rowCells::iterator);
 						}
@@ -189,6 +188,10 @@ public final class RoundReferentFeatureConfidenceWriter {
 			}
 		}
 		LOGGER.info("Finished writing.");
+	}
+
+	private Stream<String> createColumnNames() {
+		return dataToWrite.stream().map(RoundReferentFeatureDescription::toString);
 	}
 
 	private Stream<String> createRowCells(final RoundReferentFeatureDescription.Input descInput) {

@@ -44,6 +44,14 @@ enum RoundReferentFeatureDescription implements Function<RoundReferentFeatureDes
 		}
 
 	},
+	ENTITY {
+
+		@Override
+		public String apply(final Input input) {
+			return input.refId;
+		}
+
+	},
 	TARGET {
 
 		@Override
@@ -174,7 +182,6 @@ enum RoundReferentFeatureDescription implements Function<RoundReferentFeatureDes
 		}
 
 	};	
-	;
 	// @formatter:on
 
 	static final class Input {
@@ -184,6 +191,8 @@ enum RoundReferentFeatureDescription implements Function<RoundReferentFeatureDes
 		private final String roundId;
 
 		private final Round round;
+		
+		private final String refId;
 
 		private final Referent ref;
 
@@ -191,11 +200,12 @@ enum RoundReferentFeatureDescription implements Function<RoundReferentFeatureDes
 
 		private final Optional<? extends Number> confidence;
 
-		Input(final String dyadId, final String roundId, final Round round, final Referent ref, final String word,
+		Input(final String dyadId, final String roundId, final Round round, String refId, final Referent ref, final String word,
 				final Optional<? extends Number> confidence) {
 			this.dyadId = dyadId;
 			this.roundId = roundId;
 			this.round = round;
+			this.refId = refId;
 			this.ref = ref;
 			this.word = word;
 			this.confidence = confidence;
