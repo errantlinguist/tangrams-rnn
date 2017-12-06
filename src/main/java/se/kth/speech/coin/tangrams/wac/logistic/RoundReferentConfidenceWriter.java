@@ -180,13 +180,13 @@ public final class RoundReferentConfidenceWriter {
 
 	private static void run(final SessionSet set, final ThrowingSupplier<PrintStream, IOException> outStreamGetter)
 			throws IOException {
-		LOGGER.info("Writing classification confidence scores for {} session(s).", set.size());
+		final Collection<Session> sessions = set.getSessions();
+		LOGGER.info("Writing classification confidence scores for {} session(s).", sessions);
 		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
 		final LogisticModel model = new LogisticModel(modelParams);
 		model.train(set);
 		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
 
-		final Collection<Session> sessions = set.getSessions();
 		final int referentCols = getMatrixColCount(sessions.stream().map(Session::getRounds).flatMap(List::stream));
 		final Stream<String> colNames = createColumnNames(referentCols);
 		try (CSVPrinter printer = CSVFormat.TDF.withHeader(colNames.toArray(String[]::new))
