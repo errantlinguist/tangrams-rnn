@@ -129,7 +129,7 @@ public final class RoundReferentConfidenceWriter {
 				final Path refTokenFilePath = ((File) cl.getParsedOptionValue(Parameter.REFERRING_TOKENS.optName))
 						.toPath();
 				final SessionSet set = new SessionSetReader(refTokenFilePath).apply(inpaths);
-				run(set, refTokenFilePath, outStreamGetter);
+				run(set, outStreamGetter);
 			}
 		}
 	}
@@ -184,8 +184,8 @@ public final class RoundReferentConfidenceWriter {
 		return result;
 	}
 
-	private static void run(final SessionSet set, final Path refTokenFilePath,
-			final ThrowingSupplier<PrintStream, IOException> outStreamGetter) throws IOException {
+	private static void run(final SessionSet set, final ThrowingSupplier<PrintStream, IOException> outStreamGetter)
+			throws IOException {
 		LOGGER.info("Will run cross-validation using {} session(s).", set.size());
 		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
 		final LogisticModel model = new LogisticModel(modelParams);
