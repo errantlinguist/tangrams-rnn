@@ -151,7 +151,7 @@ public final class RoundReferentConfidenceWriter {
 		}
 	}
 
-	private static Stream<String> createColumnNeams(final int referentCols) {
+	private static Stream<String> createColumnNames(final int referentCols) {
 		final Stream<String> roundColNames = Stream.of("DYAD", "ROUND", "TARGET_ID", "WORD");
 		final Stream<String> refColNames = IntStream.rangeClosed(1, referentCols)
 				.mapToObj(refId -> String.format("REF_%d", refId));
@@ -194,7 +194,7 @@ public final class RoundReferentConfidenceWriter {
 
 		final Collection<Session> sessions = set.getSessions();
 		final int referentCols = getMatrixColCount(sessions.stream().map(Session::getRounds).flatMap(List::stream));
-		final Stream<String> colNames = createColumnNeams(referentCols);
+		final Stream<String> colNames = createColumnNames(referentCols);
 		try (CSVPrinter printer = CSVFormat.TDF.withHeader(colNames.toArray(String[]::new))
 				.print(outStreamGetter.get())) {
 			for (final Session session : sessions) {
