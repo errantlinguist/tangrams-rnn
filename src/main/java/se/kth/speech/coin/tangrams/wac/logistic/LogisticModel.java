@@ -57,6 +57,7 @@ import weka.core.Instances;
 public final class LogisticModel { // NO_UCD (use default)
 
 	public static final class FeatureAttributeData {
+		
 		private static Map<ReferentFeature, Attribute> createFeatureAttrMap(final List<String> shapeUniqueValues) {
 			final Map<ReferentFeature, Attribute> result = new EnumMap<>(ReferentFeature.class);
 			Arrays.stream(ReferentFeature.values())
