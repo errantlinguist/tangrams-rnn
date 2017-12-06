@@ -637,7 +637,7 @@ public final class LogisticModel { // NO_UCD (use default)
 			return attrMap.get(this);
 		}
 
-		protected Object getCategoricalValue(final Instance instance, final Map<ReferentFeature, Attribute> attrMap) {
+		protected final Object getCategoricalValue(final Instance instance, final Map<ReferentFeature, Attribute> attrMap) {
 			final Attribute attr = getAttr(attrMap);
 			assert attr.isNominal() || attr.isString();
 			final double scalarValue = instance.value(attr);
