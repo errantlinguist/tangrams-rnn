@@ -20,71 +20,9 @@ __DEFAULT_TIME = "8:00:00"
 __DEFAULT_HEAPSIZE = "10g"
 
 
-class OptionalRelativePathArgDatum(object):
-	def __init__(self, dest: str, default_path: str):
-		self.dest = dest
-		self.__default_path = default_path
-
-	def resolve_default_path(self, default_project_dirpath: str):
-		# Always use Unix-style paths because it's run on Unix
-		return default_project_dirpath + self.__default_path
-
-
-@unique
-class OptionalRelativePathArg(Enum):
-	REFERRING_LANGUAGE = OptionalRelativePathArgDatum("reflang", "Data/utt-referring-tokens-lemma.tsv")
-	MODEL_PARAMS = OptionalRelativePathArgDatum("model_params", "Data/model-params.tsv")
-	INPUT = OptionalRelativePathArgDatum("indir", "Data")
-	OUTPUT = OptionalRelativePathArgDatum("outdir", "output")
-	CLASSPATH_JARFILE = OptionalRelativePathArgDatum("classpath_jar",
-													 "tangrams-wac-0.0.1-SNAPSHOT-jar-with-dependencies.jar")
-
-
-__OPTIONAL_ARG_FACTORIES = {
-	OptionalRelativePathArg.REFERRING_LANGUAGE: lambda parser, arg: parser.add_argument("-r", "--reflang",
-																						dest=arg.dest,
-																						metavar="FILENAME",
-																						help="The path of the referring-language file to read."),
-	OptionalRelativePathArg.MODEL_PARAMS: lambda parser, arg: parser.add_argument("-m", "--model-params",
-																				  dest=arg.dest,
-																				  metavar="FILENAME",
-																				  help="The path of the model-parameters file to read."),
-	OptionalRelativePathArg.INPUT: lambda parser, arg: parser.add_argument("-i", "--input", dest=arg.dest,
-																		   metavar="DIRPATH",
-																		   help="The path of the directory containing the session data to use for cross-validation."),
-	OptionalRelativePathArg.OUTPUT: lambda parser, arg: parser.add_argument("-o", "--output", dest=arg.dest,
-																			metavar="DIRPATH",
-																			help="The path of the directory to write the cross-validation results to."),
-	OptionalRelativePathArg.CLASSPATH_JARFILE: lambda parser, arg: parser.add_argument("-c", "--classpath-jar",
-																					   dest=arg.dest,
-																					   metavar="PATH",
-																					   help="The path of the JAR file to run.")
-}
-assert len(__OPTIONAL_ARG_FACTORIES) == len(OptionalRelativePathArg)
-
-
-class OptionalRelativePathPopulatingAction(argparse.Action):
-	"""
-	adapted from documentation
-
-	See https://stackoverflow.com/a/24196585/1391325
-	"""
-
-	def __call__(self, parser, namespace, values, option_string=None):
-		setattr(namespace, self.dest, values)
-		default_project_dirpath = _create_default_project_dirpath(values)
-
-		for arg in OptionalRelativePathArg:
-			arg_dest = arg.value.dest
-			extant_value = getattr(namespace, arg_dest)
-			if extant_value is None:
-				default_path = arg.value.resolve_default_path(default_project_dirpath)
-				setattr(namespace, arg_dest, default_path)
-
-
 def _create_default_project_dirpath(user: str) -> str:
-	return "/cfs/klemming/nobackup/{first_initial}/{user}/tangrams-restricted/".format(first_initial=user[0],
-																					   user=user)
+	return "/cfs/klemming/nobackup/{first_initial}/{user}/tangrams-restricted".format(first_initial=user[0],
+																					  user=user)
 
 
 def __create_default_job_name(current_time: datetime.datetime) -> str:
@@ -104,10 +42,26 @@ def __create_argparser(current_time: datetime.datetime) -> argparse.ArgumentPars
 	result.add_argument("-p", "--heap", metavar="HEAPSIZE", default=__DEFAULT_HEAPSIZE,
 						help="Set a limit on the total run time of the job allocation.")
 	result.add_argument("-u", "--user", metavar="USER", required=True,
-						action=OptionalRelativePathPopulatingAction,
 						help="The system username to use for running the batch script.")
-	for arg, arg_adder in __OPTIONAL_ARG_FACTORIES.items():
-		arg_adder(result, arg.value)
+	result.add_argument("-d", "--project-dir", dest="project_dir", metavar="DIRPATH",
+						help="The project root directory.")
+	result.add_argument("-i", "--indir", default="Data/Ready",
+						metavar="DIRPATH",
+						help="The path of the directory containing the session data to use for cross-validation relative to the project root.")
+	result.add_argument("-o", "--outdir", default="output",
+						metavar="DIRPATH",
+						help="The path of the directory to write the cross-validation results to relative to the project root.")
+	result.add_argument("-r", "--reflang", default="Data/utt-referring-tokens-lemma.tsv",
+						metavar="FILENAME",
+						help="The path of the referring-language file to read relative to the project root.")
+	result.add_argument("-m", "--model-params", default="Data/model-params.tsv",
+						dest="model_params",
+						metavar="FILENAME",
+						help="The path of the model-parameters file to read relative to the project root.")
+	result.add_argument("-c", "--classpath-jar",
+						dest="classpath_jar", default="tangrams-wac-0.0.1-SNAPSHOT-jar-with-dependencies.jar",
+						metavar="PATH",
+						help="The path of the JAR file to run relative to the project root.")
 	return result
 
 
@@ -189,15 +143,21 @@ def __main(args, current_time: datetime.datetime):
 	print("User: {}".format(user), file=sys.stderr)
 	user_email = user + "@kth.se"
 	print("Notification e-mail address: {}".format(user_email), file=sys.stderr)
-	indir = args.indir
+
+	project_dir = args.project_dir
+	if project_dir is None:
+		project_dir = _create_default_project_dirpath(user)
+	print("Project directory root: {}".format(project_dir), file=sys.stderr)
+
+	indir = project_dir + "/" + args.indir
 	print("Input directory: {}".format(indir), file=sys.stderr)
-	outdir = args.outdir
+	outdir = project_dir + "/" + args.outdir
 	print("Output directory: {}".format(outdir), file=sys.stderr)
-	classpath_jar = args.classpath_jar
+	classpath_jar = project_dir + "/" + args.classpath_jar
 	print("Classpath JAR: {}".format(classpath_jar), file=sys.stderr)
-	reflang_filepath = args.reflang
+	reflang_filepath = project_dir + "/" + args.reflang
 	print("Referring-language file path: {}".format(reflang_filepath), file=sys.stderr)
-	model_params_filepath = args.model_params
+	model_params_filepath = project_dir + "/" + args.model_params
 	print("Model-parameters file path: {}".format(model_params_filepath), file=sys.stderr)
 	heap_size = args.heap
 	print("Heap size: {}".format(heap_size), file=sys.stderr)
