@@ -25,8 +25,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -170,16 +168,18 @@ public final class RoundReferentFeatureConfidenceWriter {
 					final String[] refTokens = round.getReferringTokens(onlyInstructor).toArray(String[]::new);
 					final List<Referent> refs = round.getReferents();
 					for (final String refToken : refTokens) {
-						final Logistic wordClassifier = model.getWordClassifier(refToken);
-						final Function<Referent, Optional<Double>> refConfidenceScoreFactory = wordClassifier == null
-								? ref -> Optional.empty() : ref -> Optional.of(scorer.score(wordClassifier, ref));
+						Logistic wordClassifier = model.getWordClassifier(refToken);
+						final boolean isOov;
+						if (isOov = wordClassifier == null) {
+							wordClassifier = model.getDiscountClassifier();
+						}
 						for (final ListIterator<Referent> refIter = refs.listIterator(); refIter.hasNext();) {
 							final Referent ref = refIter.next();
 							// Entities are 1-indexed
 							final String refId = Integer.toString(refIter.nextIndex());
-							final Optional<Double> refConf = refConfidenceScoreFactory.apply(ref);
+							final double refConf = scorer.score(wordClassifier, ref);
 							final RoundReferentFeatureDescription.Input descInput = new RoundReferentFeatureDescription.Input(
-									dyadId, roundId, round, refId, ref, refToken, refConf);
+									dyadId, roundId, round, refId, ref, refToken, isOov, refConf);
 							final Stream<String> rowCells = createRowCells(descInput);
 							printer.printRecord((Iterable<String>) rowCells::iterator);
 						}

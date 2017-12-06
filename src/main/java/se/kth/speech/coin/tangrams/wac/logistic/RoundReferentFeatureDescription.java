@@ -15,7 +15,6 @@
  */
 package se.kth.speech.coin.tangrams.wac.logistic;
 
-import java.util.Optional;
 import java.util.function.Function;
 
 import se.kth.speech.coin.tangrams.wac.data.Referent;
@@ -62,11 +61,10 @@ enum RoundReferentFeatureDescription implements Function<RoundReferentFeatureDes
 	},
 	CONFIDENCE {
 
-		private final String nullValueRepr = "?";
 
 		@Override
 		public String apply(final Input input) {
-			return input.confidence.map(Number::toString).orElse(nullValueRepr);
+			return Double.toString(input.confidence);
 		}
 
 	},
@@ -91,6 +89,14 @@ enum RoundReferentFeatureDescription implements Function<RoundReferentFeatureDes
 		@Override
 		public String apply(final Input input) {
 			return input.word;
+		}
+
+	},
+	IS_OOV {
+
+		@Override
+		public String apply(final Input input) {
+			return Boolean.toString(input.isOov);
 		}
 
 	},
@@ -197,17 +203,20 @@ enum RoundReferentFeatureDescription implements Function<RoundReferentFeatureDes
 		private final Referent ref;
 
 		private final String word;
+		
+		private final boolean isOov;
 
-		private final Optional<? extends Number> confidence;
+		private final double confidence;
 
-		Input(final String dyadId, final String roundId, final Round round, String refId, final Referent ref, final String word,
-				final Optional<? extends Number> confidence) {
+		Input(final String dyadId, final String roundId, final Round round, String refId, final Referent ref, final String word, boolean isOov,
+				final double confidence) {
 			this.dyadId = dyadId;
 			this.roundId = roundId;
 			this.round = round;
 			this.refId = refId;
 			this.ref = ref;
 			this.word = word;
+			this.isOov = isOov;
 			this.confidence = confidence;
 		}
 

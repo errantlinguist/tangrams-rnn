@@ -57,7 +57,7 @@ import weka.core.Instances;
 public final class LogisticModel { // NO_UCD (use default)
 
 	public static final class FeatureAttributeData {
-		
+
 		private static Map<ReferentFeature, Attribute> createFeatureAttrMap(final List<String> shapeUniqueValues) {
 			final Map<ReferentFeature, Attribute> result = new EnumMap<>(ReferentFeature.class);
 			Arrays.stream(ReferentFeature.values())
@@ -535,7 +535,6 @@ public final class LogisticModel { // NO_UCD (use default)
 			return dist[classIdx];
 		}
 	}
-	
 
 	enum ReferentFeature {
 		BLUE {
@@ -638,7 +637,8 @@ public final class LogisticModel { // NO_UCD (use default)
 			return attrMap.get(this);
 		}
 
-		protected final Object getCategoricalValue(final Instance instance, final Map<ReferentFeature, Attribute> attrMap) {
+		protected final Object getCategoricalValue(final Instance instance,
+				final Map<ReferentFeature, Attribute> attrMap) {
 			final Attribute attr = getAttr(attrMap);
 			assert attr.isNominal() || attr.isString();
 			final double scalarValue = instance.value(attr);
@@ -819,6 +819,15 @@ public final class LogisticModel { // NO_UCD (use default)
 	public Scorer createScorer(final ReferentClassification classification) {
 		return new Scorer(classification);
 	}
+	
+	/**
+	 * 
+	 * @return The {@code Logistic} classifier instance used for classifying
+	 *         unseen word observations.
+	 */
+	public Logistic getDiscountClassifier() {
+		return discountModel;
+	}
 
 	/**
 	 * @return the featureAttrs
@@ -835,9 +844,9 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *
 	 * @param word
 	 *            The word to get the corresponding {@link Classifier} for.
-	 * @return The {@code Classifier} instance representing the given word or
-	 *         {@code null} if no {@code Classifier} was found for the given
-	 *         word.
+	 * @return The {@code Logistic} classifier instance representing the given
+	 *         word or {@code null} if no {@code Classifier} was found for the
+	 *         given word.
 	 */
 	public Logistic getWordClassifier(final String word) {
 		return wordModels.get(word);
