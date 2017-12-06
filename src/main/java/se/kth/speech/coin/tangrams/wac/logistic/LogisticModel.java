@@ -501,19 +501,19 @@ public final class LogisticModel { // NO_UCD (use default)
 		 * the &ldquo;target&rdquo; referent, i.e.&nbsp;the entity is not the
 		 * one being referred to in the round being classified.
 		 */
-		FALSE(Boolean.FALSE.toString().intern()),
+		FALSE(Boolean.FALSE.toString()),
 		/**
 		 * Denotes that the given referent is classified as being the
 		 * &ldquo;target&rdquo; referent, i.e.&nbsp;the entity is actually the
 		 * one being referred to in the round being classified.
 		 */
-		TRUE(Boolean.TRUE.toString().intern());
+		TRUE(Boolean.TRUE.toString());
 		// @formatter:on
 
 		private String classValue;
 
 		private ReferentClassification(final String classValue) {
-			this.classValue = classValue;
+			this.classValue = classValue.intern();
 		}
 
 		public String getClassValue() {
