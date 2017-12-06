@@ -66,6 +66,7 @@ public final class TestColor {
 
 	public static void write(final LogisticModel model, final Path outpath)
 			throws IOException, ClassificationException {
+		final LogisticModel.Scorer scorer = model.createScorer();
 		final List<String> wlist = Arrays
 				.asList(new String[] { "red", "green", "blue", "yellow", "magenta", "pink", "orange" });
 		final Path outfilePath = outpath.resolve("colors.html");
@@ -88,7 +89,7 @@ public final class TestColor {
 
 				for (final String w : wlist) {
 					final Logistic wordClassifier = model.getWordClassifier(w);
-					final double score = model.score(wordClassifier, ref);
+					final double score = scorer.score(wordClassifier, ref);
 					pw.println("<td style=\"color:" + getHTMLColorString(score) + "\">" + w + "</td>");
 				}
 

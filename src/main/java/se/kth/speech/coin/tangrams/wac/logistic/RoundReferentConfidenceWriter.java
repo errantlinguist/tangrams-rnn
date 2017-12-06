@@ -185,6 +185,7 @@ public final class RoundReferentConfidenceWriter {
 		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
 		final LogisticModel model = new LogisticModel(modelParams);
 		model.train(set);
+		final LogisticModel.Scorer scorer = model.createScorer();
 		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
 
 		final int referentCols = getMatrixColCount(sessions.stream().map(Session::getRounds).flatMap(List::stream));
@@ -202,7 +203,7 @@ public final class RoundReferentConfidenceWriter {
 					final List<Referent> refs = round.getReferents();
 					final String targetRefIdStr = createTargetRefIdSet(refs).stream().map(Object::toString)
 							.collect(MULTIVALUE_JOINER);
-					final Instances refInsts = model.createInstances(refs);
+					final Instances refInsts = model.getFeatureAttrs().createInstances(refs);
 					final Stream<String> refTokens = round.getReferringTokens(onlyInstructor);
 					final Stream<Stream<String>> rowCellValues = refTokens.map(word -> {
 						final Logistic wordClassifier = model.getWordClassifier(word);
@@ -212,7 +213,7 @@ public final class RoundReferentConfidenceWriter {
 									.limit(referentCols);
 						} else {
 							try {
-								final DoubleStream refConfidences = model.score(wordClassifier, refInsts);
+								final DoubleStream refConfidences = scorer.score(wordClassifier, refInsts);
 								positiveConfidences = refConfidences.mapToObj(Double::toString);
 							} catch (final Exception e) {
 								throw new ClassificationException(e);

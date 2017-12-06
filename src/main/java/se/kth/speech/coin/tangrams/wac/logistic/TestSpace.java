@@ -54,7 +54,7 @@ public final class TestSpace {
 			throws IOException, ClassificationException {
 		final List<String> wlist = Arrays
 				.asList(new String[] { "left", "right", "bottom", "top", "middle", "center", "corner" });
-
+		final LogisticModel.Scorer scorer = model.createScorer();
 		final Path outfilePath = outpath.resolve("space.html");
 		LOGGER.info("Writing to \"{}\".", outfilePath);
 		try (PrintWriter pw = new PrintWriter(
@@ -73,7 +73,7 @@ public final class TestSpace {
 
 					for (final String w : wlist) {
 						final Logistic wordClassifier = model.getWordClassifier(w);
-						final double score = model.score(wordClassifier, ref);
+						final double score = scorer.score(wordClassifier, ref);
 						pw.println("<div style=\"color:" + TestColor.getHTMLColorString(score) + "\">" + w + "</div>");
 					}
 

@@ -53,7 +53,7 @@ public final class TestSize {
 	public static void write(final LogisticModel model, final Path outpath)
 			throws IOException, ClassificationException {
 		final List<String> wlist = Arrays.asList(new String[] { "large", "big", "small" });
-
+		final LogisticModel.Scorer scorer = model.createScorer();
 		final Path outfilePath = outpath.resolve("size.html");
 		LOGGER.info("Writing to \"{}\".", outfilePath);
 		try (PrintWriter pw = new PrintWriter(
@@ -71,7 +71,7 @@ public final class TestSize {
 
 				for (final String word : wlist) {
 					final Logistic wordClassifier = model.getWordClassifier(word);
-					final double score = model.score(wordClassifier, ref);
+					final double score = scorer.score(wordClassifier, ref);
 					pw.println("<td style=\"color:" + TestColor.getHTMLColorString(score) + "\">" + word + "</td>");
 				}
 

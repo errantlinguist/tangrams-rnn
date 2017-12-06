@@ -157,6 +157,8 @@ public final class RoundReferentFeatureConfidenceWriter {
 		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
 		final LogisticModel model = new LogisticModel(modelParams);
 		model.train(set);
+		final LogisticModel.Scorer scorer = model.createScorer();
+		
 		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
 
 		try (CSVPrinter printer = CSVFormat.TDF.withHeader(createColumnNames().toArray(String[]::new))
@@ -174,7 +176,7 @@ public final class RoundReferentFeatureConfidenceWriter {
 					for (final String refToken : refTokens) {
 						final Logistic wordClassifier = model.getWordClassifier(refToken);
 						final Function<Referent, Optional<Double>> refConfidenceScoreFactory = wordClassifier == null
-								? ref -> Optional.empty() : ref -> Optional.of(model.score(wordClassifier, ref));
+								? ref -> Optional.empty() : ref -> Optional.of(scorer.score(wordClassifier, ref));
 						for (final Referent ref : refs) {
 							final Optional<Double> refConf = refConfidenceScoreFactory.apply(ref);
 							final RoundReferentFeatureDescription.Input descInput = new RoundReferentFeatureDescription.Input(
