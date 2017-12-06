@@ -494,8 +494,8 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	}
 
-	// @formatter:off
 	enum ReferentClassification {
+		// @formatter:off
 		/**
 		 * Denotes that the given referent is classified as <em>not</em> being
 		 * the &ldquo;target&rdquo; referent, i.e.&nbsp;the entity is not the
@@ -508,6 +508,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		 * one being referred to in the round being classified.
 		 */
 		TRUE(Boolean.TRUE.toString().intern());
+		// @formatter:on
 
 		private String classValue;
 
@@ -533,7 +534,7 @@ public final class LogisticModel { // NO_UCD (use default)
 			return dist[classIdx];
 		}
 	}
-	// @formatter:on
+	
 
 	enum ReferentFeature {
 		BLUE {
