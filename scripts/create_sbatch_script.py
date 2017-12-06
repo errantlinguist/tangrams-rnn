@@ -88,9 +88,11 @@ SCRIPT_FORMAT_STR = """#!/bin/bash -l
 
 
 # A generated script for running cross-validation using Slurm <https://slurm.schedmd.com/>.
+#
+# This file was generated on {creation_date}.
 # 
 # Author: Todd Shore <errantlinguist+github@gmail.com>
-# Since: {creation_date}
+# Since: 2017-12-05
 
 # Set the allocation to be charged for this job
 # not required if you have set a default allocation
