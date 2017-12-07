@@ -901,14 +901,13 @@ public final class LogisticModel { // NO_UCD (use default)
 	 */
 	private static DoubleStream score(final BatchPredictor wordClassifier, final Instances insts,
 			final ReferentClassification classification) {
-		final DoubleStream result;
+		final double[][] dists;
 		try {
-			final double[][] dists = wordClassifier.distributionsForInstances(insts);
-			result = classification.getProbabilities(dists, insts);
+			dists = wordClassifier.distributionsForInstances(insts);
 		} catch (final Exception e) {
 			throw new ClassificationException(e);
 		}
-		return result;
+		return classification.getProbabilities(dists, insts);
 	}
 
 	/**
