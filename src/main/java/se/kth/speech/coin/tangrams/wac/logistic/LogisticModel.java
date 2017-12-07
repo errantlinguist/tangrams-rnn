@@ -374,7 +374,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		 *            classifying unseen word observations.
 		 */
 		private WordClassifiers(final Map<String, Logistic> wordModels, final Logistic discountModel) {
-			this.wordClassifiers = wordModels;
+			wordClassifiers = wordModels;
 			this.discountModel = discountModel;
 		}
 
@@ -501,6 +501,8 @@ public final class LogisticModel { // NO_UCD (use default)
 	 */
 	private class Trainer extends ForkJoinTask<WordClassifiers> {
 
+		private static final String OOV_CLASS_LABEL = "__OUT_OF_VOCABULARY__";
+
 		/**
 		 *
 		 */
@@ -532,7 +534,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		/**
 		 * Constructs a {@link Trainer} for training models for the specified
 		 * words asynchronously.
-		 * 
+		 *
 		 * @param words
 		 *            The vocabulary words to train models for.
 		 * @param weight
@@ -852,8 +854,6 @@ public final class LogisticModel { // NO_UCD (use default)
 	}
 
 	private static final int DEFAULT_EXPECTED_WORD_CLASS_COUNT = 1130;
-
-	private static final String OOV_CLASS_LABEL = "__OUT_OF_VOCABULARY__";
 
 	private static final List<String> REFERENT_CLASSIFICATION_VALUES = Arrays.asList(Arrays
 			.stream(ReferentClassification.values()).map(ReferentClassification::getClassValue).toArray(String[]::new));
