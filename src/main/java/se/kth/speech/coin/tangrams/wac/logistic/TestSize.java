@@ -70,7 +70,7 @@ public final class TestSize {
 				pw.println("<tr><td>" + size + "<td>");
 
 				for (final String word : wlist) {
-					final Logistic wordClassifier = model.getWordClassifier(word);
+					final Logistic wordClassifier = model.getWordClassifiers().getWordClassifier(word);
 					final double score = scorer.score(wordClassifier, ref);
 					pw.println("<td style=\"color:" + TestColor.getHTMLColorString(score) + "\">" + word + "</td>");
 				}

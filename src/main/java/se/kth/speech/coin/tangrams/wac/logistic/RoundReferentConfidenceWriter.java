@@ -206,7 +206,7 @@ public final class RoundReferentConfidenceWriter {
 					final Instances refInsts = model.getFeatureAttrs().createInstances(refs);
 					final Stream<String> refTokens = round.getReferringTokens(onlyInstructor);
 					final Stream<Stream<String>> rowCellValues = refTokens.map(word -> {
-						final Logistic wordClassifier = model.getWordClassifier(word);
+						final Logistic wordClassifier = model.getWordClassifiers().getWordClassifier(word);
 						final Stream<String> positiveConfidences;
 						if (wordClassifier == null) {
 							positiveConfidences = Stream.generate(() -> DISCOUNTED_WORD_CLASSIFIER_CONFIDENCE_VAL)

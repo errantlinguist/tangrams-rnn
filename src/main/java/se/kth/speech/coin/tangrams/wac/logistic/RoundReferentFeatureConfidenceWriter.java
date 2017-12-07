@@ -168,10 +168,10 @@ public final class RoundReferentFeatureConfidenceWriter {
 					final String[] refTokens = round.getReferringTokens(onlyInstructor).toArray(String[]::new);
 					final List<Referent> refs = round.getReferents();
 					for (final String refToken : refTokens) {
-						Logistic wordClassifier = model.getWordClassifier(refToken);
+						Logistic wordClassifier = model.getWordClassifiers().getWordClassifier(refToken);
 						final boolean isOov;
 						if (isOov = wordClassifier == null) {
-							wordClassifier = model.getDiscountClassifier();
+							wordClassifier = model.getWordClassifiers().getDiscountClassifier();
 						}
 						for (final ListIterator<Referent> refIter = refs.listIterator(); refIter.hasNext();) {
 							final Referent ref = refIter.next();

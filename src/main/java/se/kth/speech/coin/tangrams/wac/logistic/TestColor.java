@@ -88,7 +88,7 @@ public final class TestColor {
 						+ (int) (hue * 1000) + "</td>");
 
 				for (final String w : wlist) {
-					final Logistic wordClassifier = model.getWordClassifier(w);
+					final Logistic wordClassifier = model.getWordClassifiers().getWordClassifier(w);
 					final double score = scorer.score(wordClassifier, ref);
 					pw.println("<td style=\"color:" + getHTMLColorString(score) + "\">" + w + "</td>");
 				}

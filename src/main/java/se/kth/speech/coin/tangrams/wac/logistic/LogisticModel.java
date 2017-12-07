@@ -25,19 +25,13 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.Future;
+import java.util.concurrent.ForkJoinTask;
 import java.util.function.Supplier;
 import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import se.kth.speech.HashedCollections;
 import se.kth.speech.NumberTypeConversions;
@@ -199,8 +193,8 @@ public final class LogisticModel { // NO_UCD (use default)
 			final List<String> oovObservations = new ArrayList<>();
 			for (final String word : words) {
 				final Logistic wordClassifier = wordClassifiers.computeIfAbsent(word,
-						k -> wordModels.getOrDefault(k, discountModel));
-				if (wordClassifier.equals(discountModel)) {
+						LogisticModel.this.wordClassifiers::getWordClassifierOrDiscount);
+				if (wordClassifier.equals(LogisticModel.this.wordClassifiers.getDiscountClassifier())) {
 					oovObservations.add(word);
 				}
 			}
@@ -356,40 +350,131 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	}
 
-	public static final class TrainingException extends RuntimeException { // NO_UCD
-																			// (use
-																			// private)
+	public static final class WordClassifiers {
+
+		/**
+		 * The {@code Logistic} classifier instance used for classifying unseen
+		 * word observations.
+		 */
+		private final Logistic discountModel;
+
+		/**
+		 * A {@link Map} of words mapped to the {@link Logistic classifier}
+		 * associated with each.
+		 */
+		private final Map<String, Logistic> wordClassifiers;
 
 		/**
 		 *
+		 * @param wordClassifiers
+		 *            A {@link Map} of words mapped to the {@link Logistic
+		 *            classifier} associated with each.
+		 * @param discountModel
+		 *            The {@code Logistic} classifier instance used for
+		 *            classifying unseen word observations.
 		 */
-		private static final long serialVersionUID = -9069805591747785094L;
-
-		private TrainingException(final Exception cause) {
-			super(cause);
-		}
-	}
-
-	private class DiscountModelTrainer implements Callable<String> {
-		private final Callable<Entry<String, Logistic>> wordTrainer;
-
-		private DiscountModelTrainer(final Callable<Entry<String, Logistic>> wordTrainer) {
-			this.wordTrainer = wordTrainer;
+		private WordClassifiers(final Map<String, Logistic> wordModels, final Logistic discountModel) {
+			this.wordClassifiers = wordModels;
+			this.discountModel = discountModel;
 		}
 
 		/*
 		 * (non-Javadoc)
 		 *
-		 * @see java.util.concurrent.Callable#call()
+		 * @see java.lang.Object#equals(java.lang.Object)
 		 */
 		@Override
-		public String call() throws Exception {
-			final Entry<String, Logistic> wordClassifier = wordTrainer.call();
-			final String result = wordClassifier.getKey();
-			assert OOV_CLASS_LABEL.equals(result);
-			discountModel = wordClassifier.getValue();
+		public boolean equals(final Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (!(obj instanceof WordClassifiers)) {
+				return false;
+			}
+			final WordClassifiers other = (WordClassifiers) obj;
+			if (discountModel == null) {
+				if (other.discountModel != null) {
+					return false;
+				}
+			} else if (!discountModel.equals(other.discountModel)) {
+				return false;
+			}
+			if (wordClassifiers == null) {
+				if (other.wordClassifiers != null) {
+					return false;
+				}
+			} else if (!wordClassifiers.equals(other.wordClassifiers)) {
+				return false;
+			}
+			return true;
+		}
+
+		/**
+		 * @return The {@code Logistic} classifier instance used for classifying
+		 *         unseen word observations.
+		 */
+		public Logistic getDiscountClassifier() {
+			return discountModel;
+		}
+
+		/**
+		 *
+		 * @param word
+		 *            The word to get the corresponding {@link Classifier} for.
+		 * @return The {@code Logistic} classifier instance representing the
+		 *         given word or {@code null} if no {@code Classifier} was found
+		 *         for the given word.
+		 */
+		public Logistic getWordClassifier(final String word) {
+			return wordClassifiers.get(word);
+		}
+
+		/**
+		 *
+		 * @param word
+		 *            The word to get the corresponding {@link Classifier} for.
+		 * @return The {@code Logistic} classifier instance representing the
+		 *         given word or {@link #getDiscountModel() the discount
+		 *         classifier} if no {@code Classifier} was found for the given
+		 *         word.
+		 */
+		public Logistic getWordClassifierOrDiscount(final String word) {
+			return wordClassifiers.getOrDefault(word, getDiscountClassifier());
+		}
+
+		/*
+		 * (non-Javadoc)
+		 *
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + (discountModel == null ? 0 : discountModel.hashCode());
+			result = prime * result + (wordClassifiers == null ? 0 : wordClassifiers.hashCode());
 			return result;
 		}
+
+		/*
+		 * (non-Javadoc)
+		 *
+		 * @see java.lang.Object#toString()
+		 */
+		@Override
+		public String toString() {
+			final StringBuilder builder = new StringBuilder(wordClassifiers.size() + 1 + 64);
+			builder.append("WordClassifiers [wordClassifiers=");
+			builder.append(wordClassifiers);
+			builder.append(", discountModel=");
+			builder.append(discountModel);
+			builder.append("]");
+			return builder.toString();
+		}
+
 	}
 
 	private static class SessionRoundDatum {
@@ -407,35 +492,125 @@ public final class LogisticModel { // NO_UCD (use default)
 		}
 	}
 
-	private class WordClassifierMapPopulator implements Callable<String> {
+	/**
+	 * Trains models for the specified words asynchronously.
+	 *
+	 * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
+	 * @since 7 Dec 2017
+	 *
+	 */
+	private class Trainer extends ForkJoinTask<WordClassifiers> {
 
-		private final Callable<Entry<String, Logistic>> wordTrainer;
+		/**
+		 *
+		 */
+		private static final long serialVersionUID = 466815336422504998L;
 
-		private WordClassifierMapPopulator(final Callable<Entry<String, Logistic>> wordTrainer) {
-			this.wordTrainer = wordTrainer;
+		/**
+		 * The existing {@link WordClassifiers} object representing
+		 * previously-trained classifiers.
+		 */
+		private final WordClassifiers oldClassifiers;
+
+		/**
+		 * The {@link WordClassifiers} object representing newly-trained
+		 * classifiers.
+		 */
+		private WordClassifiers result;
+
+		/**
+		 * The weight of each datapoint representing a single observation for a
+		 * given word.
+		 */
+		private final double weight;
+
+		/**
+		 * The vocabulary words to train models for.
+		 */
+		private final List<String> words;
+
+		/**
+		 * @param words
+		 *            The vocabulary words to train models for.
+		 * @param weight
+		 *            The weight of each datapoint representing a single
+		 *            observation for a given word.
+		 * @param oldClassifiers
+		 *            The existing {@link WordClassifiers} object representing
+		 *            previously-trained classifiers.
+		 */
+		private Trainer(final List<String> words, final double weight, final WordClassifiers oldClassifiers) {
+			this.words = words;
+			this.weight = weight;
+			this.oldClassifiers = oldClassifiers;
 		}
 
 		/*
 		 * (non-Javadoc)
 		 *
-		 * @see java.util.concurrent.Callable#call()
+		 * @see java.util.concurrent.ForkJoinTask#getRawResult()
 		 */
 		@Override
-		public String call() throws Exception {
-			final Entry<String, Logistic> wordClassifier = wordTrainer.call();
-			final String result = wordClassifier.getKey();
-			wordModels.put(result, wordClassifier.getValue());
+		public WordClassifiers getRawResult() {
 			return result;
 		}
+
+		/*
+		 * (non-Javadoc)
+		 *
+		 * @see java.util.concurrent.ForkJoinTask#exec()
+		 */
+		@Override
+		protected boolean exec() {
+			// Train the discount model. NOTE: The discount model should not be
+			// in the same map as the classifiers for actually-seen observations
+			final WordClassifierTrainer discountClassifierTrainer = new WordClassifierTrainer(OOV_CLASS_LABEL,
+					() -> createDiscountClassExamples(trainingSet, words), weight);
+			discountClassifierTrainer.fork();
+			// Train a model for each word
+			final WordClassifierTrainer[] wordClassifierTrainers = words.stream().map(
+					word -> new WordClassifierTrainer(word, () -> createWordClassExamples(trainingSet, word), weight))
+					.toArray(WordClassifierTrainer[]::new);
+			ForkJoinTask.invokeAll(wordClassifierTrainers);
+
+			final Map<String, Logistic> extantClassifiers = oldClassifiers.wordClassifiers;
+			for (final WordClassifierTrainer trainer : wordClassifierTrainers) {
+				final Entry<String, Logistic> wordClassifier = trainer.join();
+				final String word = wordClassifier.getKey();
+				final Logistic newClassifier = wordClassifier.getValue();
+				final Logistic oldClassifier = extantClassifiers.put(word, newClassifier);
+				assert oldClassifier == null ? true : !oldClassifier.equals(newClassifier);
+			}
+			result = new WordClassifiers(extantClassifiers, discountClassifierTrainer.join().getValue());
+			return true;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 *
+		 * @see java.util.concurrent.ForkJoinTask#setRawResult(java.lang.Object)
+		 */
+		@Override
+		protected void setRawResult(final WordClassifiers value) {
+			result = value;
+		}
+
 	}
 
-	private class WordClassifierTrainer implements Callable<Entry<String, Logistic>> {
+	private class WordClassifierTrainer extends ForkJoinTask<Entry<String, Logistic>> {
+
+		/**
+		 *
+		 */
+		private static final long serialVersionUID = -2598147632084640571L;
 
 		/**
 		 * A {@link Supplier} of {@link Weighted} {@link Referent} instances to
 		 * use as training examples.
 		 */
 		private final Supplier<? extends Stream<Weighted<Referent>>> exampleSupplier;
+
+		private Entry<String, Logistic> result;
 
 		/**
 		 * The weight of each datapoint representing a single observation for
@@ -467,7 +642,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		}
 
 		@Override
-		public Entry<String, Logistic> call() throws WordClassifierTrainingException {
+		public boolean exec() {
 			final Logistic logistic = new Logistic();
 			@SuppressWarnings("unchecked")
 			final Weighted<Referent>[] examples = exampleSupplier.get().toArray(Weighted[]::new);
@@ -489,8 +664,28 @@ public final class LogisticModel { // NO_UCD (use default)
 			} catch (final Exception e) {
 				throw new WordClassifierTrainingException(word, e);
 			}
+			result = Pair.of(word, logistic);
+			return true;
+		}
 
-			return Pair.of(word, logistic);
+		/*
+		 * (non-Javadoc)
+		 *
+		 * @see java.util.concurrent.ForkJoinTask#getRawResult()
+		 */
+		@Override
+		public Entry<String, Logistic> getRawResult() {
+			return result;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 *
+		 * @see java.util.concurrent.ForkJoinTask#setRawResult(java.lang.Object)
+		 */
+		@Override
+		protected void setRawResult(final Entry<String, Logistic> value) {
+			result = value;
 		}
 
 	}
@@ -655,21 +850,10 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	private static final int DEFAULT_EXPECTED_WORD_CLASS_COUNT = 1130;
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(LogisticModel.class);
-
 	private static final String OOV_CLASS_LABEL = "__OUT_OF_VOCABULARY__";
 
 	private static final List<String> REFERENT_CLASSIFICATION_VALUES = Arrays.asList(Arrays
 			.stream(ReferentClassification.values()).map(ReferentClassification::getClassValue).toArray(String[]::new));
-
-	private static void consumeTrainedWordClasses(final Iterable<Future<String>> futureTrainedWordClasses)
-			throws InterruptedException, ExecutionException {
-		for (final Future<String> futureTrainedWordClass : futureTrainedWordClasses) {
-			@SuppressWarnings("unused")
-			final String trainedWordClass = futureTrainedWordClass.get();
-			// Do nothing with the result
-		}
-	}
 
 	private static Stream<Weighted<Referent>> createClassWeightedReferents(final Round round) {
 		final List<Referent> refs = round.getReferents();
@@ -692,14 +876,6 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	private static Stream<Weighted<Referent>> createWordClassExamples(final RoundSet rounds, final String word) {
 		return rounds.getExampleRounds(word).flatMap(LogisticModel::createClassWeightedReferents);
-	}
-
-	private static void debugTrainedWordClasses(final Iterable<Future<String>> futureTrainedWordClasses)
-			throws InterruptedException, ExecutionException {
-		for (final Future<String> futureTrainedWordClass : futureTrainedWordClasses) {
-			final String trainedWordClass = futureTrainedWordClass.get();
-			LOGGER.debug("Successfully trained word class \"{}\".", trainedWordClass);
-		}
 	}
 
 	/**
@@ -765,19 +941,20 @@ public final class LogisticModel { // NO_UCD (use default)
 		return classification.getProbability(dist, inst);
 	}
 
-	private Logistic discountModel;
-
 	private FeatureAttributeData featureAttrs;
 
 	private final Map<ModelParameter, Object> modelParams;
 
 	private final ForkJoinPool taskPool;
 
+	/**
+	 * The {@link RoundSet} to use as training data.
+	 */
 	private RoundSet trainingSet;
 
 	private Vocabulary vocab;
 
-	private final ConcurrentMap<String, Logistic> wordModels;
+	private WordClassifiers wordClassifiers;
 
 	public LogisticModel() {
 		this(ModelParameter.createDefaultParamValueMap());
@@ -801,7 +978,8 @@ public final class LogisticModel { // NO_UCD (use default)
 			final int expectedWordClassCount) {
 		this.modelParams = modelParams;
 		this.taskPool = taskPool;
-		wordModels = new ConcurrentHashMap<>(HashedCollections.capacity(expectedWordClassCount));
+		wordClassifiers = new WordClassifiers(new HashMap<>(HashedCollections.capacity(expectedWordClassCount)),
+				new Logistic());
 		featureAttrs = new FeatureAttributeData();
 	}
 
@@ -819,15 +997,6 @@ public final class LogisticModel { // NO_UCD (use default)
 	public Scorer createScorer(final ReferentClassification classification) {
 		return new Scorer(classification);
 	}
-	
-	/**
-	 * 
-	 * @return The {@code Logistic} classifier instance used for classifying
-	 *         unseen word observations.
-	 */
-	public Logistic getDiscountClassifier() {
-		return discountModel;
-	}
 
 	/**
 	 * @return the featureAttrs
@@ -841,15 +1010,18 @@ public final class LogisticModel { // NO_UCD (use default)
 	}
 
 	/**
-	 *
-	 * @param word
-	 *            The word to get the corresponding {@link Classifier} for.
-	 * @return The {@code Logistic} classifier instance representing the given
-	 *         word or {@code null} if no {@code Classifier} was found for the
-	 *         given word.
+	 * @return the wordClassifiers
 	 */
-	public Logistic getWordClassifier(final String word) {
-		return wordModels.get(word);
+	public WordClassifiers getWordClassifiers() {
+		return wordClassifiers;
+	}
+
+	/**
+	 * @param wordClassifiers
+	 *            the wordClassifiers to set
+	 */
+	public void setWordClassifiers(final WordClassifiers wordClassifiers) {
+		this.wordClassifiers = wordClassifiers;
 	}
 
 	/**
@@ -862,31 +1034,8 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *            for a given word.
 	 */
 	private void train(final List<String> words, final double weight) {
-		// Train a model for each word
-		final Stream<Callable<String>> wordClassifierTrainingJobs = words.stream()
-				.map(word -> new WordClassifierTrainer(word, () -> createWordClassExamples(trainingSet, word), weight))
-				.map(wordTrainer -> new WordClassifierMapPopulator(wordTrainer));
-		// Train the discount model. NOTE: The discount model should not be in
-		// the same map as the classifiers for actually-seen observations
-		final Callable<String> discountClassifierTrainingJob = new DiscountModelTrainer(new WordClassifierTrainer(
-				OOV_CLASS_LABEL, () -> createDiscountClassExamples(trainingSet, words), weight));
-		@SuppressWarnings("unchecked")
-		final List<Callable<String>> allJobs = Arrays.asList(Stream
-				.concat(wordClassifierTrainingJobs, Stream.of(discountClassifierTrainingJob)).toArray(Callable[]::new));
-		// NOTE: "ForkJoinPool.invokeAll(..)" creates a ForkJoinTask for each
-		// individual Callable passed to it, which is potentially more efficient
-		// than e.g. using "CompletableFuture.runAsync(..)"
-		final List<Future<String>> futureTrainedWordClasses = taskPool.invokeAll(allJobs);
-		assert futureTrainedWordClasses.size() == allJobs.size();
-		try {
-			if (LOGGER.isDebugEnabled()) {
-				debugTrainedWordClasses(futureTrainedWordClasses);
-			} else {
-				consumeTrainedWordClasses(futureTrainedWordClasses);
-			}
-		} catch (InterruptedException | ExecutionException e) {
-			throw new TrainingException(e);
-		}
+		final Trainer trainer = new Trainer(words, weight, wordClassifiers);
+		wordClassifiers = taskPool.invoke(trainer);
 	}
 
 	/**
