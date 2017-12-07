@@ -530,6 +530,9 @@ public final class LogisticModel { // NO_UCD (use default)
 		private final List<String> words;
 
 		/**
+		 * Constructs a {@link Trainer} for training models for the specified
+		 * words asynchronously.
+		 * 
 		 * @param words
 		 *            The vocabulary words to train models for.
 		 * @param weight
