@@ -272,6 +272,7 @@ public final class CrossValidator { // NO_UCD (use default)
 
 		assert remainingIters == 0;
 		assert Arrays.stream(result).mapToInt(array -> array.length).sum() == cvIterCount;
+		assert Arrays.stream(result).flatMapToInt(Arrays::stream).distinct().count() == cvIterCount;
 		return result;
 	}
 
