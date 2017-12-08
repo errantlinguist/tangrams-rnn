@@ -243,7 +243,6 @@ public final class CrossValidator { // NO_UCD (use default)
 							throw new Exception(training, testing, e);
 						}
 					}, modelParams, random);
-
 				}
 			}, executor));
 		}
