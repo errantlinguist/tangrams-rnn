@@ -64,11 +64,14 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 
 		private final ConcurrentMap<Path, BufferedWriter> outfileWriters;
 
+		private final int cvIterBatchSize;
+
 		private BatchRunner(final Entry<String, Map<ModelParameter, Object>> namedParamSet, final Path outdirPath,
-				final ConcurrentMap<Path, BufferedWriter> outfileWriters) {
+				final ConcurrentMap<Path, BufferedWriter> outfileWriters, final int cvIterBatchSize) {
 			this.namedParamSet = namedParamSet;
 			this.outdirPath = outdirPath;
 			this.outfileWriters = outfileWriters;
+			this.cvIterBatchSize = cvIterBatchSize;
 		}
 
 		@Override
@@ -78,7 +81,8 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 			LOGGER.info("Will write results of cross-validation test named \"{}\" to \"{}\".", name, outfilePath);
 			final Map<ModelParameter, Object> modelParams = namedParamSet.getValue();
 			final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
-			final CrossValidator crossValidator = new CrossValidator(modelParams, modelFactory, executor);
+			final CrossValidator crossValidator = new CrossValidator(modelParams, modelFactory, executor,
+					cvIterBatchSize);
 			BufferedWriter fileWriter;
 			CrossValidationTablularDataWriter resultWriter;
 			try {
@@ -176,7 +180,9 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 
 	private static final Charset OUTFILE_ENCODING = StandardCharsets.UTF_8;
 
-	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD (use private)
+	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD
+																						// (use
+																						// private)
 		if (cl.hasOption(Parameter.HELP.optName)) {
 			Parameter.printHelp();
 		} else {
@@ -244,19 +250,26 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 
 	private final SessionSet set;
 
-	public BatchCrossValidator(final SessionSet set, final ForkJoinPool executor) { // NO_UCD (use private)
+	public BatchCrossValidator(final SessionSet set, final ForkJoinPool executor) { // NO_UCD
+																					// (use
+																					// private)
 		this.set = set;
 		this.executor = executor;
 	}
 
-	public void accept(final Map<String, Map<ModelParameter, Object>> namedParamSets, final Path outdirPath) { // NO_UCD (use private)
-		final Stream<Entry<String, Map<ModelParameter, Object>>> sortedNamedParamSets = namedParamSets.entrySet()
-				.stream().sorted(Comparator.comparing(Entry::getKey));
+	public void accept(final Map<String, Map<ModelParameter, Object>> namedParamSets, final Path outdirPath) { // NO_UCD
+																												// (use
+																												// private)
 		final ConcurrentMap<Path, BufferedWriter> outfileWriters = new ConcurrentHashMap<>(
 				HashedCollections.capacity(namedParamSets.size()));
+		final int cvIterBatchSize = calculateCvIterBatchSize(namedParamSets.size());
+		LOGGER.info("Max size of each parallel cross-validation batch is {}.", cvIterBatchSize);
 
+		final Stream<Entry<String, Map<ModelParameter, Object>>> sortedNamedParamSets = namedParamSets.entrySet()
+				.stream().sorted(Comparator.comparing(Entry::getKey));
 		final Stream<CompletableFuture<Void>> batchJobs = sortedNamedParamSets.map(namedParamSet -> {
-			return CompletableFuture.supplyAsync(new BatchRunner(namedParamSet, outdirPath, outfileWriters), executor)
+			return CompletableFuture
+					.supplyAsync(new BatchRunner(namedParamSet, outdirPath, outfileWriters, cvIterBatchSize), executor)
 					.thenAccept(fileWriter -> {
 						// Close the outfile writer after successfully
 						// finishing the relevant batch job
@@ -286,6 +299,15 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 				close(writer, outfilePath);
 			}
 		}
+	}
+
+	private int calculateCvIterBatchSize(final int paramSetSize) {
+		// NOTE: It's better to run multiple model param tests in parallel
+		// rather than have multiple iterations in the same batch run in
+		// parallel because the former writes to separate files while the latter
+		// writes to the same file, thus causing thread contention.
+		final int maxParallelismPerBatch = Math.max(executor.getParallelism() / paramSetSize, 1);
+		return maxParallelismPerBatch;
 	}
 
 }

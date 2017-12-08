@@ -166,13 +166,21 @@ public final class CrossValidator { // NO_UCD (use default)
 
 	private final Map<ModelParameter, Object> modelParams;
 
+	private final int cvIterBatchSize;
+
+	public CrossValidator(final Map<ModelParameter, Object> modelParams, final Supplier<LogisticModel> modelFactory,
+			final Executor executor) {
+		this(modelParams, modelFactory, executor, 1);
+	}
+
 	public CrossValidator(final Map<ModelParameter, Object> modelParams, final Supplier<LogisticModel> modelFactory, // NO_UCD
 																														// (use
 																														// default)
-			final Executor executor) {
+			final Executor executor, final int cvIterBatchSize) {
 		this.modelParams = modelParams;
 		this.modelFactory = modelFactory;
 		this.executor = executor;
+		this.cvIterBatchSize = cvIterBatchSize;
 	}
 
 	/**
@@ -218,27 +226,54 @@ public final class CrossValidator { // NO_UCD (use default)
 		final long randomSeed = (Long) modelParams.get(ModelParameter.RANDOM_SEED);
 		final Random random = new Random(randomSeed);
 		final Stream.Builder<CompletableFuture<Void>> cvIterationJobs = Stream.builder();
-		for (int i = 1; i <= cvIterCount; ++i) {
-			// This is required to allow binding to the variable in the lambda
-			// below
-			final int cvIter = i;
-			cvIterationJobs.add(CompletableFuture.runAsync(() -> {
-				set.crossValidate((training, testing) -> {
-					try {
-						final LogisticModel model = modelFactory.get();
-						model.train(training);
-						final LogisticModel.Scorer scorer = model.createScorer();
-						final Stream<RoundEvaluationResult> roundEvalResults = scorer.eval(new SessionSet(testing));
-						roundEvalResults.map(
-								evalResult -> new CrossValidationRoundEvaluationResult(cvIter, evalResult, modelParams))
-								.forEach(resultHandler);
-					} catch (final ClassificationException e) {
-						throw new Exception(training, testing, e);
-					}
-				}, modelParams, random);
-			}, executor));
+
+		final int[][] cvIterBatches = createBatchCrossValidationIterIdArrays(cvIterCount);
+		for (final int[] cvIters : cvIterBatches) {
+			for (final int cvIter : cvIters) {
+				cvIterationJobs.add(CompletableFuture.runAsync(() -> {
+					set.crossValidate((training, testing) -> {
+						try {
+							final LogisticModel model = modelFactory.get();
+							model.train(training);
+							final LogisticModel.Scorer scorer = model.createScorer();
+							final Stream<RoundEvaluationResult> roundEvalResults = scorer.eval(new SessionSet(testing));
+							roundEvalResults.map(evalResult -> new CrossValidationRoundEvaluationResult(cvIter,
+									evalResult, modelParams)).forEach(resultHandler);
+						} catch (final ClassificationException e) {
+							throw new Exception(training, testing, e);
+						}
+					}, modelParams, random);
+				}, executor));
+			}
 		}
 		return cvIterationJobs.build();
+
+	}
+
+	private int calculateBatchCount(final int cvIterCount) {
+		final double nonIntegralValue = cvIterCount / cvIterBatchSize;
+		return nonIntegralValue >= 1.0 ? Math.toIntExact(Math.round(Math.ceil(nonIntegralValue))) : 1;
+	}
+
+	private int[][] createBatchCrossValidationIterIdArrays(final int cvIterCount) {
+		final int cvBatchCount = calculateBatchCount(cvIterCount);
+		final int[][] result = new int[cvBatchCount][];
+		// Cross-validation iteration IDs are 1-indexed
+		int nextCvIterId = 1;
+		int remainingIters = cvIterCount;
+		for (int batchId = 0; batchId < result.length; ++batchId) {
+			final int batchSize = Math.min(cvIterBatchSize, remainingIters);
+			final int[] batchCvIterIdArray = new int[batchSize];
+			for (int batchCvIterIdArrayIdx = 0; batchCvIterIdArrayIdx < batchCvIterIdArray.length; ++batchCvIterIdArrayIdx) {
+				batchCvIterIdArray[batchCvIterIdArrayIdx] = nextCvIterId++;
+			}
+			result[batchId] = batchCvIterIdArray;
+			remainingIters -= batchSize;
+		}
+
+		assert remainingIters == 0;
+		assert Arrays.stream(result).mapToInt(array -> array.length).sum() == cvIterCount;
+		return result;
 	}
 
 }
