@@ -707,14 +707,14 @@ public final class LogisticModel { // NO_UCD (use default)
 
 		private static final List<String> ORDERED_VALUES;
 
-		private static final Map<ReferentClassification, Integer> VAL_IDXS;
+		private static final Map<ReferentClassification, Integer> VALUE_IDXS;
 
 		static {
 			final List<ReferentClassification> ordering = Arrays.asList(ReferentClassification.values());
 			ORDERED_VALUES = Arrays
 					.asList(ordering.stream().map(ReferentClassification::getClassValue).toArray(String[]::new));
-			VAL_IDXS = Lists.createIndexMap(ordering, ReferentClassification.class);
-			assert ORDERED_VALUES.size() == VAL_IDXS.size();
+			VALUE_IDXS = Lists.createIndexMap(ordering, ReferentClassification.class);
+			assert ORDERED_VALUES.size() == VALUE_IDXS.size();
 		}
 
 		private String classValue;
@@ -728,7 +728,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		}
 
 		private int getClassValueIdx() {
-			return VAL_IDXS.get(this);
+			return VALUE_IDXS.get(this);
 		}
 
 		private DoubleStream getProbabilities(final double[][] dists, final Instances insts) {
