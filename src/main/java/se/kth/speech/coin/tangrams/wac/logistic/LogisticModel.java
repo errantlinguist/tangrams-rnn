@@ -38,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import se.kth.speech.HashedCollections;
+import se.kth.speech.Lists;
 import se.kth.speech.NumberTypeConversions;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Round;
@@ -67,13 +68,6 @@ public final class LogisticModel { // NO_UCD (use default)
 
 		private final Attribute classAttr;
 
-		/**
-		 * An {@link Instances} object which nothing is ever added to; It's just
-		 * for assigning to new {@link Instance} objects in order to
-		 * e.g.&nbsp;be able to call {@link Instance#classAttribute()}.
-		 */
-		private final Instances dummyInsts;
-
 		private final Map<ReferentFeature, Attribute> featureAttrs;
 
 		private FeatureAttributeData() {
@@ -93,7 +87,6 @@ public final class LogisticModel { // NO_UCD (use default)
 			this.featureAttrs = featureAttrs;
 			this.attrList = attrList;
 			this.classAttr = classAttr;
-			dummyInsts = createNewInstances(0);
 		}
 
 		private FeatureAttributeData(final Map<ReferentFeature, Attribute> featureAttrs,
@@ -116,9 +109,6 @@ public final class LogisticModel { // NO_UCD (use default)
 			final Map<ReferentFeature, Attribute> attrMap = featureAttrs;
 			final DenseInstance instance = new DenseInstance(attrMap.size());
 			Arrays.stream(ReferentFeature.values()).forEach(feature -> feature.setValue(instance, ref, attrMap));
-			// Only required to enable use of "Instance.classAttribute()"; No
-			// adding to the actual Instances object required
-			instance.setDataset(dummyInsts);
 			assert instance.numAttributes() == attrMap.size();
 			return instance;
 		}
@@ -715,6 +705,18 @@ public final class LogisticModel { // NO_UCD (use default)
 		TRUE(Boolean.TRUE.toString());
 		// @formatter:on
 
+		private static final List<String> ORDERED_VALUES;
+
+		private static final Map<ReferentClassification, Integer> VAL_IDXS;
+
+		static {
+			final List<ReferentClassification> ordering = Arrays.asList(ReferentClassification.values());
+			ORDERED_VALUES = Arrays
+					.asList(ordering.stream().map(ReferentClassification::getClassValue).toArray(String[]::new));
+			VAL_IDXS = Lists.createIndexMap(ordering, ReferentClassification.class);
+			assert ORDERED_VALUES.size() == VAL_IDXS.size();
+		}
+
 		private String classValue;
 
 		private ReferentClassification(final String classValue) {
@@ -725,17 +727,17 @@ public final class LogisticModel { // NO_UCD (use default)
 			return classValue;
 		}
 
-		private int getClassValueIdx(final Attribute classAttr) {
-			return classAttr.indexOfValue(classValue);
+		private int getClassValueIdx() {
+			return VAL_IDXS.get(this);
 		}
 
 		private DoubleStream getProbabilities(final double[][] dists, final Instances insts) {
-			final int classIdx = getClassValueIdx(insts.classAttribute());
+			final int classIdx = getClassValueIdx();
 			return Arrays.stream(dists).mapToDouble(dist -> dist[classIdx]);
 		}
 
 		private double getProbability(final double[] dist, final Instance inst) {
-			final int classIdx = getClassValueIdx(inst.classAttribute());
+			final int classIdx = getClassValueIdx();
 			return dist[classIdx];
 		}
 	}
@@ -818,7 +820,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		TARGET {
 			@Override
 			protected Attribute createAttribute(final List<String> shapeUniqueValues) {
-				return new Attribute(name(), REFERENT_CLASSIFICATION_VALUES);
+				return new Attribute(name(), ReferentClassification.ORDERED_VALUES);
 			}
 
 			@Override
@@ -858,9 +860,6 @@ public final class LogisticModel { // NO_UCD (use default)
 	}
 
 	private static final int DEFAULT_EXPECTED_WORD_CLASS_COUNT = 1130;
-
-	private static final List<String> REFERENT_CLASSIFICATION_VALUES = Arrays.asList(Arrays
-			.stream(ReferentClassification.values()).map(ReferentClassification::getClassValue).toArray(String[]::new));
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(LogisticModel.class);
 
@@ -1034,6 +1033,32 @@ public final class LogisticModel { // NO_UCD (use default)
 		this.wordClassifiers = wordClassifiers;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("LogisticModel [featureAttrs=");
+		builder.append(featureAttrs);
+		builder.append(", modelParams=");
+		builder.append(modelParams);
+		builder.append(", taskPool=");
+		builder.append(taskPool);
+		builder.append(", trainingSet=");
+		builder.append(trainingSet);
+		builder.append(", vocab=");
+		builder.append(vocab);
+		builder.append(", wordClassifiers=");
+		builder.append(wordClassifiers);
+		builder.append(", waitTimeMins=");
+		builder.append(waitTimeMins);
+		builder.append("]");
+		return builder.toString();
+	}
+
 	private WordClassifiers submitTrainingJob(final Trainer trainer) {
 		WordClassifiers result = null;
 		do {
@@ -1053,30 +1078,6 @@ public final class LogisticModel { // NO_UCD (use default)
 		} while (result == null);
 
 		return result;
-	}
-
-	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
-	@Override
-	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("LogisticModel [featureAttrs=");
-		builder.append(featureAttrs);
-		builder.append(", modelParams=");
-		builder.append(modelParams);
-		builder.append(", taskPool=");
-		builder.append(taskPool);
-		builder.append(", trainingSet=");
-		builder.append(trainingSet);
-		builder.append(", vocab=");
-		builder.append(vocab);
-		builder.append(", wordClassifiers=");
-		builder.append(wordClassifiers);
-		builder.append(", waitTimeMins=");
-		builder.append(waitTimeMins);
-		builder.append("]");
-		return builder.toString();
 	}
 
 	/**
