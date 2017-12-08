@@ -229,8 +229,8 @@ public final class CrossValidator { // NO_UCD (use default)
 
 		final int[][] cvIterBatches = createBatchCrossValidationIterIdArrays(cvIterCount);
 		for (final int[] cvIters : cvIterBatches) {
-			for (final int cvIter : cvIters) {
-				cvIterationJobs.add(CompletableFuture.runAsync(() -> {
+			cvIterationJobs.add(CompletableFuture.runAsync(() -> {
+				for (final int cvIter : cvIters) {
 					set.crossValidate((training, testing) -> {
 						try {
 							final LogisticModel model = modelFactory.get();
@@ -243,11 +243,11 @@ public final class CrossValidator { // NO_UCD (use default)
 							throw new Exception(training, testing, e);
 						}
 					}, modelParams, random);
-				}, executor));
-			}
+
+				}
+			}, executor));
 		}
 		return cvIterationJobs.build();
-
 	}
 
 	private int calculateBatchCount(final int cvIterCount) {
