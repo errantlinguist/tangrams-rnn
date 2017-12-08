@@ -308,7 +308,7 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 		// rather than have multiple iterations in the same batch run in
 		// parallel because the former writes to separate files while the latter
 		// writes to the same file, thus causing thread contention.
-		final double maxParallelismPerBatch = executor.getParallelism() / (double) paramSetSize;
+		final float maxParallelismPerBatch = executor.getParallelism() / (float) paramSetSize;
 		return Math.max(Math.toIntExact(Math.round(Math.floor(maxParallelismPerBatch / MIN_CROSS_VALIDATION_PARALLELISM))), 1);
 	}
 
