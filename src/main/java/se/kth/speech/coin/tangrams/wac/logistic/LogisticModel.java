@@ -27,11 +27,15 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import se.kth.speech.HashedCollections;
 import se.kth.speech.NumberTypeConversions;
@@ -858,6 +862,8 @@ public final class LogisticModel { // NO_UCD (use default)
 	private static final List<String> REFERENT_CLASSIFICATION_VALUES = Arrays.asList(Arrays
 			.stream(ReferentClassification.values()).map(ReferentClassification::getClassValue).toArray(String[]::new));
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(LogisticModel.class);
+
 	private static Stream<Weighted<Referent>> createClassWeightedReferents(final Round round) {
 		final List<Referent> refs = round.getReferents();
 		final Referent[] posRefs = refs.stream().filter(Referent::isTarget).toArray(Referent[]::new);
@@ -958,6 +964,8 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	private WordClassifiers wordClassifiers;
 
+	private long waitTimeMins = 1L;
+
 	public LogisticModel() {
 		this(ModelParameter.createDefaultParamValueMap());
 	}
@@ -1026,6 +1034,51 @@ public final class LogisticModel { // NO_UCD (use default)
 		this.wordClassifiers = wordClassifiers;
 	}
 
+	private WordClassifiers submitTrainingJob(final Trainer trainer) {
+		WordClassifiers result = null;
+		do {
+			try {
+				result = taskPool.invoke(trainer);
+			} catch (final RejectedExecutionException e) {
+				LOGGER.info(String.format(
+						"A(n) %s occurred while trying to submit a training job to the task pool; Will wait %d minute(s) before trying again.",
+						e.getClass().getSimpleName()), e);
+				boolean isReady = taskPool.awaitQuiescence(1, TimeUnit.MINUTES);
+				while (!isReady) {
+					waitTimeMins = waitTimeMins * 2;
+					LOGGER.info("Still not quiescence; Waiting {} more minute(s).", waitTimeMins);
+					isReady = taskPool.awaitQuiescence(1, TimeUnit.MINUTES);
+				}
+			}
+		} while (result == null);
+
+		return result;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("LogisticModel [featureAttrs=");
+		builder.append(featureAttrs);
+		builder.append(", modelParams=");
+		builder.append(modelParams);
+		builder.append(", taskPool=");
+		builder.append(taskPool);
+		builder.append(", trainingSet=");
+		builder.append(trainingSet);
+		builder.append(", vocab=");
+		builder.append(vocab);
+		builder.append(", wordClassifiers=");
+		builder.append(wordClassifiers);
+		builder.append(", waitTimeMins=");
+		builder.append(waitTimeMins);
+		builder.append("]");
+		return builder.toString();
+	}
+
 	/**
 	 * Trains models for the specified words asynchronously.
 	 *
@@ -1037,7 +1090,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	 */
 	private void train(final List<String> words, final double weight) {
 		final Trainer trainer = new Trainer(words, weight, wordClassifiers);
-		wordClassifiers = taskPool.invoke(trainer);
+		wordClassifiers = submitTrainingJob(trainer);
 	}
 
 	/**
