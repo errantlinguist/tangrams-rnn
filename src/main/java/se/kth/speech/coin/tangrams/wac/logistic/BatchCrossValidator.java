@@ -58,13 +58,13 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 
 	private class BatchRunner implements Supplier<Entry<Path, BufferedWriter>> {
 
+		private final int cvIterBatchSize;
+
 		private final Entry<String, Map<ModelParameter, Object>> namedParamSet;
 
 		private final Path outdirPath;
 
 		private final ConcurrentMap<Path, BufferedWriter> outfileWriters;
-
-		private final int cvIterBatchSize;
 
 		private BatchRunner(final Entry<String, Map<ModelParameter, Object>> namedParamSet, final Path outdirPath,
 				final ConcurrentMap<Path, BufferedWriter> outfileWriters, final int cvIterBatchSize) {
@@ -178,6 +178,8 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(BatchCrossValidator.class);
 
+	private static final int MIN_CROSS_VALIDATION_PARALLELISM = 1;
+
 	private static final Charset OUTFILE_ENCODING = StandardCharsets.UTF_8;
 
 	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD
@@ -256,7 +258,7 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 		this.set = set;
 		this.executor = executor;
 	}
-
+	
 	public void accept(final Map<String, Map<ModelParameter, Object>> namedParamSets, final Path outdirPath) { // NO_UCD
 																												// (use
 																												// private)
@@ -306,8 +308,8 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 		// rather than have multiple iterations in the same batch run in
 		// parallel because the former writes to separate files while the latter
 		// writes to the same file, thus causing thread contention.
-		final int maxParallelismPerBatch = Math.max(executor.getParallelism() / paramSetSize, 1);
-		return maxParallelismPerBatch;
+		final double maxParallelismPerBatch = executor.getParallelism() / (double) paramSetSize;
+		return Math.max(Math.toIntExact(Math.round(Math.floor(maxParallelismPerBatch / MIN_CROSS_VALIDATION_PARALLELISM))), 1);
 	}
 
 }
