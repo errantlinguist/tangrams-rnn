@@ -1046,7 +1046,7 @@ public final class LogisticModel { // NO_UCD (use default)
 				boolean isReady = taskPool.awaitQuiescence(1, TimeUnit.MINUTES);
 				while (!isReady) {
 					waitTimeMins = waitTimeMins * 2;
-					LOGGER.info("Still not quiescence; Waiting {} more minute(s).", waitTimeMins);
+					LOGGER.info("Still not quiescent; Waiting {} more minute(s).", waitTimeMins);
 					isReady = taskPool.awaitQuiescence(1, TimeUnit.MINUTES);
 				}
 			}
