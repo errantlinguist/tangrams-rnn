@@ -863,14 +863,15 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(LogisticModel.class);
 
-	private static long calculateRetryWaitTime(final int tryCount) {
+	private static long calculateRetryWaitTime(final int retryNumber) {
+		assert retryNumber > 0 : String.format("Retry number was %d but must be positive.", retryNumber);
 		final long result;
-		switch (tryCount) {
-		case 0: {
+		switch (retryNumber) {
+		case 1: {
 			result = 1L;
 			break;
 		}
-		case 1: {
+		case 2: {
 			result = 5L;
 			break;
 		}
