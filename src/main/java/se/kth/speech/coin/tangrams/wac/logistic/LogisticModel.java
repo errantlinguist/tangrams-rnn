@@ -1085,7 +1085,7 @@ public final class LogisticModel { // NO_UCD (use default)
 				LOGGER.info(String.format(
 						"A(n) %s occurred while trying to submit a training job to the task pool; Will wait %d minute(s) before trying again.",
 						e.getClass().getSimpleName(), waitTimeMins), e);
-				boolean isReady = taskPool.awaitQuiescence(1, TimeUnit.MINUTES);
+				boolean isReady = taskPool.awaitQuiescence(waitTimeMins, TimeUnit.MINUTES);
 				while (!isReady) {
 					waitTimeMins = calculateRetryWaitTime(++tryCount);
 					LOGGER.info("Still not quiescent; Waiting {} more minute(s) before try number {}.", waitTimeMins,
