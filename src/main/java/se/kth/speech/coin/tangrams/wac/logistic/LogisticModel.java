@@ -863,6 +863,25 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(LogisticModel.class);
 
+	private static long calculateRetryWaitTime(final int tryCount) {
+		final long result;
+		switch (tryCount) {
+		case 0: {
+			result = 1L;
+			break;
+		}
+		case 1: {
+			result = 5L;
+			break;
+		}
+		default: {
+			result = 10L;
+			break;
+		}
+		}
+		return result;
+	}
+
 	private static Stream<Weighted<Referent>> createClassWeightedReferents(final Round round) {
 		final List<Referent> refs = round.getReferents();
 		final Referent[] posRefs = refs.stream().filter(Referent::isTarget).toArray(Referent[]::new);
@@ -963,8 +982,6 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	private WordClassifiers wordClassifiers;
 
-	private long waitTimeMins = 1L;
-
 	public LogisticModel() {
 		this(ModelParameter.createDefaultParamValueMap());
 	}
@@ -1035,7 +1052,7 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
@@ -1053,8 +1070,6 @@ public final class LogisticModel { // NO_UCD (use default)
 		builder.append(vocab);
 		builder.append(", wordClassifiers=");
 		builder.append(wordClassifiers);
-		builder.append(", waitTimeMins=");
-		builder.append(waitTimeMins);
 		builder.append("]");
 		return builder.toString();
 	}
@@ -1065,14 +1080,17 @@ public final class LogisticModel { // NO_UCD (use default)
 			try {
 				result = taskPool.invoke(trainer);
 			} catch (final RejectedExecutionException e) {
+				int tryCount = 1;
+				long waitTimeMins = calculateRetryWaitTime(tryCount);
 				LOGGER.info(String.format(
 						"A(n) %s occurred while trying to submit a training job to the task pool; Will wait %d minute(s) before trying again.",
-						e.getClass().getSimpleName()), e);
+						e.getClass().getSimpleName(), waitTimeMins), e);
 				boolean isReady = taskPool.awaitQuiescence(1, TimeUnit.MINUTES);
 				while (!isReady) {
-					waitTimeMins = waitTimeMins * 2;
-					LOGGER.info("Still not quiescent; Waiting {} more minute(s).", waitTimeMins);
-					isReady = taskPool.awaitQuiescence(1, TimeUnit.MINUTES);
+					waitTimeMins = calculateRetryWaitTime(++tryCount);
+					LOGGER.info("Still not quiescent; Waiting {} more minute(s) before try number {}.", waitTimeMins,
+							tryCount);
+					isReady = taskPool.awaitQuiescence(waitTimeMins, TimeUnit.MINUTES);
 				}
 			}
 		} while (result == null);
