@@ -87,10 +87,6 @@ public final class Vocabulary {
 		return words;
 	}
 
-	public boolean has(final String word) {
-		return wordObservationCounts.containsKey(word);
-	}
-
 	/*
 	 * (non-Javadoc)
 	 *
