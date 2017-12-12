@@ -114,31 +114,6 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 				return naturalOrder.reversed();
 			}
 
-		}, TARGET_WORD_CLASSIFIER_SCORES {
-
-			private final ObjectMapper mapper = new ObjectMapper();
-
-			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
-				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
-				final ClassificationResult classificationResult = evalResult.getClassificationResult();
-				final Map<Referent, Map<String, List<Double>>> refWordClassifierScoreLists = classificationResult.getRefWordClassifierScoreLists();
-				final Stream<Entry<Referent,Map<String, List<Double>>>> targetScores = refWordClassifierScoreLists.entrySet().stream().filter(entry -> entry.getKey().isTarget());
-				final NavigableMap<String,List<Double>> combinedWordScores = new TreeMap<>();
-				targetScores.map(Entry::getValue).forEach(wordScoreLists -> {
-					for (final Entry<String,List<Double>> wordScoreList : wordScoreLists.entrySet()) {
-						final List<Double> scoreList = wordScoreList.getValue();
-						final List<Double> combinedScores = combinedWordScores.computeIfAbsent(wordScoreList.getKey(), key -> new ArrayList<>(scoreList.size()));
-						combinedScores.addAll(scoreList);
-					}
-				});
-				try {
-					return mapper.writeValueAsString(combinedWordScores);
-				} catch (final JsonProcessingException e) {
-					throw new RuntimeException(e);
-				}
-			}
-
 		},
 		SCORE {
 
@@ -401,6 +376,31 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
 				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
 				return modelParams.get(ModelParameter.WEIGHT_BY_FREQ).toString();
+			}
+
+		}, TARGET_WORD_CLASSIFIER_SCORES {
+
+			private final ObjectMapper mapper = new ObjectMapper();
+
+			@Override
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
+				final ClassificationResult classificationResult = evalResult.getClassificationResult();
+				final Map<Referent, Map<String, List<Double>>> refWordClassifierScoreLists = classificationResult.getRefWordClassifierScoreLists();
+				final Stream<Entry<Referent,Map<String, List<Double>>>> targetScores = refWordClassifierScoreLists.entrySet().stream().filter(entry -> entry.getKey().isTarget());
+				final NavigableMap<String,List<Double>> combinedWordScores = new TreeMap<>();
+				targetScores.map(Entry::getValue).forEach(wordScoreLists -> {
+					for (final Entry<String,List<Double>> wordScoreList : wordScoreLists.entrySet()) {
+						final List<Double> scoreList = wordScoreList.getValue();
+						final List<Double> combinedScores = combinedWordScores.computeIfAbsent(wordScoreList.getKey(), key -> new ArrayList<>(scoreList.size()));
+						combinedScores.addAll(scoreList);
+					}
+				});
+				try {
+					return mapper.writeValueAsString(combinedWordScores);
+				} catch (final JsonProcessingException e) {
+					throw new RuntimeException(e);
+				}
 			}
 
 		};
