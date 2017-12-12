@@ -355,6 +355,15 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 				return modelParams.get(ModelParameter.UPDATE_WEIGHT).toString();
 			}
 
+		},
+		WEIGHT_BY_FREQ {
+
+			@Override
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
+				return modelParams.get(ModelParameter.WEIGHT_BY_FREQ).toString();
+			}
+
 		};
 
 	}
