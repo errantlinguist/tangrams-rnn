@@ -25,6 +25,9 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.RejectedExecutionException;
@@ -45,6 +48,7 @@ import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.RoundSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.Vocabulary;
+import se.kth.speech.concurrent.MapPopulator;
 import weka.classifiers.Classifier;
 import weka.classifiers.functions.Logistic;
 import weka.core.Attribute;
@@ -353,21 +357,21 @@ public final class LogisticModel { // NO_UCD (use default)
 		private final Logistic discountModel;
 
 		/**
-		 * A {@link Map} of words mapped to the {@link Logistic classifier}
-		 * associated with each.
+		 * A {@link ConcurrentMap} of words mapped to the {@link Logistic
+		 * classifier} associated with each.
 		 */
-		private final Map<String, Logistic> wordClassifiers;
+		private final ConcurrentMap<String, Logistic> wordClassifiers;
 
 		/**
 		 *
-		 * @param wordClassifiers
-		 *            A {@link Map} of words mapped to the {@link Logistic
-		 *            classifier} associated with each.
+		 * @param map
+		 *            A {@link ConcurrentMap} of words mapped to the
+		 *            {@link Logistic classifier} associated with each.
 		 * @param discountModel
 		 *            The {@code Logistic} classifier instance used for
 		 *            classifying unseen word observations.
 		 */
-		private WordClassifiers(final Map<String, Logistic> wordModels, final Logistic discountModel) {
+		private WordClassifiers(final ConcurrentMap<String, Logistic> wordModels, final Logistic discountModel) {
 			wordClassifiers = wordModels;
 			this.discountModel = discountModel;
 		}
@@ -461,7 +465,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		@Override
 		public String toString() {
 			final StringBuilder builder = new StringBuilder(wordClassifiers.size() + 1 + 64);
-			builder.append("WordClassifiers [wordClassifiers=");
+			builder.append("WordClassifiers [map=");
 			builder.append(wordClassifiers);
 			builder.append(", discountModel=");
 			builder.append(discountModel);
@@ -563,23 +567,20 @@ public final class LogisticModel { // NO_UCD (use default)
 		protected boolean exec() {
 			// Train the discount model. NOTE: The discount model should not be
 			// in the same map as the classifiers for actually-seen observations
-			final WordClassifierTrainer discountClassifierTrainer = new WordClassifierTrainer(OOV_CLASS_LABEL,
-					() -> createDiscountClassExamples(trainingSet, words), weight);
+			final ForkJoinTask<Entry<String, Logistic>> discountClassifierTrainer = ForkJoinTask
+					.adapt(new WordClassifierTrainer(OOV_CLASS_LABEL,
+							() -> createDiscountClassExamples(trainingSet, words), weight));
 			discountClassifierTrainer.fork();
 			// Train a model for each word
-			final WordClassifierTrainer[] wordClassifierTrainers = words.stream().map(
-					word -> new WordClassifierTrainer(word, () -> createWordClassExamples(trainingSet, word), weight))
-					.toArray(WordClassifierTrainer[]::new);
+			final ConcurrentMap<String, Logistic> extantClassifiers = oldClassifiers.wordClassifiers;
+			@SuppressWarnings("unchecked")
+			final MapPopulator<String, Logistic>[] wordClassifierTrainers = words.stream()
+					.map(word -> new MapPopulator<>(
+							new WordClassifierTrainer(word, () -> createWordClassExamples(trainingSet, word), weight),
+							extantClassifiers))
+					.toArray(MapPopulator[]::new);
 			ForkJoinTask.invokeAll(wordClassifierTrainers);
 
-			final Map<String, Logistic> extantClassifiers = oldClassifiers.wordClassifiers;
-			for (final WordClassifierTrainer trainer : wordClassifierTrainers) {
-				final Entry<String, Logistic> wordClassifier = trainer.join();
-				final String word = wordClassifier.getKey();
-				final Logistic newClassifier = wordClassifier.getValue();
-				final Logistic oldClassifier = extantClassifiers.put(word, newClassifier);
-				assert oldClassifier == null ? true : !oldClassifier.equals(newClassifier);
-			}
 			result = new WordClassifiers(extantClassifiers, discountClassifierTrainer.join().getValue());
 			return true;
 		}
@@ -596,20 +597,14 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	}
 
-	private class WordClassifierTrainer extends ForkJoinTask<Entry<String, Logistic>> {
-
-		/**
-		 *
-		 */
-		private static final long serialVersionUID = -2598147632084640571L;
+	private class WordClassifierTrainer
+			implements Callable<Entry<String, Logistic>>, Supplier<Entry<String, Logistic>> {
 
 		/**
 		 * A {@link Supplier} of {@link Weighted} {@link Referent} instances to
 		 * use as training examples.
 		 */
 		private final Supplier<? extends Stream<Weighted<Referent>>> exampleSupplier;
-
-		private Entry<String, Logistic> result;
 
 		/**
 		 * The weight of each datapoint representing a single observation for
@@ -640,8 +635,18 @@ public final class LogisticModel { // NO_UCD (use default)
 			this.weight = weight;
 		}
 
+		/*
+		 * (non-Javadoc)
+		 *
+		 * @see java.util.concurrent.Callable#call()
+		 */
 		@Override
-		public boolean exec() {
+		public Entry<String, Logistic> call() {
+			return get();
+		}
+
+		@Override
+		public Entry<String, Logistic> get() {
 			final Logistic logistic = new Logistic();
 			@SuppressWarnings("unchecked")
 			final Weighted<Referent>[] examples = exampleSupplier.get().toArray(Weighted[]::new);
@@ -663,28 +668,7 @@ public final class LogisticModel { // NO_UCD (use default)
 			} catch (final Exception e) {
 				throw new WordClassifierTrainingException(word, e);
 			}
-			result = Pair.of(word, logistic);
-			return true;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 *
-		 * @see java.util.concurrent.ForkJoinTask#getRawResult()
-		 */
-		@Override
-		public Entry<String, Logistic> getRawResult() {
-			return result;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 *
-		 * @see java.util.concurrent.ForkJoinTask#setRawResult(java.lang.Object)
-		 */
-		@Override
-		protected void setRawResult(final Entry<String, Logistic> value) {
-			result = value;
+			return Pair.of(word, logistic);
 		}
 
 	}
@@ -1005,8 +989,8 @@ public final class LogisticModel { // NO_UCD (use default)
 			final int expectedWordClassCount) {
 		this.modelParams = modelParams;
 		this.taskPool = taskPool;
-		wordClassifiers = new WordClassifiers(new HashMap<>(HashedCollections.capacity(expectedWordClassCount)),
-				new Logistic());
+		wordClassifiers = new WordClassifiers(
+				new ConcurrentHashMap<>(HashedCollections.capacity(expectedWordClassCount)), new Logistic());
 		featureAttrs = new FeatureAttributeData();
 	}
 
@@ -1037,15 +1021,15 @@ public final class LogisticModel { // NO_UCD (use default)
 	}
 
 	/**
-	 * @return the wordClassifiers
+	 * @return the map
 	 */
 	public WordClassifiers getWordClassifiers() {
 		return wordClassifiers;
 	}
 
 	/**
-	 * @param wordClassifiers
-	 *            the wordClassifiers to set
+	 * @param map
+	 *            the map to set
 	 */
 	public void setWordClassifiers(final WordClassifiers wordClassifiers) {
 		this.wordClassifiers = wordClassifiers;
@@ -1069,7 +1053,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		builder.append(trainingSet);
 		builder.append(", vocab=");
 		builder.append(vocab);
-		builder.append(", wordClassifiers=");
+		builder.append(", map=");
 		builder.append(wordClassifiers);
 		builder.append("]");
 		return builder.toString();
