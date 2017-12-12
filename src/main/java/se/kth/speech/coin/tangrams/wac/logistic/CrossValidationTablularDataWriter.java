@@ -160,14 +160,14 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 			}
 
 		},
-		OOV_TYPES {
+		OOV_TOKENS {
 
 			@Override
 			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
 				final List<String> oovObservations = classificationResult.getOovObservations();
-				return oovObservations.stream().distinct().sorted().collect(TOKEN_JOINER);
+				return oovObservations.stream().collect(TOKEN_JOINER);
 			}
 
 		},
