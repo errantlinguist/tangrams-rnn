@@ -58,6 +58,8 @@ public final class Referent {
 	 * @return The distance from the center (i.e.&nbsp;<code>0.5</code>).
 	 */
 	private static double distanceFromCentralValue(final double value) {
+		assert value >= 0.0;
+		assert value <= 1.0;
 		return 1.0 - Math.abs(0.5 - value) * 2.0;
 	}
 
