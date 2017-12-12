@@ -35,6 +35,13 @@ import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.Utterance;
 
+/**
+ * Prints cross-validation results. Is thread-safe.
+ *
+ * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
+ * @since 2017-11-26
+ *
+ */
 public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 
 	// @formatter:off
@@ -407,7 +414,9 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		this(FORMAT.print(out));
 	}
 
-	public void accept(final CrossValidationRoundEvaluationResult input) throws IOException { // NO_UCD (use default)
+	public void accept(final CrossValidationRoundEvaluationResult input) throws IOException { // NO_UCD
+																								// (use
+																								// default)
 		final List<String> row = Arrays
 				.asList(Arrays.stream(Datum.values()).map(datum -> datum.apply(input)).toArray(String[]::new));
 		writeLock.lock();
