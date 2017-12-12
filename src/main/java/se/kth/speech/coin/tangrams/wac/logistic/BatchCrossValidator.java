@@ -28,7 +28,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -272,12 +271,10 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 		final int cvIterBatchSize = calculateCvIterBatchSize(namedParamSets.size());
 		LOGGER.info("Max size of each parallel cross-validation batch is {}.", cvIterBatchSize);
 
-		final Stream<Entry<String, Map<ModelParameter, Object>>> sortedNamedParamSets = namedParamSets.entrySet()
-				.stream().sorted(Comparator.comparing(Entry::getKey));
-		final Stream<BatchRunner> batchRunners = sortedNamedParamSets
+		final Stream<BatchRunner> batchRunners = namedParamSets.entrySet().stream()
 				.map(namedParamSet -> new BatchRunner(namedParamSet, outdirPath, outfileWriters, cvIterBatchSize));
 		try {
-			batchRunners.forEachOrdered(batchRunner -> {
+			batchRunners.forEach(batchRunner -> {
 				final Entry<Path, BufferedWriter> fileWriter = batchRunner.get();
 				// Close the outfile writer after successfully
 				// finishing the relevant batch job
