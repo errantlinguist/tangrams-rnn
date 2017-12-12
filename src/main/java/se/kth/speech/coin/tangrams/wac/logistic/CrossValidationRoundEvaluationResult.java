@@ -36,7 +36,7 @@ final class CrossValidationRoundEvaluationResult {
 	/**
 	 * @return the modelParams
 	 */
-	public Map<ModelParameter, Object> getModelParams() {
+	Map<ModelParameter, Object> getModelParams() {
 		return modelParams;
 	}
 
