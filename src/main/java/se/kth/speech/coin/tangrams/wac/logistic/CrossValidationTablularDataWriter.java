@@ -16,11 +16,14 @@
 package se.kth.speech.coin.tangrams.wac.logistic;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -111,18 +114,27 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 				return naturalOrder.reversed();
 			}
 
-		}, WORD_CLASSIFIER_SCORES {
-			
+		}, TARGET_WORD_CLASSIFIER_SCORES {
+
 			private final ObjectMapper mapper = new ObjectMapper();
 
 			@Override
 			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
-				Map<String, List<Double>> wordClassifierScoreLists = classificationResult.getWordClassifierScoreLists();
+				final Map<Referent, Map<String, List<Double>>> refWordClassifierScoreLists = classificationResult.getRefWordClassifierScoreLists();
+				final Stream<Entry<Referent,Map<String, List<Double>>>> targetScores = refWordClassifierScoreLists.entrySet().stream().filter(entry -> entry.getKey().isTarget());
+				final NavigableMap<String,List<Double>> combinedWordScores = new TreeMap<>();
+				targetScores.map(Entry::getValue).forEach(wordScoreLists -> {
+					for (final Entry<String,List<Double>> wordScoreList : wordScoreLists.entrySet()) {
+						final List<Double> scoreList = wordScoreList.getValue();
+						final List<Double> combinedScores = combinedWordScores.computeIfAbsent(wordScoreList.getKey(), key -> new ArrayList<>(scoreList.size()));
+						combinedScores.addAll(scoreList);
+					}
+				});
 				try {
-					return mapper.writeValueAsString(new TreeMap<>(wordClassifierScoreLists));
-				} catch (JsonProcessingException e) {
+					return mapper.writeValueAsString(combinedWordScores);
+				} catch (final JsonProcessingException e) {
 					throw new RuntimeException(e);
 				}
 			}

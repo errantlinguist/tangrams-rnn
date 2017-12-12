@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -193,11 +194,13 @@ public final class LogisticModel { // NO_UCD (use default)
 				final double discount = ((Integer) modelParams.get(ModelParameter.DISCOUNT)).doubleValue();
 				final List<String> oovObservations = new ArrayList<>();
 				final Logistic discountClassifier = wordClassifiers.getDiscountClassifier();
-				final Map<String, List<Double>> wordClassifierScoreLists = new HashMap<>(
+				final Map<Referent, Map<String,List<Double>>> refWordClassifierScoreLists = new IdentityHashMap<>(
 						HashedCollections.capacity(words.length));
-
 				final List<Referent> refs = round.getReferents();
+				refs.forEach(ref -> refWordClassifierScoreLists.put(ref, new HashMap<>()));
+				
 				final Stream<Weighted<Referent>> scoredRefs = refs.stream().map(ref -> {
+					Map<String,List<Double>> wordClassifierScoreLists = refWordClassifierScoreLists.get(ref);
 					final Instance inst = featureAttrs.createInstance(ref);
 					final double[] wordScores = new double[words.length];
 					for (int i = 0; i < words.length; ++i) {
@@ -229,7 +232,7 @@ public final class LogisticModel { // NO_UCD (use default)
 				@SuppressWarnings("unchecked")
 				final List<Weighted<Referent>> scoredRefList = Arrays.asList(scoredRefs.toArray(Weighted[]::new));
 				result = Optional
-						.of(new ClassificationResult(scoredRefList, words, oovObservations, wordClassifierScoreLists));
+						.of(new ClassificationResult(scoredRefList, words, oovObservations, refWordClassifierScoreLists));
 			}
 			return result;
 		}

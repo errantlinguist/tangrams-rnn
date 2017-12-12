@@ -37,11 +37,10 @@ final class ClassificationResult {
 
 	/**
 	 * A {@link Map} of the different word classifiers used (including the OOV
-	 * label if used) mapping to a {@link List} of classification scores
-	 * computed for it, which is (number of entities * number of times word was
-	 * observed in the round).
+	 * label if used) mapping to a {@link Map} of classification scores computed
+	 * for each {@link Referent}.
 	 */
-	private final Map<String, List<Double>> wordClassifierScoreLists;
+	private final Map<Referent, Map<String, List<Double>>> refWordClassifierScoreLists;
 
 	/**
 	 * An array of strings used for choosing word classifiers during
@@ -64,16 +63,16 @@ final class ClassificationResult {
 	 *            model for them instead.
 	 * @param wordClassifierScoreLists
 	 *            A {@link Map} of the different word classifiers used
-	 *            (including the OOV label if used) mapping to a {@link List} of
-	 *            classification scores computed for it, which is (number of
-	 *            entities * number of times word was observed in the round).
+	 *            (including the OOV label if used) mapping to a {@link Map} of
+	 *            classification scores computed for each {@link Referent}.
 	 */
 	ClassificationResult(final List<Weighted<Referent>> scoredReferents, final String[] words,
-			final List<String> oovObservations, final Map<String, List<Double>> wordClassifierScoreLists) {
+			final List<String> oovObservations,
+			final Map<Referent, Map<String, List<Double>>> refWordClassifierScoreLists) {
 		this.scoredReferents = scoredReferents;
 		this.words = words;
 		this.oovObservations = oovObservations;
-		this.wordClassifierScoreLists = wordClassifierScoreLists;
+		this.refWordClassifierScoreLists = refWordClassifierScoreLists;
 	}
 
 	/**
@@ -86,22 +85,21 @@ final class ClassificationResult {
 	}
 
 	/**
+	 * @return A {@link Map} of the different word classifiers used (including
+	 *         the OOV label if used) mapping to a {@link Map} of classification
+	 *         scores computed for each {@link Referent}.
+	 */
+	Map<Referent, Map<String, List<Double>>> getRefWordClassifierScoreLists() {
+		return refWordClassifierScoreLists;
+	}
+
+	/**
 	 * @return A list of {@link Weighted} instances representing the confidence
 	 *         score of each {@link Referent} being the target referent for the
 	 *         given game round.
 	 */
 	List<Weighted<Referent>> getScoredReferents() {
 		return scoredReferents;
-	}
-
-	/**
-	 * @return A {@link Map} of the different word classifiers used (including
-	 *         the OOV label if used) mapping to a {@link List} of
-	 *         classification scores computed for it, which is (number of
-	 *         entities * number of times word was observed in the round).
-	 */
-	Map<String, List<Double>> getWordClassifierScoreLists() {
-		return wordClassifierScoreLists;
 	}
 
 	/**
