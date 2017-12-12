@@ -34,13 +34,6 @@ final class CrossValidationRoundEvaluationResult {
 	}
 
 	/**
-	 * @return the modelParams
-	 */
-	Map<ModelParameter, Object> getModelParams() {
-		return modelParams;
-	}
-
-	/**
 	 * @return the crossValidationIteration
 	 */
 	int getCrossValidationIteration() {
@@ -52,5 +45,12 @@ final class CrossValidationRoundEvaluationResult {
 	 */
 	RoundEvaluationResult getEvalResult() {
 		return evalResult;
+	}
+
+	/**
+	 * @return the modelParams
+	 */
+	Map<ModelParameter, Object> getModelParams() {
+		return modelParams;
 	}
 }
