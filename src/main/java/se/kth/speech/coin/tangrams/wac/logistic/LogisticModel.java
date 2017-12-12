@@ -172,19 +172,22 @@ public final class LogisticModel { // NO_UCD (use default)
 		 * @param round
 		 *            The {@code Round} to classify the {@code Referent}
 		 *            instances thereof.
-		 * @return An {@link Optional optional} {@link ClassificationResult} representing the results.
+		 * @return An {@link Optional optional} {@link ClassificationResult}
+		 *         representing the results.
 		 */
 		public Optional<ClassificationResult> rank(final Round round) {
 			final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
 			final String[] words = round.getReferringTokens(onlyInstructor).toArray(String[]::new);
-			
+
 			final Optional<ClassificationResult> result;
 			if (words.length < 1) {
 				result = Optional.empty();
 			} else {
 				// NOTE: Values are retrieved directly from the map instead of
-				// e.g. assigning them to a final field because it's possible that
-				// the map values change at another place in the code and performance isn't
+				// e.g. assigning them to a final field because it's possible
+				// that
+				// the map values change at another place in the code and
+				// performance isn't
 				// an issue here anyway
 				final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
 				final double discount = ((Integer) modelParams.get(ModelParameter.DISCOUNT)).doubleValue();
@@ -225,7 +228,8 @@ public final class LogisticModel { // NO_UCD (use default)
 				});
 				@SuppressWarnings("unchecked")
 				final List<Weighted<Referent>> scoredRefList = Arrays.asList(scoredRefs.toArray(Weighted[]::new));
-				result = Optional.of(new ClassificationResult(scoredRefList, words, oovObservations, wordClassifierScoreLists));	
+				result = Optional
+						.of(new ClassificationResult(scoredRefList, words, oovObservations, wordClassifierScoreLists));
 			}
 			return result;
 		}
@@ -343,7 +347,8 @@ public final class LogisticModel { // NO_UCD (use default)
 				return optClassificationResult.map(classificationResult -> {
 					// TODO: Currently, this blocks until updating is complete,
 					// which
-					// could take a long time; Make this asynchronous and return the
+					// could take a long time; Make this asynchronous and return
+					// the
 					// evaluation results, ensuring to block the NEXT evaluation
 					// until
 					// updating for THIS iteration is finished
@@ -353,7 +358,11 @@ public final class LogisticModel { // NO_UCD (use default)
 					final long endNanos = System.nanoTime();
 					return Stream.of(new RoundEvaluationResult(startNanos, endNanos, sessionRoundDatum.sessionId,
 							sessionRoundDatum.roundId, round, classificationResult));
-				}).orElseGet(Stream::empty);
+				}).orElseGet(() -> {
+					LOGGER.warn("No referring language found for round {} of session \"{}\".",
+							sessionRoundDatum.roundId, sessionRoundDatum.sessionId);
+					return Stream.empty();
+				});
 			});
 		}
 	}
