@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -171,56 +172,62 @@ public final class LogisticModel { // NO_UCD (use default)
 		 * @param round
 		 *            The {@code Round} to classify the {@code Referent}
 		 *            instances thereof.
-		 * @return A new {@link ClassificationResult} representing the results.
+		 * @return An {@link Optional optional} {@link ClassificationResult} representing the results.
 		 */
-		public ClassificationResult rank(final Round round) {
-			// NOTE: Values are retrieved directly from the map instead of
-			// e.g. assigning them to a final field because it's possible that
-			// the map values change at another place in the code and performance isn't
-			// an issue here anyway
-			final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
-			final double discount = ((Integer) modelParams.get(ModelParameter.DISCOUNT)).doubleValue();
+		public Optional<ClassificationResult> rank(final Round round) {
 			final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
 			final String[] words = round.getReferringTokens(onlyInstructor).toArray(String[]::new);
-			final List<String> oovObservations = new ArrayList<>();
-			final Logistic discountClassifier = wordClassifiers.getDiscountClassifier();
-			final Map<String, List<Double>> wordClassifierScoreLists = new HashMap<>(
-					HashedCollections.capacity(words.length));
+			
+			final Optional<ClassificationResult> result;
+			if (words.length < 1) {
+				result = Optional.empty();
+			} else {
+				// NOTE: Values are retrieved directly from the map instead of
+				// e.g. assigning them to a final field because it's possible that
+				// the map values change at another place in the code and performance isn't
+				// an issue here anyway
+				final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
+				final double discount = ((Integer) modelParams.get(ModelParameter.DISCOUNT)).doubleValue();
+				final List<String> oovObservations = new ArrayList<>();
+				final Logistic discountClassifier = wordClassifiers.getDiscountClassifier();
+				final Map<String, List<Double>> wordClassifierScoreLists = new HashMap<>(
+						HashedCollections.capacity(words.length));
 
-			final List<Referent> refs = round.getReferents();
-			final Stream<Weighted<Referent>> scoredRefs = refs.stream().map(ref -> {
-				final Instance inst = featureAttrs.createInstance(ref);
-				final double[] wordScores = new double[words.length];
-				for (int i = 0; i < words.length; ++i) {
-					final String word = words[i];
-					final List<Double> wordClassifierScoreList;
-					Logistic wordClassifier = wordClassifiers.getWordClassifier(word);
-					if (wordClassifier == null) {
-						wordClassifier = discountClassifier;
-						oovObservations.add(word);
-						wordClassifierScoreList = wordClassifierScoreLists.computeIfAbsent(OOV_CLASS_LABEL,
-								key -> new ArrayList<>());
-					} else {
-						wordClassifierScoreList = wordClassifierScoreLists.computeIfAbsent(word,
-								key -> new ArrayList<>());
+				final List<Referent> refs = round.getReferents();
+				final Stream<Weighted<Referent>> scoredRefs = refs.stream().map(ref -> {
+					final Instance inst = featureAttrs.createInstance(ref);
+					final double[] wordScores = new double[words.length];
+					for (int i = 0; i < words.length; ++i) {
+						final String word = words[i];
+						final List<Double> wordClassifierScoreList;
+						Logistic wordClassifier = wordClassifiers.getWordClassifier(word);
+						if (wordClassifier == null) {
+							wordClassifier = discountClassifier;
+							oovObservations.add(word);
+							wordClassifierScoreList = wordClassifierScoreLists.computeIfAbsent(OOV_CLASS_LABEL,
+									key -> new ArrayList<>());
+						} else {
+							wordClassifierScoreList = wordClassifierScoreLists.computeIfAbsent(word,
+									key -> new ArrayList<>());
+						}
+						double wordScore = score(wordClassifier, inst);
+						if (weightByFreq) {
+							final Long seenWordObservationCount = vocab.getCount(word);
+							final double effectiveObservationCount = seenWordObservationCount == null ? discount
+									: seenWordObservationCount.doubleValue();
+							wordScore *= Math.log10(effectiveObservationCount);
+						}
+						wordScores[i] = wordScore;
+						wordClassifierScoreList.add(wordScore);
 					}
-					double wordScore = score(wordClassifier, inst);
-					if (weightByFreq) {
-						final Long seenWordObservationCount = vocab.getCount(word);
-						final double effectiveObservationCount = seenWordObservationCount == null ? discount
-								: seenWordObservationCount.doubleValue();
-						wordScore *= Math.log10(effectiveObservationCount);
-					}
-					wordScores[i] = wordScore;
-					wordClassifierScoreList.add(wordScore);
-				}
-
-				final double score = Arrays.stream(wordScores).average().orElse(Double.NaN);
-				return new Weighted<>(ref, score);
-			});
-			@SuppressWarnings("unchecked")
-			final List<Weighted<Referent>> scoredRefList = Arrays.asList(scoredRefs.toArray(Weighted[]::new));
-			return new ClassificationResult(scoredRefList, words, oovObservations, wordClassifierScoreLists);
+					final double score = Arrays.stream(wordScores).average().getAsDouble();
+					return new Weighted<>(ref, score);
+				});
+				@SuppressWarnings("unchecked")
+				final List<Weighted<Referent>> scoredRefList = Arrays.asList(scoredRefs.toArray(Weighted[]::new));
+				result = Optional.of(new ClassificationResult(scoredRefList, words, oovObservations, wordClassifierScoreLists));	
+			}
+			return result;
 		}
 
 		/**
@@ -329,25 +336,26 @@ public final class LogisticModel { // NO_UCD (use default)
 			// an
 			// issue here anyway
 			final double updateWeight = ((Number) modelParams.get(ModelParameter.UPDATE_WEIGHT)).doubleValue();
-			return sessionRoundData.map(sessionRoundDatum -> {
+			return sessionRoundData.flatMap(sessionRoundDatum -> {
 				final Round round = sessionRoundDatum.round;
 				final long startNanos = System.nanoTime();
-				final ClassificationResult classificationResult = rank(round);
-				// TODO: Currently, this blocks until updating is complete,
-				// which
-				// could take a long time; Make this asynchronous and return the
-				// evaluation results, ensuring to block the NEXT evaluation
-				// until
-				// updating for THIS iteration is finished
-				if (updateWeight > 0.0) {
-					updateModel(round);
-				}
-				final long endNanos = System.nanoTime();
-				return new RoundEvaluationResult(startNanos, endNanos, sessionRoundDatum.sessionId,
-						sessionRoundDatum.roundId, round, classificationResult);
+				final Optional<ClassificationResult> optClassificationResult = rank(round);
+				return optClassificationResult.map(classificationResult -> {
+					// TODO: Currently, this blocks until updating is complete,
+					// which
+					// could take a long time; Make this asynchronous and return the
+					// evaluation results, ensuring to block the NEXT evaluation
+					// until
+					// updating for THIS iteration is finished
+					if (updateWeight > 0.0) {
+						updateModel(round);
+					}
+					final long endNanos = System.nanoTime();
+					return Stream.of(new RoundEvaluationResult(startNanos, endNanos, sessionRoundDatum.sessionId,
+							sessionRoundDatum.roundId, round, classificationResult));
+				}).orElseGet(Stream::empty);
 			});
 		}
-
 	}
 
 	public static final class WordClassifiers {
