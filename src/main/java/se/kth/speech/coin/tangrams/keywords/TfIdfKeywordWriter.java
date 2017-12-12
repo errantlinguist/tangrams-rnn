@@ -72,8 +72,8 @@ public final class TfIdfKeywordWriter {
 		OUTPATH("o") {
 			@Override
 			public Option get() {
-				return Option.builder(optName).longOpt("outpath").desc(
-						"The file to write the results to; If this option is not supplied, the standard output stream will be used.")
+				return Option.builder(optName).longOpt("outpath")
+						.desc("The file to write the results to; If this option is not supplied, the standard output stream will be used.")
 						.hasArg().argName("path").type(File.class).build();
 			}
 		},
@@ -95,6 +95,14 @@ public final class TfIdfKeywordWriter {
 								"The method of calculating term frequencies. Possible values: %s; Default value: %s\"",
 								Arrays.toString(possibleVals), DEFAULT_TF_VARIANT))
 						.hasArg().argName("name").build();
+			}
+		},
+		ONLY_INSTRUCTOR("i") {
+			@Override
+			public Option get() {
+				return Option.builder(optName).longOpt("only-instructor")
+						.desc("If this flag is set, only instructor language will be used for TF-IDF calculation.")
+						.build();
 			}
 		};
 
@@ -166,7 +174,11 @@ public final class TfIdfKeywordWriter {
 				new SessionSetReader(refTokenFilePath).apply(inpaths).getSessions().forEach(
 						session -> sessionNgrams.put(session, createNgrams(session).collect(Collectors.toList())));
 				LOGGER.info("Will extract keywords from {} session(s).", sessionNgrams.size());
-				final TfIdfKeywordWriter keywordWriter = new TfIdfKeywordWriter(sessionNgrams, tfVariant);
+				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
+				LOGGER.info("Only use instructor language ? {}", onlyInstructor);
+				final TfIdfCalculator<List<String>> tfIdfCalculator = TfIdfCalculator.create(sessionNgrams,
+						onlyInstructor, tfVariant);
+				final TfIdfKeywordWriter keywordWriter = new TfIdfKeywordWriter(sessionNgrams, tfIdfCalculator);
 
 				int rowsWritten = 0;
 				try (CSVPrinter printer = CSVFormat.TDF.withHeader(COL_HEADERS).print(outStreamGetter.get())) {
@@ -236,9 +248,9 @@ public final class TfIdfKeywordWriter {
 	private final TfIdfCalculator<List<String>> tfidfCalculator;
 
 	public TfIdfKeywordWriter(final Map<Session, ? extends Collection<List<String>>> sessionNgrams,
-			final TfIdfCalculator.TermFrequencyVariant tfVariant) {
+			final TfIdfCalculator<List<String>> tfidfCalculator) {
 		this.sessionNgrams = sessionNgrams;
-		tfidfCalculator = TfIdfCalculator.create(sessionNgrams, false, tfVariant);
+		this.tfidfCalculator = tfidfCalculator;
 	}
 
 	public int write(final CSVPrinter printer) throws IOException {
