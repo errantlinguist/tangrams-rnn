@@ -48,9 +48,22 @@ public final class Referent {
 		return SHAPES;
 	}
 
-	private int edgeCount = 0;
+	/**
+	 * Calculates the distance from the center for a value in the range of
+	 * <code>0.0</code> to <code>1.0</code>.
+	 * 
+	 * @param value
+	 *            A value between <code>0.0</code> and <code>1.0</code>
+	 *            (inclusive).
+	 * @return The distance from the center (i.e.&nbsp;<code>0.5</code>).
+	 */
+	private static double distanceFromCentralValue(final double value) {
+		return 1.0 - Math.abs(0.5 - value) * 2.0;
+	}
 
 	private float blue = 0f;
+
+	private int edgeCount = 0;
 
 	private float green = 0f;
 
@@ -285,8 +298,8 @@ public final class Referent {
 	public void setPosition(final double x, final double y) {
 		positionX = x;
 		positionY = y;
-		midX = 1f - Math.abs(0.5f - positionX) * 2f;
-		midY = 1f - Math.abs(0.5f - positionY) * 2f;
+		midX = distanceFromCentralValue(positionX);
+		midY = distanceFromCentralValue(positionY);
 	}
 
 	/**
