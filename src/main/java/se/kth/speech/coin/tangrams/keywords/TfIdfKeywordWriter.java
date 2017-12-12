@@ -210,7 +210,7 @@ public final class TfIdfKeywordWriter {
 		final Stream.Builder<List<String>> resultBuilder = Stream.builder();
 		while (tokenizer.hasMoreElements()) {
 			final String nextStr = tokenizer.nextElement();
-			final List<String> ngram = Arrays.asList(nextStr.split(TOKEN_DELIMITER));
+			final List<String> ngram = Arrays.asList(Arrays.stream(nextStr.split(TOKEN_DELIMITER)).map(String::intern).toArray(String[]::new));
 			resultBuilder.accept(ngram);
 		}
 		return resultBuilder.build();
