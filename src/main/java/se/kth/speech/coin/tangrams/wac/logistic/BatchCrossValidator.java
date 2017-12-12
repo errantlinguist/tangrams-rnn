@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ForkJoinPool;
@@ -178,8 +177,6 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(BatchCrossValidator.class);
 
-	private static final int MIN_CROSS_VALIDATION_PARALLELISM = 1;
-
 	private static final Charset OUTFILE_ENCODING = StandardCharsets.UTF_8;
 
 	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD
@@ -238,6 +235,14 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 		}
 	}
 
+	private static void closeAll(final Map<Path, ? extends Closeable> outfileWriters) {
+		for (final Map.Entry<Path, ? extends Closeable> outfileWriter : outfileWriters.entrySet()) {
+			final Path outfilePath = outfileWriter.getKey();
+			final Closeable writer = outfileWriter.getValue();
+			close(writer, outfilePath);
+		}
+	}
+
 	private static void closeExceptionally(final Closeable closable, final Path outfilePath) {
 		try {
 			closable.close();
@@ -258,7 +263,7 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 		this.set = set;
 		this.executor = executor;
 	}
-	
+
 	public void accept(final Map<String, Map<ModelParameter, Object>> namedParamSets, final Path outdirPath) { // NO_UCD
 																												// (use
 																												// private)
@@ -269,37 +274,31 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 
 		final Stream<Entry<String, Map<ModelParameter, Object>>> sortedNamedParamSets = namedParamSets.entrySet()
 				.stream().sorted(Comparator.comparing(Entry::getKey));
-		final Stream<CompletableFuture<Void>> batchJobs = sortedNamedParamSets.map(namedParamSet -> {
-			return CompletableFuture
-					.supplyAsync(new BatchRunner(namedParamSet, outdirPath, outfileWriters, cvIterBatchSize), executor)
-					.thenAccept(fileWriter -> {
-						// Close the outfile writer after successfully
-						// finishing the relevant batch job
-						final Path outfilePath = fileWriter.getKey();
-						LOGGER.info("Finished writing cross-validation batch results file \"{}\".", outfilePath);
-						final BufferedWriter writer = fileWriter.getValue();
-						try {
-							close(writer, outfilePath);
-						} finally {
-							// Remove the writer from the map of all file
-							// writers
-							final BufferedWriter oldWriter = outfileWriters.remove(outfilePath);
-							assert writer.equals(oldWriter);
-						}
-					});
-		});
-
+		final Stream<BatchRunner> batchRunners = sortedNamedParamSets
+				.map(namedParamSet -> new BatchRunner(namedParamSet, outdirPath, outfileWriters, cvIterBatchSize));
 		try {
-			CompletableFuture.allOf(batchJobs.toArray(CompletableFuture[]::new)).join();
+			batchRunners.forEachOrdered(batchRunner -> {
+				final Entry<Path, BufferedWriter> fileWriter = batchRunner.get();
+				// Close the outfile writer after successfully
+				// finishing the relevant batch job
+				final Path outfilePath = fileWriter.getKey();
+				LOGGER.info("Finished writing cross-validation batch results file \"{}\".", outfilePath);
+				final BufferedWriter writer = fileWriter.getValue();
+				try {
+					close(writer, outfilePath);
+				} finally {
+					// Remove the writer from the map of all file
+					// writers
+					final BufferedWriter oldWriter = outfileWriters.remove(outfilePath);
+					assert writer.equals(oldWriter);
+				}
+			});
 			LOGGER.info("Finished {} batch job(s) successfully.", namedParamSets.size());
+
 		} finally {
 			// For any writers which were not successfully closed after
 			// successful finish of the relevant batch job, try to close them
-			for (final Map.Entry<Path, BufferedWriter> outfileWriter : outfileWriters.entrySet()) {
-				final Path outfilePath = outfileWriter.getKey();
-				final BufferedWriter writer = outfileWriter.getValue();
-				close(writer, outfilePath);
-			}
+			closeAll(outfileWriters);
 		}
 	}
 
@@ -308,8 +307,12 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 		// rather than have multiple iterations in the same batch run in
 		// parallel because the former writes to separate files while the latter
 		// writes to the same file, thus causing thread contention.
-		final float maxParallelismPerBatch = executor.getParallelism() / (float) paramSetSize;
-		return Math.max(Math.toIntExact(Math.round(Math.floor(maxParallelismPerBatch / MIN_CROSS_VALIDATION_PARALLELISM))), 1);
+		// final float maxParallelismPerBatch = executor.getParallelism() /
+		// (float) paramSetSize;
+		// return
+		// Math.max(Math.toIntExact(Math.round(Math.floor(maxParallelismPerBatch
+		// / MIN_CROSS_VALIDATION_PARALLELISM))), 1);
+		return 1;
 	}
 
 }
