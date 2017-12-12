@@ -21,6 +21,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -120,7 +121,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
 				Map<String, List<Double>> wordClassifierScoreLists = classificationResult.getWordClassifierScoreLists();
 				try {
-					return mapper.writeValueAsString(wordClassifierScoreLists);
+					return mapper.writeValueAsString(new TreeMap<>(wordClassifierScoreLists));
 				} catch (JsonProcessingException e) {
 					throw new RuntimeException(e);
 				}
