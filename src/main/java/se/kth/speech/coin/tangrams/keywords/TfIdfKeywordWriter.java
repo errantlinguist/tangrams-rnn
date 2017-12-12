@@ -170,7 +170,7 @@ public final class TfIdfKeywordWriter {
 
 				int rowsWritten = 0;
 				try (CSVPrinter printer = CSVFormat.TDF.withHeader(COL_HEADERS).print(outStreamGetter.get())) {
-					rowsWritten = keywordWriter.applyAsInt(printer);
+					rowsWritten = keywordWriter.write(printer);
 				}
 				LOGGER.info("Wrote {} row(s).", rowsWritten);
 			}
@@ -241,7 +241,7 @@ public final class TfIdfKeywordWriter {
 		tfidfCalculator = TfIdfCalculator.create(sessionNgrams, false, tfVariant);
 	}
 
-	public int applyAsInt(final CSVPrinter printer) throws IOException {
+	public int write(final CSVPrinter printer) throws IOException {
 		int result = 0;
 		for (final Entry<Session, ? extends Collection<List<String>>> entry : sessionNgrams.entrySet()) {
 			final Session session = entry.getKey();
