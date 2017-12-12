@@ -28,6 +28,7 @@ import java.util.TreeMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -378,26 +379,34 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 				return modelParams.get(ModelParameter.WEIGHT_BY_FREQ).toString();
 			}
 
-		}, TARGET_WORD_CLASSIFIER_SCORES {
-
-			private final ObjectMapper mapper = new ObjectMapper();
+		},
+		TARGET_WORD_CLASSIFIER_SCORES {
 
 			@Override
 			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
 				final Map<Referent, Map<String, List<Double>>> refWordClassifierScoreLists = classificationResult.getRefWordClassifierScoreLists();
-				final Stream<Entry<Referent,Map<String, List<Double>>>> targetScores = refWordClassifierScoreLists.entrySet().stream().filter(entry -> entry.getKey().isTarget());
-				final NavigableMap<String,List<Double>> combinedWordScores = new TreeMap<>();
-				targetScores.map(Entry::getValue).forEach(wordScoreLists -> {
-					for (final Entry<String,List<Double>> wordScoreList : wordScoreLists.entrySet()) {
-						final List<Double> scoreList = wordScoreList.getValue();
-						final List<Double> combinedScores = combinedWordScores.computeIfAbsent(wordScoreList.getKey(), key -> new ArrayList<>(scoreList.size()));
-						combinedScores.addAll(scoreList);
-					}
-				});
+				final NavigableMap<String,List<Double>> combinedWordScores = createCombinedWordScoreMap(refWordClassifierScoreLists, Referent::isTarget);
 				try {
-					return mapper.writeValueAsString(combinedWordScores);
+					return JSON_MAPPER.writeValueAsString(combinedWordScores);
+				} catch (final JsonProcessingException e) {
+					throw new RuntimeException(e);
+				}
+			}
+
+		},
+		NONTARGET_WORD_CLASSIFIER_SCORES {
+
+
+			@Override
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
+				final ClassificationResult classificationResult = evalResult.getClassificationResult();
+				final Map<Referent, Map<String, List<Double>>> refWordClassifierScoreLists = classificationResult.getRefWordClassifierScoreLists();
+				final NavigableMap<String,List<Double>> combinedWordScores = createCombinedWordScoreMap(refWordClassifierScoreLists, ref -> !ref.isTarget());
+				try {
+					return JSON_MAPPER.writeValueAsString(combinedWordScores);
 				} catch (final JsonProcessingException e) {
 					throw new RuntimeException(e);
 				}
@@ -408,9 +417,28 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 	}
 	// @formatter:on
 
+	private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+
 	private static final Collector<CharSequence, ?, String> TOKEN_JOINER = Collectors.joining(",");
 
 	private static final CSVFormat FORMAT = CSVFormat.TDF.withHeader(Datum.class);
+
+	private static NavigableMap<String, List<Double>> createCombinedWordScoreMap(
+			final Map<Referent, Map<String, List<Double>>> refWordClassifierScoreLists,
+			final Predicate<? super Referent> refFilter) {
+		final Stream<Entry<Referent, Map<String, List<Double>>>> targetScores = refWordClassifierScoreLists.entrySet()
+				.stream().filter(entry -> refFilter.test(entry.getKey()));
+		final NavigableMap<String, List<Double>> result = new TreeMap<>();
+		targetScores.map(Entry::getValue).forEach(wordScoreLists -> {
+			for (final Entry<String, List<Double>> wordScoreList : wordScoreLists.entrySet()) {
+				final List<Double> scoreList = wordScoreList.getValue();
+				final List<Double> combinedScores = result.computeIfAbsent(wordScoreList.getKey(),
+						key -> new ArrayList<>(scoreList.size()));
+				combinedScores.addAll(scoreList);
+			}
+		});
+		return result;
+	}
 
 	/**
 	 * Returns the rank of the target {@link Referent} in a round.
