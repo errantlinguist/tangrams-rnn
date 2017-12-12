@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -177,48 +176,51 @@ public final class LogisticModel { // NO_UCD (use default)
 		public ClassificationResult rank(final Round round) {
 			// NOTE: Values are retrieved directly from the map instead of
 			// e.g. assigning them to a final field because it's possible that
-			// the
-			// map
-			// values change at another place in the code and performance isn't
-			// an
-			// issue here anyway
+			// the map values change at another place in the code and performance isn't
+			// an issue here anyway
 			final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
 			final double discount = ((Integer) modelParams.get(ModelParameter.DISCOUNT)).doubleValue();
-
 			final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
 			final String[] words = round.getReferringTokens(onlyInstructor).toArray(String[]::new);
-			final Map<String, Logistic> wordClassifiers = new HashMap<>(HashedCollections.capacity(words.length));
 			final List<String> oovObservations = new ArrayList<>();
-			for (final String word : words) {
-				final Logistic wordClassifier = wordClassifiers.computeIfAbsent(word,
-						LogisticModel.this.wordClassifiers::getWordClassifierOrDiscount);
-				if (wordClassifier.equals(LogisticModel.this.wordClassifiers.getDiscountClassifier())) {
-					oovObservations.add(word);
-				}
-			}
-			assert wordClassifiers.values().stream().noneMatch(Objects::isNull);
+			final Logistic discountClassifier = wordClassifiers.getDiscountClassifier();
+			final Map<String, List<Double>> wordClassifierScoreLists = new HashMap<>(
+					HashedCollections.capacity(words.length));
 
 			final List<Referent> refs = round.getReferents();
 			final Stream<Weighted<Referent>> scoredRefs = refs.stream().map(ref -> {
 				final Instance inst = featureAttrs.createInstance(ref);
-				final DoubleStream wordScores = Arrays.stream(words).mapToDouble(word -> {
-					final Logistic wordClassifier = wordClassifiers.get(word);
-					assert wordClassifier != null;
-					double score = score(wordClassifier, inst);
+				final double[] wordScores = new double[words.length];
+				for (int i = 0; i < words.length; ++i) {
+					final String word = words[i];
+					final List<Double> wordClassifierScoreList;
+					Logistic wordClassifier = wordClassifiers.getWordClassifier(word);
+					if (wordClassifier == null) {
+						wordClassifier = discountClassifier;
+						oovObservations.add(word);
+						wordClassifierScoreList = wordClassifierScoreLists.computeIfAbsent(OOV_CLASS_LABEL,
+								key -> new ArrayList<>());
+					} else {
+						wordClassifierScoreList = wordClassifierScoreLists.computeIfAbsent(word,
+								key -> new ArrayList<>());
+					}
+					double wordScore = score(wordClassifier, inst);
 					if (weightByFreq) {
 						final Long seenWordObservationCount = vocab.getCount(word);
 						final double effectiveObservationCount = seenWordObservationCount == null ? discount
 								: seenWordObservationCount.doubleValue();
-						score *= Math.log10(effectiveObservationCount);
+						wordScore *= Math.log10(effectiveObservationCount);
 					}
-					return score;
-				});
-				final double score = wordScores.average().orElse(Double.NaN);
+					wordScores[i] = wordScore;
+					wordClassifierScoreList.add(wordScore);
+				}
+
+				final double score = Arrays.stream(wordScores).average().orElse(Double.NaN);
 				return new Weighted<>(ref, score);
 			});
 			@SuppressWarnings("unchecked")
 			final List<Weighted<Referent>> scoredRefList = Arrays.asList(scoredRefs.toArray(Weighted[]::new));
-			return new ClassificationResult(scoredRefList, words, oovObservations);
+			return new ClassificationResult(scoredRefList, words, oovObservations, wordClassifierScoreLists);
 		}
 
 		/**
@@ -498,8 +500,6 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *
 	 */
 	private class Trainer extends ForkJoinTask<WordClassifiers> {
-
-		private static final String OOV_CLASS_LABEL = "__OUT_OF_VOCABULARY__";
 
 		/**
 		 *
@@ -846,6 +846,8 @@ public final class LogisticModel { // NO_UCD (use default)
 	private static final int DEFAULT_EXPECTED_WORD_CLASS_COUNT = 1130;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(LogisticModel.class);
+
+	private static final String OOV_CLASS_LABEL = "__OUT_OF_VOCABULARY__";
 
 	private static long calculateRetryWaitTime(final int retryNumber) {
 		assert retryNumber > 0 : String.format("Retry number was %d but must be positive.", retryNumber);

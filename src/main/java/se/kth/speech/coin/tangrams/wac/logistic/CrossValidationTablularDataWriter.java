@@ -31,6 +31,9 @@ import java.util.stream.Stream;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.Utterance;
@@ -105,6 +108,22 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 			private Comparator<Weighted<Referent>> createComparator() {
 				final Comparator<Weighted<Referent>> naturalOrder = Comparator.naturalOrder();
 				return naturalOrder.reversed();
+			}
+
+		}, WORD_CLASSIFIER_SCORES {
+			
+			private final ObjectMapper mapper = new ObjectMapper();
+
+			@Override
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
+				final ClassificationResult classificationResult = evalResult.getClassificationResult();
+				Map<String, List<Double>> wordClassifierScoreLists = classificationResult.getWordClassifierScoreLists();
+				try {
+					return mapper.writeValueAsString(wordClassifierScoreLists);
+				} catch (JsonProcessingException e) {
+					throw new RuntimeException(e);
+				}
 			}
 
 		},

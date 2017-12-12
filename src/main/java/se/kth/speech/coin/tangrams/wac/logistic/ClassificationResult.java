@@ -16,6 +16,7 @@
 package se.kth.speech.coin.tangrams.wac.logistic;
 
 import java.util.List;
+import java.util.Map;
 
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 
@@ -33,6 +34,14 @@ final class ClassificationResult {
 	 * each {@link Referent} being the target referent for the given game round.
 	 */
 	private final List<Weighted<Referent>> scoredReferents;
+
+	/**
+	 * A {@link Map} of the different word classifiers used (including the OOV
+	 * label if used) mapping to a {@link List} of classification scores
+	 * computed for it, which is (number of entities * number of times word was
+	 * observed in the round).
+	 */
+	private final Map<String, List<Double>> wordClassifierScoreLists;
 
 	/**
 	 * An array of strings used for choosing word classifiers during
@@ -53,16 +62,24 @@ final class ClassificationResult {
 	 *            The words which were encountered during classification for
 	 *            which no trained model could be found, thus using the discount
 	 *            model for them instead.
+	 * @param wordClassifierScoreLists
+	 *            A {@link Map} of the different word classifiers used
+	 *            (including the OOV label if used) mapping to a {@link List} of
+	 *            classification scores computed for it, which is (number of
+	 *            entities * number of times word was observed in the round).
 	 */
 	ClassificationResult(final List<Weighted<Referent>> scoredReferents, final String[] words,
-			final List<String> oovObservations) {
+			final List<String> oovObservations, final Map<String, List<Double>> wordClassifierScoreLists) {
 		this.scoredReferents = scoredReferents;
 		this.words = words;
 		this.oovObservations = oovObservations;
+		this.wordClassifierScoreLists = wordClassifierScoreLists;
 	}
 
 	/**
-	 * @return the oovObservations
+	 * @return The words which were encountered during classification for which
+	 *         no trained model could be found, thus using the discount model
+	 *         for them instead.
 	 */
 	List<String> getOovObservations() {
 		return oovObservations;
@@ -75,6 +92,16 @@ final class ClassificationResult {
 	 */
 	List<Weighted<Referent>> getScoredReferents() {
 		return scoredReferents;
+	}
+
+	/**
+	 * @return A {@link Map} of the different word classifiers used (including
+	 *         the OOV label if used) mapping to a {@link List} of
+	 *         classification scores computed for it, which is (number of
+	 *         entities * number of times word was observed in the round).
+	 */
+	Map<String, List<Double>> getWordClassifierScoreLists() {
+		return wordClassifierScoreLists;
 	}
 
 	/**
