@@ -160,17 +160,6 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 			}
 
 		},
-		REFERRING_TOKEN_TYPES {
-
-			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
-				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
-				final ClassificationResult classificationResult = evalResult.getClassificationResult();
-				final String[] refTokens = classificationResult.getWords();
-				return Arrays.stream(refTokens).distinct().sorted().collect(TOKEN_JOINER);
-			}
-
-		},
 		OOV_TYPES {
 
 			@Override
