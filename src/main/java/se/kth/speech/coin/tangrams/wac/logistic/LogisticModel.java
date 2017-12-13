@@ -135,7 +135,7 @@ public final class LogisticModel { // NO_UCD (use default)
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see java.lang.Object#equals(java.lang.Object)
 		 */
 		@Override
@@ -176,7 +176,7 @@ public final class LogisticModel { // NO_UCD (use default)
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see java.lang.Object#hashCode()
 		 */
 		@Override
@@ -191,7 +191,7 @@ public final class LogisticModel { // NO_UCD (use default)
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see java.lang.Object#toString()
 		 */
 		@Override
@@ -1054,6 +1054,30 @@ public final class LogisticModel { // NO_UCD (use default)
 	 */
 	public Scorer createScorer(final ReferentClassification classification) {
 		return new Scorer(classification);
+	}
+
+	/**
+	 *
+	 * @return A new {@link WordProbabilityScorer} for
+	 *         {@link #DEFAULT_REF_CLASSIFICATION the default classification}
+	 *         using this {@link LogisticModel}.
+	 */
+	public WordProbabilityScorer createWordProbabilityScorer() {
+		return createWordProbabilityScorer(DEFAULT_REF_CLASSIFICATION);
+	}
+
+	/**
+	 *
+	 * @param classification
+	 *            The {@link ReferentClassification} to get the score for,
+	 *            i.e.&nbsp;the probability of this class being the correct one
+	 *            for the given word {@code Classifier} and {@code Instance}.
+	 * @return A new {@link WordProbabilityScorer} for the given
+	 *         {@code ReferentClassification} using this {@link LogisticModel}.
+	 */
+	public WordProbabilityScorer createWordProbabilityScorer(final ReferentClassification classification) {
+		final Scorer scorer = createScorer(classification);
+		return new WordProbabilityScorer(this, scorer);
 	}
 
 	/**
