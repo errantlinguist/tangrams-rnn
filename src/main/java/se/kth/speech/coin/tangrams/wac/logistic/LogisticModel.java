@@ -1257,6 +1257,13 @@ public final class LogisticModel { // NO_UCD (use default)
 	}
 
 	/**
+	 * @return the modelParams
+	 */
+	public Map<ModelParameter, Object> getModelParams() {
+		return modelParams;
+	}
+
+	/**
 	 * @return The {@link TrainingData} created during the last training iteration.
 	 */
 	public TrainingData getTrainingData() {
@@ -1311,13 +1318,6 @@ public final class LogisticModel { // NO_UCD (use default)
 		final ConcurrentMap<String, Logistic> extantClassifiers = trainingData.getWordClassifiers().wordClassifiers;
 		final Trainer trainer = new Trainer(words, weight, trainingSet, extantClassifiers);
 		return submitTrainingTask(trainer);
-	}
-
-	/**
-	 * @return the modelParams
-	 */
-	Map<ModelParameter, Object> getModelParams() {
-		return modelParams;
 	}
 
 	/**
