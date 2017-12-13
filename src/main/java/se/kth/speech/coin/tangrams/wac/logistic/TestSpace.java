@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
+import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.Scorer;
 import weka.classifiers.functions.Logistic;
 
 public final class TestSpace {
@@ -54,7 +55,7 @@ public final class TestSpace {
 			throws IOException, ClassificationException {
 		final List<String> wlist = Arrays
 				.asList(new String[] { "left", "right", "bottom", "top", "middle", "center", "corner" });
-		final RankScorer scorer = model.createRankScorer();
+		final Scorer scorer = model.createScorer();
 		final Path outfilePath = outpath.resolve("space.html");
 		LOGGER.info("Writing to \"{}\".", outfilePath);
 		try (PrintWriter pw = new PrintWriter(

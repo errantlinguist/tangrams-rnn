@@ -23,7 +23,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 import org.slf4j.Logger;
@@ -39,13 +38,10 @@ import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.Vocabulary;
 import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.FeatureAttributeData;
-import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.ReferentClassification;
+import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.Scorer;
 import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.WordClassifiers;
-import weka.classifiers.Classifier;
 import weka.classifiers.functions.Logistic;
-import weka.core.BatchPredictor;
 import weka.core.Instance;
-import weka.core.Instances;
 
 public final class RankScorer {
 
@@ -59,96 +55,13 @@ public final class RankScorer {
 
 	private static final long NULL_WORD_OBSERVATION_COUNT = 0L;
 
-	/**
-	 * The {@link ReferentClassification} to get the score for, i.e.&nbsp;the
-	 * probability of this class being the correct one for the given word
-	 * {@code Classifier} and {@code Instance}.
-	 */
-	private final ReferentClassification classification;
-
 	private final LogisticModel model;
 
-	RankScorer(final ReferentClassification classification, final LogisticModel model) {
-		this.classification = classification;
+	private final Scorer scorer;
+
+	RankScorer(final LogisticModel model, final Scorer scorer) {
 		this.model = model;
-	}
-
-	/**
-	 *
-	 * @param wordClassifier
-	 *            The word {@link Classifier classifier} to use.
-	 * @param insts
-	 *            The {@link Instances} to classify.
-	 * @return The probabilities of the given referents being a target referent,
-	 *         i.e.&nbsp; the true referent the dialogue participants should be
-	 *         referring to in the game in the given round.
-	 * @throws ClassificationException
-	 *             If an {@link Exception} occurs during
-	 *             {@link BatchPredictor#distributionForInstances(Instances)
-	 *             classification}.
-	 */
-	public DoubleStream score(final BatchPredictor wordClassifier, final Instances insts) {
-		return LogisticModel.score(wordClassifier, insts, classification);
-	}
-
-	/**
-	 *
-	 * @param wordClassifier
-	 *            The word {@link Classifier classifier} to use.
-	 * @param refs
-	 *            The {@link Referent} instances to classify.
-	 * @return The probabilities of the given referents being a target referent,
-	 *         i.e.&nbsp; the true referent the dialogue participants should be
-	 *         referring to in the game in the given round.
-	 * @throws ClassificationException
-	 *             If an {@link Exception} occurs during
-	 *             {@link BatchPredictor#distributionForInstances(Instances)
-	 *             classification}.
-	 */
-	public DoubleStream score(final BatchPredictor wordClassifier, final List<Referent> refs) {
-		final Instances insts = model.getFeatureAttrs().createInstances(refs);
-		return LogisticModel.score(wordClassifier, insts, classification);
-	}
-
-	/**
-	 *
-	 * @param wordClassifier
-	 *            The word {@link Classifier classifier} to use.
-	 * @param inst
-	 *            The {@link Instance} to classify.
-	 * @param classification
-	 *            The {@link ReferentClassification} to get the score for,
-	 *            i.e.&nbsp;the probability of this class being the correct one
-	 *            for the given word {@code Classifier} and {@code Instance}.
-	 * @return The probability of the given referent being a target referent,
-	 *         i.e.&nbsp; the true referent the dialogue participants should be
-	 *         referring to in the game in the given round
-	 *         ({@link ReferentClassification#TRUE}).
-	 * @throws ClassificationException
-	 *             If an {@link Exception} occurs during
-	 *             {@link Classifier#distributionForInstance(Instance)
-	 *             classification}.
-	 */
-	public double score(final Classifier wordClassifier, final Instance inst) throws ClassificationException {
-		return LogisticModel.score(wordClassifier, inst, classification);
-	}
-
-	/**
-	 *
-	 * @param wordClassifier
-	 *            The word {@link Classifier classifier} to use.
-	 * @param ref
-	 *            The {@link Referent} to classify.
-	 * @return The probability of the given referent being a target referent,
-	 *         i.e.&nbsp; the true referent the dialogue participants should be
-	 *         referring to in the game in the given round.
-	 * @throws ClassificationException
-	 *             If an {@link Exception} occurs during
-	 *             {@link Classifier#distributionForInstance(Instance)
-	 *             classification}.
-	 */
-	public double score(final Classifier wordClassifier, final Referent ref) throws ClassificationException {
-		return LogisticModel.score(wordClassifier, model.getFeatureAttrs().createInstance(ref), classification);
+		this.scorer = scorer;
 	}
 
 	private Object2DoubleMap<String> createWordClassifierScoreMap(final int expectedTokenTypeCount) {
@@ -235,7 +148,7 @@ public final class RankScorer {
 								: oldWordObsCount == vocab.getCount(word);
 						wordClassifierScoreMapKey = word;
 					}
-					double wordScore = score(wordClassifier, inst);
+					double wordScore = scorer.score(wordClassifier, inst);
 					if (weightByFreq) {
 						final long extantWordObservationCount = wordObservationCounts.getLong(word);
 						final double effectiveObsCountValue = isNullWordObservationCount(extantWordObservationCount)

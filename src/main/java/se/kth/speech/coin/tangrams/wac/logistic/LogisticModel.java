@@ -140,6 +140,174 @@ public final class LogisticModel { // NO_UCD (use default)
 		}
 	}
 
+	public final class Scorer {
+
+		/**
+		 * The {@link ReferentClassification} to get the score for,
+		 * i.e.&nbsp;the probability of this class being the correct one for a
+		 * given word {@code Classifier} and referent.
+		 */
+		private final ReferentClassification classification;
+
+		/**
+		 *
+		 * @param classification
+		 *            The {@link ReferentClassification} to get the score for,
+		 *            i.e.&nbsp;the probability of this class being the correct
+		 *            one for a given word {@code Classifier} and referent.
+		 */
+		private Scorer(final ReferentClassification classification) {
+			this.classification = classification;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(final Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (!(obj instanceof Scorer)) {
+				return false;
+			}
+			final Scorer other = (Scorer) obj;
+			if (!getOuterType().equals(other.getOuterType())) {
+				return false;
+			}
+			if (classification != other.classification) {
+				return false;
+			}
+			return true;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + getOuterType().hashCode();
+			result = prime * result + (classification == null ? 0 : classification.hashCode());
+			return result;
+		}
+
+		/**
+		 *
+		 * @param wordClassifier
+		 *            The word {@link Classifier classifier} to use.
+		 * @param insts
+		 *            The {@link Instances} to classify.
+		 * @return The probabilities of the {@code Instances} being classified
+		 *         correctly.
+		 * @throws ClassificationException
+		 *             If an {@link Exception} occurs during
+		 *             {@link BatchPredictor#distributionForInstances(Instances)
+		 *             classification}.
+		 */
+		public DoubleStream score(final BatchPredictor wordClassifier, final Instances insts) {
+			final double[][] dists;
+			try {
+				dists = wordClassifier.distributionsForInstances(insts);
+			} catch (final Exception e) {
+				throw new ClassificationException(e);
+			}
+			return classification.getProbabilities(dists, insts);
+		}
+
+		/**
+		 *
+		 * @param wordClassifier
+		 *            The word {@link Classifier classifier} to use.
+		 * @param refs
+		 *            The {@link Referent} instances to classify.
+		 * @return The probabilities of the {@code Referent} instances being
+		 *         classified correctly.
+		 * @throws ClassificationException
+		 *             If an {@link Exception} occurs during
+		 *             {@link BatchPredictor#distributionForInstances(Instances)
+		 *             classification}.
+		 */
+		public DoubleStream score(final BatchPredictor wordClassifier, final List<Referent> refs) {
+			final Instances insts = featureAttrs.createInstances(refs);
+			return score(wordClassifier, insts);
+		}
+
+		/**
+		 *
+		 * @param wordClassifier
+		 *            The word {@link Classifier classifier} to use.
+		 * @param inst
+		 *            The {@link Instance} to classify.
+		 * @return The probability of the {@code Instance} being classified
+		 *         correctly.
+		 * @throws ClassificationException
+		 *             If an {@link Exception} occurs during
+		 *             {@link Classifier#distributionForInstance(Instance)
+		 *             classification}.
+		 */
+		public double score(final Classifier wordClassifier, final Instance inst) throws ClassificationException {
+			double[] dist;
+			try {
+				// NOTE: This cannot be (much) slower than
+				// "weka.core.BatchPredictor.distributionsForInstances(Instances)"
+				// because the class Logistic simply calls the following method
+				// for
+				// each Instance in a given Instances collection, and creating
+				// an
+				// Instances is more expensive than a simple e.g. ArrayList
+				dist = wordClassifier.distributionForInstance(inst);
+			} catch (final Exception e) {
+				throw new ClassificationException(e);
+			}
+			return classification.getProbability(dist, inst);
+		}
+
+		/**
+		 *
+		 * @param wordClassifier
+		 *            The word {@link Classifier classifier} to use.
+		 * @param ref
+		 *            The {@link Referent} to classify.
+		 * @return The probability of the {@code Referent} being classified
+		 *         correctly.
+		 * @throws ClassificationException
+		 *             If an {@link Exception} occurs during
+		 *             {@link Classifier#distributionForInstance(Instance)
+		 *             classification}.
+		 */
+		public double score(final Classifier wordClassifier, final Referent ref) throws ClassificationException {
+			return score(wordClassifier, featureAttrs.createInstance(ref));
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.Object#toString()
+		 */
+		@Override
+		public String toString() {
+			final StringBuilder builder = new StringBuilder(64);
+			builder.append("Scorer [classification=");
+			builder.append(classification);
+			builder.append("]");
+			return builder.toString();
+		}
+
+		private LogisticModel getOuterType() {
+			return LogisticModel.this;
+		}
+
+	}
+
 	public static final class WordClassifiers {
 
 		/**
@@ -677,6 +845,11 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	private static final int DEFAULT_INITIAL_WORD_CLASS_MAP_CAPACITY = HashedCollections.capacity(1130);
 
+	/**
+	 * The default {@link ReferentClassification} to use for scoring.
+	 */
+	private static final ReferentClassification DEFAULT_REF_CLASSIFICATION = ReferentClassification.TRUE;
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(LogisticModel.class);
 
 	static final String OOV_CLASS_LABEL = "__OUT_OF_VOCABULARY__";
@@ -724,68 +897,6 @@ public final class LogisticModel { // NO_UCD (use default)
 		return rounds.getExampleRounds(word).flatMap(LogisticModel::createClassWeightedReferents);
 	}
 
-	/**
-	 *
-	 * @param wordClassifier
-	 *            The word {@link Classifier classifier} to use.
-	 * @param insts
-	 *            The {@link Instances} to classify.
-	 * @param classification
-	 *            The {@link ReferentClassification} to get the score for,
-	 *            i.e.&nbsp;the probability of this class being the correct one
-	 *            for the given word {@code Classifier} and {@code Instance}.
-	 * @return The probabilities of the given referents being a target referent,
-	 *         i.e.&nbsp; the true referent the dialogue participants should be
-	 *         referring to in the game in the given round.
-	 * @throws ClassificationException
-	 *             If an {@link Exception} occurs during
-	 *             {@link BatchPredictor#distributionForInstances(Instances)
-	 *             classification}.
-	 */
-	static DoubleStream score(final BatchPredictor wordClassifier, final Instances insts,
-			final ReferentClassification classification) {
-		final double[][] dists;
-		try {
-			dists = wordClassifier.distributionsForInstances(insts);
-		} catch (final Exception e) {
-			throw new ClassificationException(e);
-		}
-		return classification.getProbabilities(dists, insts);
-	}
-
-	/**
-	 *
-	 * @param wordClassifier
-	 *            The word {@link Classifier classifier} to use.
-	 * @param inst
-	 *            The {@link Instance} to classify.
-	 * @param classification
-	 *            The {@link ReferentClassification} to get the score for,
-	 *            i.e.&nbsp;the probability of this class being the correct one
-	 *            for the given word {@code Classifier} and {@code Instance}.
-	 * @return The probability of the given referent being classified as the
-	 *         given {@code ReferentClassification}.
-	 * @throws ClassificationException
-	 *             If an {@link Exception} occurs during
-	 *             {@link Classifier#distributionForInstance(Instance)
-	 *             classification}.
-	 */
-	static double score(final Classifier wordClassifier, final Instance inst,
-			final ReferentClassification classification) throws ClassificationException {
-		double[] dist;
-		try {
-			// NOTE: This cannot be (much) slower than
-			// "weka.core.BatchPredictor.distributionsForInstances(Instances)"
-			// because the class Logistic simply calls the following method for
-			// each Instance in a given Instances collection, and creating an
-			// Instances is more expensive than a simple e.g. ArrayList
-			dist = wordClassifier.distributionForInstance(inst);
-		} catch (final Exception e) {
-			throw new ClassificationException(e);
-		}
-		return classification.getProbability(dist, inst);
-	}
-
 	private FeatureAttributeData featureAttrs;
 
 	private final Map<ModelParameter, Object> modelParams;
@@ -829,11 +940,11 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	/**
 	 *
-	 * @return A new {@link RankScorer} for {@link ReferentClassification#TRUE}
-	 *         using this {@link LogisticModel}.
+	 * @return A new {@link RankScorer} for {@link #DEFAULT_REF_CLASSIFICATION
+	 *         the default classification} using this {@link LogisticModel}.
 	 */
 	public RankScorer createRankScorer() {
-		return createRankScorer(ReferentClassification.TRUE);
+		return createRankScorer(DEFAULT_REF_CLASSIFICATION);
 	}
 
 	/**
@@ -846,7 +957,29 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *         {@code ReferentClassification} using this {@link LogisticModel}.
 	 */
 	public RankScorer createRankScorer(final ReferentClassification classification) {
-		return new RankScorer(classification, this);
+		final Scorer scorer = createScorer(classification);
+		return new RankScorer(this, scorer);
+	}
+
+	/**
+	 *
+	 * @return A new {@link Scorer} for {@link #DEFAULT_REF_CLASSIFICATION the
+	 *         default classification} using this {@link LogisticModel}.
+	 */
+	public Scorer createScorer() {
+		return new Scorer(DEFAULT_REF_CLASSIFICATION);
+	}
+
+	/**
+	 * @param classification
+	 *            The {@link ReferentClassification} to get the score for,
+	 *            i.e.&nbsp;the probability of this class being the correct one
+	 *            for the given word {@code Classifier} and {@code Instance}.
+	 * @return A new {@link Scorer} for the given {@code ReferentClassification}
+	 *         using this {@link LogisticModel}.
+	 */
+	public Scorer createScorer(final ReferentClassification classification) {
+		return new Scorer(classification);
 	}
 
 	/**

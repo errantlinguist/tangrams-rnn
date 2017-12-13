@@ -46,6 +46,7 @@ import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
+import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.Scorer;
 import se.kth.speech.function.ThrowingSupplier;
 import weka.classifiers.functions.Logistic;
 
@@ -151,7 +152,7 @@ public final class RoundReferentFeatureConfidenceWriter {
 		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
 		final LogisticModel model = new LogisticModel(modelParams);
 		model.train(set);
-		final RankScorer scorer = model.createRankScorer();
+		final Scorer scorer = model.createScorer();
 
 		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
 

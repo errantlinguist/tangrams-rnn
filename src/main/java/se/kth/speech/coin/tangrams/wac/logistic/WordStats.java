@@ -34,6 +34,7 @@ import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.RoundSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
+import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.Scorer;
 import weka.classifiers.functions.Logistic;
 
 public final class WordStats { // NO_UCD (unused code)
@@ -62,7 +63,7 @@ public final class WordStats { // NO_UCD (unused code)
 		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
 		final LogisticModel model = new LogisticModel(modelParams);
 		model.train(set);
-		final RankScorer scorer = model.createRankScorer();
+		final Scorer scorer = model.createScorer();
 		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
 		for (final Round round : new RoundSet(set, onlyInstructor).getRounds()) {
 			round.getReferringTokens(onlyInstructor).forEach(word -> {
