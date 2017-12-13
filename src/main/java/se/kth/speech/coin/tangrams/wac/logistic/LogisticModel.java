@@ -374,7 +374,7 @@ public final class LogisticModel { // NO_UCD (use default)
 					return Stream.of(new RoundEvaluationResult(startNanos, endNanos, sessionRoundDatum.sessionId,
 							sessionRoundDatum.roundId, round, classificationResult));
 				}).orElseGet(() -> {
-					LOGGER.warn("No referring language found for round {} of session \"{}\".",
+					LOGGER.warn("No referring language found for round {} of session \"{}\"; Skipping classification of that round.",
 							sessionRoundDatum.roundId, sessionRoundDatum.sessionId);
 					return Stream.empty();
 				});
