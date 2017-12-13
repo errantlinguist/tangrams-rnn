@@ -59,22 +59,22 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 
 	// @formatter:off
 	public enum Datum {
-		START_TIME {
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
-				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
-				final long start = evalResult.getStartNanos();
-				return Long.toString(start);
-			}
-		},
-		END_TIME {
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
-				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
-				final long end = evalResult.getEndNanos();
-				return Long.toString(end);
-			}
-		},
+//		START_TIME {
+//			@Override
+//			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
+//				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
+//				final long start = evalResult.getStartNanos();
+//				return Long.toString(start);
+//			}
+//		},
+//		END_TIME {
+//			@Override
+//			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
+//				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
+//				final long end = evalResult.getEndNanos();
+//				return Long.toString(end);
+//			}
+//		},
 		CROSS_VALIDATION_ITER {
 
 			@Override
