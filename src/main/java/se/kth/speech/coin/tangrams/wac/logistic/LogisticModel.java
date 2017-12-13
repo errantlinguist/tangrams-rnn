@@ -1100,14 +1100,6 @@ public final class LogisticModel { // NO_UCD (use default)
 		return wordClassifiers;
 	}
 
-	/**
-	 * @param wordClassifiers
-	 *            the map to set
-	 */
-	public void setWordClassifiers(final WordClassifiers wordClassifiers) {
-		this.wordClassifiers = wordClassifiers;
-	}
-
 	/*
 	 * (non-Javadoc)
 	 *
