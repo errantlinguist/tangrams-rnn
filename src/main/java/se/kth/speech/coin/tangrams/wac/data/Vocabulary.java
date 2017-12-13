@@ -25,7 +25,7 @@ public final class Vocabulary {
 
 	private final Object2LongMap<String> wordObservationCounts;
 
-	Vocabulary(final Object2LongMap<String> wordObservationCounts) {
+	public Vocabulary(final Object2LongMap<String> wordObservationCounts) {
 		this.wordObservationCounts = wordObservationCounts;
 	}
 
@@ -60,6 +60,14 @@ public final class Vocabulary {
 		return wordObservationCounts.getLong(word);
 	}
 
+	public int getTokenCount() {
+		int result = 0;
+		for (final long count : wordObservationCounts.values()) {
+			result += count;
+		}
+		return result;
+	}
+
 	public List<String> getUpdatedWordsSince(final Vocabulary oldVocab) {
 		final List<String> newWords = new ArrayList<>();
 		for (final String word : getWords()) {
@@ -71,6 +79,10 @@ public final class Vocabulary {
 			}
 		}
 		return newWords;
+	}
+
+	public int getWordCount() {
+		return wordObservationCounts.size();
 	}
 
 	public List<String> getWords() {

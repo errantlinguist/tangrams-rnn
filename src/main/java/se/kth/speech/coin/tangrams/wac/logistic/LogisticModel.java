@@ -37,6 +37,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import it.unimi.dsi.fastutil.objects.Object2LongMaps;
 import se.kth.speech.HashedCollections;
 import se.kth.speech.Lists;
 import se.kth.speech.NumberTypeConversions;
@@ -1010,6 +1011,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		this.taskPool = taskPool;
 		wordClassifiers = new WordClassifiers(new ConcurrentHashMap<>(initialMapCapacity), new Logistic());
 		featureAttrs = new FeatureAttributeData();
+		vocab = new Vocabulary(Object2LongMaps.emptyMap());
 	}
 
 	/**
@@ -1130,6 +1132,10 @@ public final class LogisticModel { // NO_UCD (use default)
 		return builder.toString();
 	}
 
+	private int estimateUpdatedVocabSize() {
+		return vocab.getWordCount() + 5;
+	}
+
 	private WordClassifiers submitTrainingJob(final Trainer trainer) {
 		WordClassifiers result = null;
 		do {
@@ -1167,7 +1173,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		final Trainer trainer = new Trainer(words, weight, wordClassifiers);
 		wordClassifiers = submitTrainingJob(trainer);
 	}
-
+	
 	/**
 	 * @return the modelParams
 	 */
@@ -1184,7 +1190,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	void train(final SessionSet set) {
 		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
 		trainingSet = new RoundSet(set, onlyInstructor);
-		vocab = trainingSet.createVocabulary();
+		vocab = trainingSet.createVocabulary(Math.max(1000, estimateUpdatedVocabSize()));
 		// NOTE: Values are retrieved directly from the map instead of e.g.
 		// assigning
 		// them to a final field because it's possible that the map values
@@ -1201,7 +1207,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	void updateModel(final Round round) {
 		trainingSet.getRounds().add(round);
 		final Vocabulary oldVocab = vocab;
-		vocab = trainingSet.createVocabulary();
+		vocab = trainingSet.createVocabulary(estimateUpdatedVocabSize());
 		// NOTE: Values are retrieved directly from the map instead of e.g.
 		// assigning
 		// them to a final field because it's possible that the map values

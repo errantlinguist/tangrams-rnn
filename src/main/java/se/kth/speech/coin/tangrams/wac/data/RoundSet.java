@@ -40,8 +40,8 @@ public final class RoundSet {
 				onlyInstructor);
 	}
 
-	public Vocabulary createVocabulary() {
-		final Object2LongOpenHashMap<String> counts = new Object2LongOpenHashMap<>(rounds.size() * 40);
+	public Vocabulary createVocabulary(final int estimatedVocabSize) {
+		final Object2LongOpenHashMap<String> counts = new Object2LongOpenHashMap<>(estimatedVocabSize);
 		counts.defaultReturnValue(0L);
 		final Stream<String> tokens = rounds.stream().flatMap(round -> round.getReferringTokens(onlyInstructor));
 		tokens.forEach(word -> {
