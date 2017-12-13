@@ -43,7 +43,6 @@ import org.apache.commons.csv.CSVPrinter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
@@ -113,13 +112,39 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 			}
 
 		},
+		WORD {
+
+			@Override
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+				return refWordScore.getWord();
+			}
+		},
+		WORD_OBS_COUNT {
+
+			@Override
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+				return Long.toString(refWordScore.getWordObsCount());
+			}
+		},
+		IS_OOV {
+
+			@Override
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+				return Boolean.toString(refWordScore.isOov());
+			}
+		},
 		PROBABILITY {
 
 			@Override
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
-				final Round round = evalResult.getRound();
-				return Float.toString(round.getTime());
+				return Double.toString(refWordScore.getScore());
+			}
+		},
+		IS_TARGET {
+
+			@Override
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+				return Boolean.toString(refWordScore.getRef().isTarget());
 			}
 		},
 		ROUND_START_TIME {
@@ -136,12 +161,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 
 			@Override
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
-				final Round round = evalResult.getRound();
-				final List<Referent> refs = round.getReferents();
-				assert refs.stream().filter(Referent::isTarget).count() == 1L;
-				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
-				return targetRef.getShape();
+				return refWordScore.getRef().getShape();
 			}
 
 		},
@@ -149,12 +169,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 
 			@Override
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
-				final Round round = evalResult.getRound();
-				final List<Referent> refs = round.getReferents();
-				assert refs.stream().filter(Referent::isTarget).count() == 1L;
-				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
-				return Integer.toString(targetRef.getEdgeCount());
+				return Integer.toString(refWordScore.getRef().getEdgeCount());
 			}
 
 		},
@@ -162,12 +177,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 
 			@Override
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
-				final Round round = evalResult.getRound();
-				final List<Referent> refs = round.getReferents();
-				assert refs.stream().filter(Referent::isTarget).count() == 1L;
-				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
-				return Double.toString(targetRef.getSize());
+				return Double.toString(refWordScore.getRef().getSize());
 			}
 
 		},
@@ -175,12 +185,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 
 			@Override
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
-				final Round round = evalResult.getRound();
-				final List<Referent> refs = round.getReferents();
-				assert refs.stream().filter(Referent::isTarget).count() == 1L;
-				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
-				return Float.toString(targetRef.getRed());
+				return Float.toString(refWordScore.getRef().getRed());
 			}
 
 		},
@@ -188,12 +193,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 
 			@Override
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
-				final Round round = evalResult.getRound();
-				final List<Referent> refs = round.getReferents();
-				assert refs.stream().filter(Referent::isTarget).count() == 1L;
-				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
-				return Float.toString(targetRef.getGreen());
+				return Float.toString(refWordScore.getRef().getGreen());
 			}
 
 		},
@@ -201,12 +201,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 
 			@Override
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
-				final Round round = evalResult.getRound();
-				final List<Referent> refs = round.getReferents();
-				assert refs.stream().filter(Referent::isTarget).count() == 1L;
-				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
-				return Float.toString(targetRef.getBlue());
+				return Float.toString(refWordScore.getRef().getBlue());
 			}
 
 		},
@@ -214,12 +209,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 
 			@Override
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
-				final Round round = evalResult.getRound();
-				final List<Referent> refs = round.getReferents();
-				assert refs.stream().filter(Referent::isTarget).count() == 1L;
-				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
-				return Float.toString(targetRef.getHue());
+				return Float.toString(refWordScore.getRef().getHue());
 			}
 
 		},
@@ -227,12 +217,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 
 			@Override
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
-				final Round round = evalResult.getRound();
-				final List<Referent> refs = round.getReferents();
-				assert refs.stream().filter(Referent::isTarget).count() == 1L;
-				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
-				return Double.toString(targetRef.getPositionX());
+				return Double.toString(refWordScore.getRef().getPositionX());
 			}
 
 		},
@@ -240,12 +225,23 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 
 			@Override
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
-				final Round round = evalResult.getRound();
-				final List<Referent> refs = round.getReferents();
-				assert refs.stream().filter(Referent::isTarget).count() == 1L;
-				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
-				return Double.toString(targetRef.getPositionY());
+				return Double.toString(refWordScore.getRef().getPositionY());
+			}
+
+		},
+		MID_X {
+
+			@Override
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+				return Double.toString(refWordScore.getRef().getMidX());
+			}
+
+		},
+		MID_Y {
+
+			@Override
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+				return Double.toString(refWordScore.getRef().getMidY());
 			}
 
 		},
