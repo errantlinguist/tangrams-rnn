@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
-import se.kth.speech.coin.tangrams.wac.logistic.RankScorer.RoundEvaluationResult;
+import se.kth.speech.coin.tangrams.wac.logistic.RankScorer.ClassificationResult;
 
 public final class CrossValidator<R> { // NO_UCD (use default)
 
@@ -233,9 +233,9 @@ public final class CrossValidator<R> { // NO_UCD (use default)
 				final CrossValidationTablularDataWriter resultWriter = new CrossValidationTablularDataWriter(
 						System.out);
 				final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
-				final Function<LogisticModel, Function<SessionSet, Stream<RoundEvaluationResult>>> evaluatorFactory = model -> model
+				final Function<LogisticModel, Function<SessionSet, Stream<RoundEvaluationResult<ClassificationResult>>>> evaluatorFactory = model -> model
 						.createRankScorer();
-				final CrossValidator<RoundEvaluationResult> crossValidator = new CrossValidator<>(modelParams,
+				final CrossValidator<RoundEvaluationResult<ClassificationResult>> crossValidator = new CrossValidator<>(modelParams,
 						modelFactory, evaluatorFactory, executor);
 				crossValidator.crossValidate(set, evalResult -> {
 					try {

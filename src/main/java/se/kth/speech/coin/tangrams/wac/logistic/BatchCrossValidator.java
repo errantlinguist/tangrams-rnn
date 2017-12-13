@@ -52,7 +52,7 @@ import se.kth.speech.FileNames;
 import se.kth.speech.HashedCollections;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
-import se.kth.speech.coin.tangrams.wac.logistic.RankScorer.RoundEvaluationResult;
+import se.kth.speech.coin.tangrams.wac.logistic.RankScorer.ClassificationResult;
 
 public final class BatchCrossValidator { // NO_UCD (use default)
 
@@ -81,9 +81,9 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 			LOGGER.info("Will write results of cross-validation test named \"{}\" to \"{}\".", name, outfilePath);
 			final Map<ModelParameter, Object> modelParams = namedParamSet.getValue();
 			final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
-			final Function<LogisticModel, Function<SessionSet, Stream<RoundEvaluationResult>>> evaluatorFactory = model -> model
+			final Function<LogisticModel, Function<SessionSet, Stream<RoundEvaluationResult<ClassificationResult>>>> evaluatorFactory = model -> model
 					.createRankScorer();
-			final CrossValidator<RoundEvaluationResult> crossValidator = new CrossValidator<>(modelParams, modelFactory,
+			final CrossValidator<RoundEvaluationResult<ClassificationResult>> crossValidator = new CrossValidator<>(modelParams, modelFactory,
 					executor, evaluatorFactory, cvIterBatchSize);
 			BufferedWriter fileWriter;
 			CrossValidationTablularDataWriter resultWriter;
