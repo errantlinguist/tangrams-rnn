@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 
 public final class RoundSet {
@@ -42,13 +41,14 @@ public final class RoundSet {
 	}
 
 	public Vocabulary createVocabulary() {
-		final Object2LongMap<String> counts = new Object2LongOpenHashMap<>(rounds.size() * 40);
+		final Object2LongOpenHashMap<String> counts = new Object2LongOpenHashMap<>(rounds.size() * 40);
 		counts.defaultReturnValue(0L);
 		final Stream<String> tokens = rounds.stream().flatMap(round -> round.getReferringTokens(onlyInstructor));
 		tokens.forEach(word -> {
 			final long oldValue = counts.getLong(word);
 			counts.put(word, oldValue + 1L);
 		});
+		counts.trim();
 		return new Vocabulary(counts);
 	}
 
