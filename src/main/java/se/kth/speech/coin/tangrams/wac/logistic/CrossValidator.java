@@ -90,6 +90,76 @@ public final class CrossValidator<R> { // NO_UCD (use default)
 
 		}
 
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(final Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (!(obj instanceof Result)) {
+				return false;
+			}
+			final Result other = (Result) obj;
+			if (crossValidationIteration != other.crossValidationIteration) {
+				return false;
+			}
+			if (evalResult == null) {
+				if (other.evalResult != null) {
+					return false;
+				}
+			} else if (!evalResult.equals(other.evalResult)) {
+				return false;
+			}
+			if (modelParams == null) {
+				if (other.modelParams != null) {
+					return false;
+				}
+			} else if (!modelParams.equals(other.modelParams)) {
+				return false;
+			}
+			return true;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + crossValidationIteration;
+			result = prime * result + (evalResult == null ? 0 : evalResult.hashCode());
+			result = prime * result + (modelParams == null ? 0 : modelParams.hashCode());
+			return result;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.Object#toString()
+		 */
+		@Override
+		public String toString() {
+			final StringBuilder builder = new StringBuilder(256);
+			builder.append("Result [crossValidationIteration=");
+			builder.append(crossValidationIteration);
+			builder.append(", evalResult=");
+			builder.append(evalResult);
+			builder.append(", modelParams=");
+			builder.append(modelParams);
+			builder.append("]");
+			return builder.toString();
+		}
+
 		/**
 		 * @return the crossValidationIteration
 		 */
@@ -136,9 +206,9 @@ public final class CrossValidator<R> { // NO_UCD (use default)
 
 	}
 
-	private static final Options OPTIONS = createOptions();
-
 	private static final Logger LOGGER = LoggerFactory.getLogger(CrossValidator.class);
+
+	private static final Options OPTIONS = createOptions();
 
 	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD
 																						// (use
@@ -202,15 +272,15 @@ public final class CrossValidator<R> { // NO_UCD (use default)
 		formatter.printHelp(CrossValidator.class.getName() + " INPATHS...", OPTIONS);
 	}
 
+	private final int cvIterBatchSize;
+
+	private final Function<LogisticModel, Function<SessionSet, Stream<R>>> evaluatorFactory;
+
 	private final Executor executor;
 
 	private final Supplier<LogisticModel> modelFactory;
 
 	private final Map<ModelParameter, Object> modelParams;
-
-	private final int cvIterBatchSize;
-
-	private final Function<LogisticModel, Function<SessionSet, Stream<R>>> evaluatorFactory;
 
 	public CrossValidator(final Map<ModelParameter, Object> modelParams, final Supplier<LogisticModel> modelFactory, // NO_UCD
 																														// (use
