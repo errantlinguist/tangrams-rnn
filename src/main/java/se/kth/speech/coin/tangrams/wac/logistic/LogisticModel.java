@@ -1169,7 +1169,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *            The weight of each datapoint representing a single observation
 	 *            for a given word.
 	 */
-	private void train(final List<String> words, final double weight) {
+	private void trainWordClassifiers(final List<String> words, final double weight) {
 		final Trainer trainer = new Trainer(words, weight, wordClassifiers);
 		wordClassifiers = submitTrainingJob(trainer);
 	}
@@ -1198,7 +1198,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		// here anyway
 		vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
 		featureAttrs = new FeatureAttributeData();
-		train(vocab.getWords(), 1.0);
+		trainWordClassifiers(vocab.getWords(), 1.0);
 	}
 
 	/**
@@ -1215,7 +1215,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		// here anyway
 		vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
 		final Number updateWeight = (Number) modelParams.get(ModelParameter.UPDATE_WEIGHT);
-		train(vocab.getUpdatedWordsSince(oldVocab),
+		trainWordClassifiers(vocab.getUpdatedWordsSince(oldVocab),
 				NumberTypeConversions.finiteDoubleValue(updateWeight.doubleValue()));
 	}
 
