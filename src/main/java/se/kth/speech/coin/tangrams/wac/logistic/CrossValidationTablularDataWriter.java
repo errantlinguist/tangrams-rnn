@@ -45,6 +45,7 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.Utterance;
+import se.kth.speech.coin.tangrams.wac.logistic.RankScorer.ClassificationResult;
 import se.kth.speech.coin.tangrams.wac.logistic.RankScorer.RoundEvaluationResult;
 
 /**
