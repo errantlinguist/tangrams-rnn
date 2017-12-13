@@ -49,18 +49,21 @@ public final class Referent {
 	}
 
 	/**
-	 * Calculates the distance from the center for a value in the range of
+	 * Calculates the distance from the extrema for a value in the range of
 	 * <code>0.0</code> to <code>1.0</code>.
 	 * 
 	 * @param value
 	 *            A value between <code>0.0</code> and <code>1.0</code>
 	 *            (inclusive).
-	 * @return The distance from the center (i.e.&nbsp;<code>0.5</code>).
+	 * @return The distance from the extrema (i.e.&nbsp;<code>0.5</code>).
 	 */
-	private static double distanceFromCentralValue(final double value) {
+	private static double distanceFromExtrema(final double value) {
 		assert value >= 0.0;
 		assert value <= 1.0;
-		return 1.0 - Math.abs(0.5 - value) * 2.0;
+		final double result = 1.0 - Math.abs(0.5 - value) * 2.0;
+		assert result >= 0.0;
+		assert result <= 1.0;
+		return result;
 	}
 
 	private float blue = 0f;
@@ -300,8 +303,8 @@ public final class Referent {
 	public void setPosition(final double x, final double y) {
 		positionX = x;
 		positionY = y;
-		midX = distanceFromCentralValue(positionX);
-		midY = distanceFromCentralValue(positionY);
+		midX = distanceFromExtrema(positionX);
+		midY = distanceFromExtrema(positionY);
 	}
 
 	/**
