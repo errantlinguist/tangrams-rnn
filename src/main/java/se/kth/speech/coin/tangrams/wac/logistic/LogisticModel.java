@@ -1327,8 +1327,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *            The {@code SessionSet} to use as training data.
 	 */
 	void train(final SessionSet set) {
-		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
-		final RoundSet trainingSet = new RoundSet(set, onlyInstructor);
+		final RoundSet trainingSet = new RoundSet(set, (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR));
 		final Vocabulary vocab = trainingSet.createVocabulary(Math.max(1000, estimateUpdatedVocabSize()));
 		// NOTE: Values are retrieved directly from the map instead of e.g.
 		// assigning
@@ -1343,7 +1342,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	}
 
 	/**
-	 * Updates (trains) the models with the new round
+	 * Updates (trains) the models with the new round.
 	 */
 	void updateModel(final Round round) {
 		// Re-use old training data plus data from the given round
