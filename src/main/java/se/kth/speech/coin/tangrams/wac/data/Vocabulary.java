@@ -60,8 +60,8 @@ public final class Vocabulary {
 		return wordObservationCounts.getLong(word);
 	}
 
-	public int getTokenCount() {
-		int result = 0;
+	public long getTokenCount() {
+		long result = 0L;
 		for (final long count : wordObservationCounts.values()) {
 			result += count;
 		}
