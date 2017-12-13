@@ -53,7 +53,7 @@ import se.kth.speech.coin.tangrams.wac.data.Utterance;
 public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 
 	// @formatter:off
-	private enum Datum implements Function<CrossValidationRoundEvaluationResult, String> {
+	public enum Datum implements Function<CrossValidationRoundEvaluationResult, String> {
 		START_TIME {
 			@Override
 			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
@@ -476,25 +476,34 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		throw new IllegalArgumentException("No target referent found.");
 	}
 
+	private final List<Datum> dataToWrite;
+	
 	private final CSVPrinter printer;
 
 	private final Lock writeLock;
+	
+	private static final List<Datum> createDefaultDataToWriteList(){
+		return Arrays.asList(Datum.values());
+	}
 
-	private CrossValidationTablularDataWriter(final CSVPrinter printer) {
+	private CrossValidationTablularDataWriter(final CSVPrinter printer, List<Datum> dataToWrite) {
 		this.printer = printer;
-
+		this.dataToWrite = dataToWrite;
 		writeLock = new ReentrantLock();
 	}
 
 	CrossValidationTablularDataWriter(final Appendable out) throws IOException {
-		this(FORMAT.print(out));
+		this(out, createDefaultDataToWriteList());
+	}
+	
+	CrossValidationTablularDataWriter(final Appendable out, List<Datum> dataToWrite) throws IOException {
+		this(FORMAT.print(out), dataToWrite);
 	}
 
 	public void accept(final CrossValidationRoundEvaluationResult input) throws IOException { // NO_UCD
 																								// (use
 																								// default)
-		final List<String> row = Arrays
-				.asList(Arrays.stream(Datum.values()).map(datum -> datum.apply(input)).toArray(String[]::new));
+		final List<String> row = Arrays.asList(dataToWrite.stream().map(datum -> datum.apply(input)).toArray(String[]::new));
 		writeLock.lock();
 		try {
 			printer.printRecord(row);
