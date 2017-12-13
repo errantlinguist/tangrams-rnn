@@ -17,6 +17,7 @@ package se.kth.speech.coin.tangrams.wac.logistic;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -54,14 +55,18 @@ public final class WordProbabilityScorer
 
 		private final int uttSeqOrdinality;
 
+		private final int tokSeqOrdinality;
+
 		private final String word;
 
 		private final long wordObsCount;
 
-		private ReferentWordScore(final Referent ref, final int uttSeqOrdinality, final String word,
-				final boolean isInstructor, final boolean isOov, final long wordObsCount, final double score) {
+		private ReferentWordScore(final Referent ref, final int uttSeqOrdinality, final int tokSeqOrdinality,
+				final String word, final boolean isInstructor, final boolean isOov, final long wordObsCount,
+				final double score) {
 			this.ref = ref;
 			this.uttSeqOrdinality = uttSeqOrdinality;
+			this.tokSeqOrdinality = tokSeqOrdinality;
 			this.word = word;
 			this.isInstructor = isInstructor;
 			this.isOov = isOov;
@@ -81,6 +86,13 @@ public final class WordProbabilityScorer
 		 */
 		public double getScore() {
 			return score;
+		}
+
+		/**
+		 * @return the tokSeqOrdinality
+		 */
+		public int getTokSeqOrdinality() {
+			return tokSeqOrdinality;
 		}
 
 		/**
@@ -129,7 +141,8 @@ public final class WordProbabilityScorer
 	private static List<Utterance> createUttList(final Round round, final boolean onlyInstructor) {
 		final List<Utterance> allUtts = round.getUtts();
 		return onlyInstructor
-				? Arrays.asList(allUtts.stream().filter(Utterance::isInstructor).toArray(Utterance[]::new)) : allUtts;
+				? Arrays.asList(allUtts.stream().filter(Utterance::isInstructor).toArray(Utterance[]::new))
+				: allUtts;
 	}
 
 	private static boolean isNullWordObservationCount(final long count) {
@@ -213,36 +226,49 @@ public final class WordProbabilityScorer
 			final Logistic discountClassifier = wordClassifiers.getDiscountClassifier();
 			final List<Referent> refs = round.getReferents();
 			result = Optional.of(refs.stream().flatMap(ref -> {
-				final Stream.Builder<ReferentWordScore> wordScoreStreamBuilder = Stream.builder();
+				final Stream.Builder<ReferentWordScore> refWordScores = Stream.builder();
 				final Instance inst = featureAttrs.createInstance(ref);
+
 				final ListIterator<Utterance> uttIter = utts.listIterator();
 				do {
+					// Process each utterance
 					final Utterance utt = uttIter.next();
 					final int uttSeqOrdinality = uttIter.nextIndex();
 					final boolean isInstructor = utt.isInstructor();
-					final Stream<ReferentWordScore> wordScores = utt.getReferringTokens().stream().map(word -> {
-						Logistic wordClassifier = wordClassifiers.getWordClassifier(word);
-						final boolean isOov;
-						final long wordObsCount;
-						if (isOov = wordClassifier == null) {
-							wordClassifier = discountClassifier;
-							wordObsCount = discountCutoffValue;
-						} else {
-							wordObsCount = vocab.getCount(word);
+
+					{
+						// Process each token in the given utterance
+						int tokSeqOrdinality = 0;
+						final Iterator<String> wordIter = utt.getReferringTokens().stream().iterator();
+						while (wordIter.hasNext()) {
+							final String word = wordIter.next();
+							tokSeqOrdinality++;
+							Logistic wordClassifier = wordClassifiers.getWordClassifier(word);
+							final boolean isOov;
+							final long wordObsCount;
+							if (isOov = wordClassifier == null) {
+								wordClassifier = discountClassifier;
+								wordObsCount = discountCutoffValue;
+							} else {
+								wordObsCount = vocab.getCount(word);
+							}
+							double wordScore = scorer.score(wordClassifier, inst);
+							if (weightByFreq) {
+								final long extantWordObservationCount = vocab.getCount(word);
+								final double effectiveObsCountValue = isNullWordObservationCount(
+										extantWordObservationCount) ? discountWeightingValue
+												: extantWordObservationCount;
+								wordScore *= Math.log10(effectiveObsCountValue);
+							}
+							final ReferentWordScore refWordScore = new ReferentWordScore(ref, uttSeqOrdinality,
+									tokSeqOrdinality, word, isInstructor, isOov, wordObsCount, wordScore);
+							refWordScores.add(refWordScore);
 						}
-						double wordScore = scorer.score(wordClassifier, inst);
-						if (weightByFreq) {
-							final long extantWordObservationCount = vocab.getCount(word);
-							final double effectiveObsCountValue = isNullWordObservationCount(extantWordObservationCount)
-									? discountWeightingValue : extantWordObservationCount;
-							wordScore *= Math.log10(effectiveObsCountValue);
-						}
-						return new ReferentWordScore(ref, uttSeqOrdinality, word, isInstructor, isOov, wordObsCount,
-								wordScore);
-					});
-					wordScores.forEach(wordScoreStreamBuilder);
-					return wordScoreStreamBuilder.build();
+					}
+
 				} while (uttIter.hasNext());
+
+				return refWordScores.build();
 			}));
 		}
 		return result;
