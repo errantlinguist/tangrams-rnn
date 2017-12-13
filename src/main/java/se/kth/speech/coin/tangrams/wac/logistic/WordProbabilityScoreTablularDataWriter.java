@@ -111,6 +111,13 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 			}
 
 		},
+		UTT_SEQ_ORDINALITY {
+
+			@Override
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
+				return Integer.toString(refWordScore.getUttSeqOrdinality());
+			}
+		},
 		TOKEN_SEQ_ORDINALITY {
 
 			@Override
