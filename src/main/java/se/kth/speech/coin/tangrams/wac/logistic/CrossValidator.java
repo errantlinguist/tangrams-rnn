@@ -106,7 +106,7 @@ public final class CrossValidator<R> { // NO_UCD (use default)
 			if (!(obj instanceof Result)) {
 				return false;
 			}
-			final Result other = (Result) obj;
+			final Result<?> other = (Result<?>) obj;
 			if (crossValidationIteration != other.crossValidationIteration) {
 				return false;
 			}
