@@ -151,7 +151,7 @@ public final class RoundReferentFeatureConfidenceWriter {
 		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
 		final LogisticModel model = new LogisticModel(modelParams);
 		model.train(set);
-		final LogisticModel.Scorer scorer = model.createScorer();
+		final RankScorer scorer = model.createRankScorer();
 
 		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
 

@@ -62,7 +62,7 @@ public final class WordStats { // NO_UCD (unused code)
 		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
 		final LogisticModel model = new LogisticModel(modelParams);
 		model.train(set);
-		final LogisticModel.Scorer scorer = model.createScorer();
+		final RankScorer scorer = model.createRankScorer();
 		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
 		for (final Round round : new RoundSet(set, onlyInstructor).getRounds()) {
 			round.getReferringTokens(onlyInstructor).forEach(word -> {

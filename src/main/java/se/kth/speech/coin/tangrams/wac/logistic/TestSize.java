@@ -53,7 +53,7 @@ public final class TestSize {
 	public static void write(final LogisticModel model, final Path outpath)
 			throws IOException, ClassificationException {
 		final List<String> wlist = Arrays.asList(new String[] { "large", "big", "small" });
-		final LogisticModel.Scorer scorer = model.createScorer();
+		final RankScorer scorer = model.createRankScorer();
 		final Path outfilePath = outpath.resolve("size.html");
 		LOGGER.info("Writing to \"{}\".", outfilePath);
 		try (PrintWriter pw = new PrintWriter(

@@ -235,7 +235,7 @@ public final class CrossValidator { // NO_UCD (use default)
 						try {
 							final LogisticModel model = modelFactory.get();
 							model.train(training);
-							final LogisticModel.Scorer scorer = model.createScorer();
+							final RankScorer scorer = model.createRankScorer();
 							final Stream<RoundEvaluationResult> roundEvalResults = scorer.eval(new SessionSet(testing));
 							roundEvalResults.map(evalResult -> new CrossValidationRoundEvaluationResult(cvIter,
 									evalResult, modelParams)).forEach(resultHandler);

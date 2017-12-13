@@ -54,7 +54,7 @@ public final class TestSpace {
 			throws IOException, ClassificationException {
 		final List<String> wlist = Arrays
 				.asList(new String[] { "left", "right", "bottom", "top", "middle", "center", "corner" });
-		final LogisticModel.Scorer scorer = model.createScorer();
+		final RankScorer scorer = model.createRankScorer();
 		final Path outfilePath = outpath.resolve("space.html");
 		LOGGER.info("Writing to \"{}\".", outfilePath);
 		try (PrintWriter pw = new PrintWriter(

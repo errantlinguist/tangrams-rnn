@@ -185,7 +185,7 @@ public final class RoundReferentConfidenceWriter {
 		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
 		final LogisticModel model = new LogisticModel(modelParams);
 		model.train(set);
-		final LogisticModel.Scorer scorer = model.createScorer();
+		final RankScorer scorer = model.createRankScorer();
 		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
 
 		final int referentCols = getMatrixColCount(sessions.stream().map(Session::getRounds).flatMap(List::stream));

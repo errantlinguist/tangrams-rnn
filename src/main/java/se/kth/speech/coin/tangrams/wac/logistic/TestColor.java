@@ -66,7 +66,7 @@ public final class TestColor {
 
 	public static void write(final LogisticModel model, final Path outpath)
 			throws IOException, ClassificationException {
-		final LogisticModel.Scorer scorer = model.createScorer();
+		final RankScorer scorer = model.createRankScorer();
 		final List<String> wlist = Arrays
 				.asList(new String[] { "red", "green", "blue", "yellow", "magenta", "pink", "orange" });
 		final Path outfilePath = outpath.resolve("colors.html");

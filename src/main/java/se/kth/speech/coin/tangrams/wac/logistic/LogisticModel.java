@@ -19,12 +19,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumMap;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -40,10 +37,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
-import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2LongMap;
-import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import se.kth.speech.HashedCollections;
 import se.kth.speech.Lists;
 import se.kth.speech.NumberTypeConversions;
@@ -144,271 +137,6 @@ public final class LogisticModel { // NO_UCD (use default)
 			final Instances result = new Instances("Referents", attrList, capacity);
 			result.setClass(classAttr);
 			return result;
-		}
-	}
-
-	public final class Scorer {
-
-		private static final long NULL_WORD_OBSERVATION_COUNT = 0L;
-
-		private static final double NULL_WORD_CLASSIFIER_SCORE = Double.NaN;
-
-		/**
-		 * The {@link ReferentClassification} to get the score for,
-		 * i.e.&nbsp;the probability of this class being the correct one for the
-		 * given word {@code Classifier} and {@code Instance}.
-		 */
-		private final ReferentClassification classification;
-
-		/**
-		 *
-		 * @param classification
-		 *            The {@link ReferentClassification} to get the score for,
-		 *            i.e.&nbsp;the probability of this class being the correct
-		 *            one for the given word {@code Classifier} and
-		 *            {@code Instance}.
-		 */
-		private Scorer(final ReferentClassification classification) {
-			this.classification = classification;
-		}
-
-		/**
-		 * Creates an <em>n</em>-best list of possible target referents for a
-		 * given {@link Round}.
-		 *
-		 * @param round
-		 *            The {@code Round} to classify the {@code Referent}
-		 *            instances thereof.
-		 * @return An {@link Optional optional} {@link ClassificationResult}
-		 *         representing the results.
-		 */
-		public Optional<ClassificationResult> rank(final Round round) {
-			final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
-			final String[] words = round.getReferringTokens(onlyInstructor).toArray(String[]::new);
-
-			final Optional<ClassificationResult> result;
-			if (words.length < 1) {
-				result = Optional.empty();
-			} else {
-				// NOTE: Values are retrieved directly from the map instead of
-				// e.g. assigning them to a final field because it's possible
-				// that
-				// the map values change at another place in the code and
-				// performance isn't
-				// an issue here anyway
-				final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
-				final long discountCutoffValue = ((Number) modelParams.get(ModelParameter.DISCOUNT)).longValue();
-				final double discountWeightingValue = discountCutoffValue;
-				final List<String> oovObservations = new ArrayList<>();
-				final Logistic discountClassifier = wordClassifiers.getDiscountClassifier();
-				final List<Referent> refs = round.getReferents();
-				final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps = new IdentityHashMap<>(
-						HashedCollections.capacity(refs.size()));
-				refs.forEach(ref -> refWordClassifierScoreMaps.put(ref, createWordClassifierScoreMap(words.length)));
-				// Create an entirely-new map rather than referencing the
-				// classifiers so that they can be properly garbage-collected
-				// after ranking and before possible updating preceding the next
-				// classification
-				final Object2LongMap<String> wordObservationCounts = createWordObservationCountMap(words.length);
-
-				final Stream<Weighted<Referent>> scoredRefs = refs.stream().map(ref -> {
-					final Instance inst = featureAttrs.createInstance(ref);
-					final Object2DoubleMap<String> refWordClassifierScoreMap = refWordClassifierScoreMaps.get(ref);
-					final double[] wordScoreArray = new double[words.length];
-					for (int i = 0; i < words.length; ++i) {
-						final String word = words[i];
-						Logistic wordClassifier = wordClassifiers.getWordClassifier(word);
-						final String wordClassifierScoreMapKey;
-						if (wordClassifier == null) {
-							wordClassifier = discountClassifier;
-							oovObservations.add(word);
-							final long oldDiscountObsCount = wordObservationCounts.putIfAbsent(OOV_CLASS_LABEL,
-									discountCutoffValue);
-							assert isNullWordObservationCount(oldDiscountObsCount) ? true
-									: oldDiscountObsCount == discountCutoffValue;
-							wordClassifierScoreMapKey = OOV_CLASS_LABEL;
-						} else {
-							final long oldWordObsCount = wordObservationCounts.computeLongIfAbsent(word,
-									vocab::getCount);
-							assert isNullWordObservationCount(oldWordObsCount) ? true
-									: oldWordObsCount == vocab.getCount(word);
-							wordClassifierScoreMapKey = word;
-						}
-						double wordScore = score(wordClassifier, inst);
-						if (weightByFreq) {
-							final long extantWordObservationCount = wordObservationCounts.getLong(word);
-							final double effectiveObsCountValue = isNullWordObservationCount(extantWordObservationCount)
-									? discountWeightingValue : extantWordObservationCount;
-							wordScore *= Math.log10(effectiveObsCountValue);
-						}
-						wordScoreArray[i] = wordScore;
-						final double oldWordClassifierScore = refWordClassifierScoreMap
-								.putIfAbsent(wordClassifierScoreMapKey, wordScore);
-						assert isNullWordClassifierScore(oldWordClassifierScore) ? true
-								: oldWordClassifierScore == wordScore;
-					}
-					final double score = Arrays.stream(wordScoreArray).average().getAsDouble();
-					return new Weighted<>(ref, score);
-				});
-				@SuppressWarnings("unchecked")
-				final List<Weighted<Referent>> scoredRefList = Arrays.asList(scoredRefs.toArray(Weighted[]::new));
-				result = Optional.of(new ClassificationResult(scoredRefList, words, oovObservations,
-						refWordClassifierScoreMaps, wordObservationCounts));
-			}
-			return result;
-		}
-
-		/**
-		 *
-		 * @param wordClassifier
-		 *            The word {@link Classifier classifier} to use.
-		 * @param insts
-		 *            The {@link Instances} to classify.
-		 * @return The probabilities of the given referents being a target
-		 *         referent, i.e.&nbsp; the true referent the dialogue
-		 *         participants should be referring to in the game in the given
-		 *         round.
-		 * @throws ClassificationException
-		 *             If an {@link Exception} occurs during
-		 *             {@link BatchPredictor#distributionForInstances(Instances)
-		 *             classification}.
-		 */
-		public DoubleStream score(final BatchPredictor wordClassifier, final Instances insts) {
-			return LogisticModel.score(wordClassifier, insts, classification);
-		}
-
-		/**
-		 *
-		 * @param wordClassifier
-		 *            The word {@link Classifier classifier} to use.
-		 * @param refs
-		 *            The {@link Referent} instances to classify.
-		 * @return The probabilities of the given referents being a target
-		 *         referent, i.e.&nbsp; the true referent the dialogue
-		 *         participants should be referring to in the game in the given
-		 *         round.
-		 * @throws ClassificationException
-		 *             If an {@link Exception} occurs during
-		 *             {@link BatchPredictor#distributionForInstances(Instances)
-		 *             classification}.
-		 */
-		public DoubleStream score(final BatchPredictor wordClassifier, final List<Referent> refs) {
-			final Instances insts = featureAttrs.createInstances(refs);
-			return LogisticModel.score(wordClassifier, insts, classification);
-		}
-
-		/**
-		 *
-		 * @param wordClassifier
-		 *            The word {@link Classifier classifier} to use.
-		 * @param inst
-		 *            The {@link Instance} to classify.
-		 * @param classification
-		 *            The {@link ReferentClassification} to get the score for,
-		 *            i.e.&nbsp;the probability of this class being the correct
-		 *            one for the given word {@code Classifier} and
-		 *            {@code Instance}.
-		 * @return The probability of the given referent being a target
-		 *         referent, i.e.&nbsp; the true referent the dialogue
-		 *         participants should be referring to in the game in the given
-		 *         round ({@link ReferentClassification#TRUE}).
-		 * @throws ClassificationException
-		 *             If an {@link Exception} occurs during
-		 *             {@link Classifier#distributionForInstance(Instance)
-		 *             classification}.
-		 */
-		public double score(final Classifier wordClassifier, final Instance inst) throws ClassificationException {
-			return LogisticModel.score(wordClassifier, inst, classification);
-		}
-
-		/**
-		 *
-		 * @param wordClassifier
-		 *            The word {@link Classifier classifier} to use.
-		 * @param ref
-		 *            The {@link Referent} to classify.
-		 * @return The probability of the given referent being a target
-		 *         referent, i.e.&nbsp; the true referent the dialogue
-		 *         participants should be referring to in the game in the given
-		 *         round.
-		 * @throws ClassificationException
-		 *             If an {@link Exception} occurs during
-		 *             {@link Classifier#distributionForInstance(Instance)
-		 *             classification}.
-		 */
-		public double score(final Classifier wordClassifier, final Referent ref) throws ClassificationException {
-			return LogisticModel.score(wordClassifier, featureAttrs.createInstance(ref), classification);
-		}
-
-		private Object2DoubleMap<String> createWordClassifierScoreMap(final int expectedTokenTypeCount) {
-			final Object2DoubleMap<String> result = new Object2DoubleOpenHashMap<>(expectedTokenTypeCount);
-			result.defaultReturnValue(NULL_WORD_CLASSIFIER_SCORE);
-			return result;
-		}
-
-		private Object2LongMap<String> createWordObservationCountMap(final int expectedTokenTypeCount) {
-			final Object2LongMap<String> result = new Object2LongOpenHashMap<>(expectedTokenTypeCount);
-			result.defaultReturnValue(NULL_WORD_OBSERVATION_COUNT);
-			return result;
-		}
-
-		private boolean isNullWordClassifierScore(final double score) {
-			return Double.isNaN(score);
-		}
-
-		private boolean isNullWordObservationCount(final long count) {
-			return NULL_WORD_OBSERVATION_COUNT == count;
-		}
-
-		Stream<RoundEvaluationResult> eval(final SessionSet set) {
-			final Stream<SessionRoundDatum> sessionRoundData = set.getSessions().stream().map(session -> {
-				final String sessionId = session.getName();
-				final List<Round> rounds = session.getRounds();
-				final List<SessionRoundDatum> roundData = new ArrayList<>(rounds.size());
-				final ListIterator<Round> roundIter = rounds.listIterator();
-				while (roundIter.hasNext()) {
-					final Round round = roundIter.next();
-					// Game rounds are 1-indexed, thus calling this after
-					// calling
-					// "ListIterator.next()" rather than before
-					final int roundId = roundIter.nextIndex();
-					roundData.add(new SessionRoundDatum(sessionId, roundId, round));
-				}
-				return roundData;
-			}).flatMap(List::stream);
-
-			// NOTE: Values are retrieved directly from the map instead of e.g.
-			// assigning them to a final field because it's possible that the
-			// map
-			// values change at another place in the code and performance isn't
-			// an
-			// issue here anyway
-			final double updateWeight = ((Number) modelParams.get(ModelParameter.UPDATE_WEIGHT)).doubleValue();
-			return sessionRoundData.flatMap(sessionRoundDatum -> {
-				final Round round = sessionRoundDatum.round;
-				final long startNanos = System.nanoTime();
-				final Optional<ClassificationResult> optClassificationResult = rank(round);
-				return optClassificationResult.map(classificationResult -> {
-					// TODO: Currently, this blocks until updating is complete,
-					// which
-					// could take a long time; Make this asynchronous and return
-					// the
-					// evaluation results, ensuring to block the NEXT evaluation
-					// until
-					// updating for THIS iteration is finished
-					if (updateWeight > 0.0) {
-						updateModel(round);
-					}
-					final long endNanos = System.nanoTime();
-					return Stream.of(new RoundEvaluationResult(startNanos, endNanos, sessionRoundDatum.sessionId,
-							sessionRoundDatum.roundId, round, classificationResult));
-				}).orElseGet(() -> {
-					LOGGER.warn(
-							"No referring language found for round {} of session \"{}\"; Skipping classification of that round.",
-							sessionRoundDatum.roundId, sessionRoundDatum.sessionId);
-					return Stream.empty();
-				});
-			});
 		}
 	}
 
@@ -594,21 +322,6 @@ public final class LogisticModel { // NO_UCD (use default)
 			result = value;
 		}
 
-	}
-
-	private static class SessionRoundDatum {
-
-		private final Round round;
-
-		private final int roundId;
-
-		private final String sessionId;
-
-		private SessionRoundDatum(final String sessionId, final int roundId, final Round round) {
-			this.sessionId = sessionId;
-			this.roundId = roundId;
-			this.round = round;
-		}
 	}
 
 	/**
@@ -966,7 +679,7 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(LogisticModel.class);
 
-	private static final String OOV_CLASS_LABEL = "__OUT_OF_VOCABULARY__";
+	static final String OOV_CLASS_LABEL = "__OUT_OF_VOCABULARY__";
 
 	private static long calculateRetryWaitTime(final int retryNumber) {
 		assert retryNumber > 0 : String.format("Retry number was %d but must be positive.", retryNumber);
@@ -1029,7 +742,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *             {@link BatchPredictor#distributionForInstances(Instances)
 	 *             classification}.
 	 */
-	private static DoubleStream score(final BatchPredictor wordClassifier, final Instances insts,
+	static DoubleStream score(final BatchPredictor wordClassifier, final Instances insts,
 			final ReferentClassification classification) {
 		final double[][] dists;
 		try {
@@ -1057,7 +770,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *             {@link Classifier#distributionForInstance(Instance)
 	 *             classification}.
 	 */
-	private static double score(final Classifier wordClassifier, final Instance inst,
+	static double score(final Classifier wordClassifier, final Instance inst,
 			final ReferentClassification classification) throws ClassificationException {
 		double[] dist;
 		try {
@@ -1085,11 +798,6 @@ public final class LogisticModel { // NO_UCD (use default)
 	private RoundSet trainingSet;
 
 	private Vocabulary vocab;
-
-	/**
-	 * The number of word observations discounted for use in smoothing.
-	 */
-	private Long discountedWordCount = 0L;
 
 	private WordClassifiers wordClassifiers;
 
@@ -1119,8 +827,13 @@ public final class LogisticModel { // NO_UCD (use default)
 		featureAttrs = new FeatureAttributeData();
 	}
 
-	public Scorer createScorer() {
-		return createScorer(ReferentClassification.TRUE);
+	/**
+	 *
+	 * @return A new {@link RankScorer} for {@link ReferentClassification#TRUE}
+	 *         using this {@link LogisticModel}.
+	 */
+	public RankScorer createRankScorer() {
+		return createRankScorer(ReferentClassification.TRUE);
 	}
 
 	/**
@@ -1129,9 +842,11 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *            The {@link ReferentClassification} to get the score for,
 	 *            i.e.&nbsp;the probability of this class being the correct one
 	 *            for the given word {@code Classifier} and {@code Instance}.
+	 * @return A new {@link RankScorer} for the given
+	 *         {@code ReferentClassification} using this {@link LogisticModel}.
 	 */
-	public Scorer createScorer(final ReferentClassification classification) {
-		return new Scorer(classification);
+	public RankScorer createRankScorer(final ReferentClassification classification) {
+		return new RankScorer(classification, this);
 	}
 
 	/**
@@ -1217,27 +932,16 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *            The weight of each datapoint representing a single observation
 	 *            for a given word.
 	 */
-	private void train(final List<String> words, final double weight, final long discountedWordCount) {
+	private void train(final List<String> words, final double weight) {
 		final Trainer trainer = new Trainer(words, weight, wordClassifiers);
 		wordClassifiers = submitTrainingJob(trainer);
 	}
 
 	/**
-	 * Updates (trains) the models with the new round
+	 * @return the modelParams
 	 */
-	private void updateModel(final Round round) {
-		trainingSet.getRounds().add(round);
-		final Vocabulary oldVocab = vocab;
-		vocab = trainingSet.createVocabulary();
-		// NOTE: Values are retrieved directly from the map instead of e.g.
-		// assigning
-		// them to a final field because it's possible that the map values
-		// change at another place in the code and performance isn't an issue
-		// here anyway
-		discountedWordCount = vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
-		final Number updateWeight = (Number) modelParams.get(ModelParameter.UPDATE_WEIGHT);
-		train(vocab.getUpdatedWordsSince(oldVocab), NumberTypeConversions.finiteDoubleValue(updateWeight.doubleValue()),
-				discountedWordCount);
+	Map<ModelParameter, Object> getModelParams() {
+		return modelParams;
 	}
 
 	/**
@@ -1255,9 +959,27 @@ public final class LogisticModel { // NO_UCD (use default)
 		// them to a final field because it's possible that the map values
 		// change at another place in the code and performance isn't an issue
 		// here anyway
-		discountedWordCount = vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
+		vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
 		featureAttrs = new FeatureAttributeData();
-		train(vocab.getWords(), 1.0, discountedWordCount);
+		train(vocab.getWords(), 1.0);
+	}
+
+	/**
+	 * Updates (trains) the models with the new round
+	 */
+	void updateModel(final Round round) {
+		trainingSet.getRounds().add(round);
+		final Vocabulary oldVocab = vocab;
+		vocab = trainingSet.createVocabulary();
+		// NOTE: Values are retrieved directly from the map instead of e.g.
+		// assigning
+		// them to a final field because it's possible that the map values
+		// change at another place in the code and performance isn't an issue
+		// here anyway
+		vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
+		final Number updateWeight = (Number) modelParams.get(ModelParameter.UPDATE_WEIGHT);
+		train(vocab.getUpdatedWordsSince(oldVocab),
+				NumberTypeConversions.finiteDoubleValue(updateWeight.doubleValue()));
 	}
 
 }
