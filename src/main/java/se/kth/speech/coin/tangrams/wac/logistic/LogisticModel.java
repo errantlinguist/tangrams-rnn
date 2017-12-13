@@ -190,7 +190,7 @@ public final class LogisticModel { // NO_UCD (use default)
 				// performance isn't
 				// an issue here anyway
 				final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
-				final Long discountCutoffValue = (Long) modelParams.get(ModelParameter.DISCOUNT);
+				final Long discountCutoffValue = ((Number) modelParams.get(ModelParameter.DISCOUNT)).longValue();
 				final double discountWeightingValue = discountCutoffValue.doubleValue();
 				final List<String> oovObservations = new ArrayList<>();
 				final Logistic discountClassifier = wordClassifiers.getDiscountClassifier();
