@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
+import se.kth.speech.coin.tangrams.wac.data.Utterance;
 import se.kth.speech.coin.tangrams.wac.data.Vocabulary;
 import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.FeatureAttributeData;
 import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.Scorer;
@@ -43,6 +44,8 @@ public final class WordProbabilityScorer
 
 	public static final class ReferentWordScore {
 
+		private final boolean isInstructor;
+
 		private final boolean isOov;
 
 		private final Referent ref;
@@ -53,10 +56,11 @@ public final class WordProbabilityScorer
 
 		private final long wordObsCount;
 
-		private ReferentWordScore(final Referent ref, final String word, final boolean isOov, final long wordObsCount,
-				final double score) {
+		private ReferentWordScore(final Referent ref, final String word, final boolean isInstructor,
+				final boolean isOov, final long wordObsCount, final double score) {
 			this.ref = ref;
 			this.word = word;
+			this.isInstructor = isInstructor;
 			this.isOov = isOov;
 			this.wordObsCount = wordObsCount;
 			this.score = score;
@@ -64,7 +68,7 @@ public final class WordProbabilityScorer
 
 		/*
 		 * (non-Javadoc)
-		 *
+		 * 
 		 * @see java.lang.Object#equals(java.lang.Object)
 		 */
 		@Override
@@ -79,6 +83,9 @@ public final class WordProbabilityScorer
 				return false;
 			}
 			final ReferentWordScore other = (ReferentWordScore) obj;
+			if (isInstructor != other.isInstructor) {
+				return false;
+			}
 			if (isOov != other.isOov) {
 				return false;
 			}
@@ -135,13 +142,14 @@ public final class WordProbabilityScorer
 
 		/*
 		 * (non-Javadoc)
-		 *
+		 * 
 		 * @see java.lang.Object#hashCode()
 		 */
 		@Override
 		public int hashCode() {
 			final int prime = 31;
 			int result = 1;
+			result = prime * result + (isInstructor ? 1231 : 1237);
 			result = prime * result + (isOov ? 1231 : 1237);
 			result = prime * result + (ref == null ? 0 : ref.hashCode());
 			long temp;
@@ -153,6 +161,13 @@ public final class WordProbabilityScorer
 		}
 
 		/**
+		 * @return the isInstructor
+		 */
+		public boolean isInstructor() {
+			return isInstructor;
+		}
+
+		/**
 		 * @return the isOov
 		 */
 		public boolean isOov() {
@@ -161,22 +176,24 @@ public final class WordProbabilityScorer
 
 		/*
 		 * (non-Javadoc)
-		 *
+		 * 
 		 * @see java.lang.Object#toString()
 		 */
 		@Override
 		public String toString() {
-			final StringBuilder builder = new StringBuilder(256);
-			builder.append("ReferentWordScore [ref=");
-			builder.append(ref);
-			builder.append(", word=");
-			builder.append(word);
-			builder.append(", isOov=");
+			final StringBuilder builder = new StringBuilder(128);
+			builder.append("ReferentWordScore [isOov=");
 			builder.append(isOov);
-			builder.append(", wordObsCount=");
-			builder.append(wordObsCount);
+			builder.append(", ref=");
+			builder.append(ref);
 			builder.append(", score=");
 			builder.append(score);
+			builder.append(", word=");
+			builder.append(word);
+			builder.append(", wordObsCount=");
+			builder.append(wordObsCount);
+			builder.append(", isInstructor=");
+			builder.append(isInstructor);
 			builder.append("]");
 			return builder.toString();
 		}
@@ -188,6 +205,12 @@ public final class WordProbabilityScorer
 	};
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(WordProbabilityScorer.class);
+
+	private static List<Utterance> createUttList(final Round round, final boolean onlyInstructor) {
+		final List<Utterance> allUtts = round.getUtts();
+		return onlyInstructor
+				? Arrays.asList(allUtts.stream().filter(Utterance::isInstructor).toArray(Utterance[]::new)) : allUtts;
+	}
 
 	private static boolean isNullWordObservationCount(final long count) {
 		return count < 1;
@@ -250,14 +273,9 @@ public final class WordProbabilityScorer
 
 	private Optional<Stream<ReferentWordScore>> score(final Round round,
 			final Map<ModelParameter, Object> modelParams) {
-		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
-		final List<String> words = Arrays.asList(round.getReferringTokens(onlyInstructor).toArray(String[]::new));
-		final WordClassifiers wordClassifiers = model.getWordClassifiers();
-		final FeatureAttributeData featureAttrs = model.getFeatureAttrs();
-		final Vocabulary vocab = model.getVocabulary();
-
+		final List<Utterance> utts = createUttList(round, (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR));
 		final Optional<Stream<ReferentWordScore>> result;
-		if (words.size() < 1) {
+		if (utts.size() < 1) {
 			result = Optional.empty();
 		} else {
 			// NOTE: Values are retrieved directly from the map instead of
@@ -266,6 +284,9 @@ public final class WordProbabilityScorer
 			// the map values change at another place in the code and
 			// performance isn't
 			// an issue here anyway
+			final WordClassifiers wordClassifiers = model.getWordClassifiers();
+			final FeatureAttributeData featureAttrs = model.getFeatureAttrs();
+			final Vocabulary vocab = model.getVocabulary();
 			final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
 			final long discountCutoffValue = ((Number) modelParams.get(ModelParameter.DISCOUNT)).longValue();
 			final double discountWeightingValue = discountCutoffValue;
@@ -273,24 +294,28 @@ public final class WordProbabilityScorer
 			final List<Referent> refs = round.getReferents();
 			result = Optional.of(refs.stream().flatMap(ref -> {
 				final Instance inst = featureAttrs.createInstance(ref);
-				return words.stream().map(word -> {
-					Logistic wordClassifier = wordClassifiers.getWordClassifier(word);
-					final boolean isOov;
-					final long wordObsCount;
-					if (isOov = wordClassifier == null) {
-						wordClassifier = discountClassifier;
-						wordObsCount = discountCutoffValue;
-					} else {
-						wordObsCount = vocab.getCount(word);
-					}
-					double wordScore = scorer.score(wordClassifier, inst);
-					if (weightByFreq) {
-						final long extantWordObservationCount = vocab.getCount(word);
-						final double effectiveObsCountValue = isNullWordObservationCount(extantWordObservationCount)
-								? discountWeightingValue : extantWordObservationCount;
-						wordScore *= Math.log10(effectiveObsCountValue);
-					}
-					return new ReferentWordScore(ref, word, isOov, wordObsCount, wordScore);
+				return utts.stream().flatMap(utt -> {
+					final boolean isInstructor = utt.isInstructor();
+					final List<String> tokens = utt.getReferringTokens();
+					return tokens.stream().map(word -> {
+						Logistic wordClassifier = wordClassifiers.getWordClassifier(word);
+						final boolean isOov;
+						final long wordObsCount;
+						if (isOov = wordClassifier == null) {
+							wordClassifier = discountClassifier;
+							wordObsCount = discountCutoffValue;
+						} else {
+							wordObsCount = vocab.getCount(word);
+						}
+						double wordScore = scorer.score(wordClassifier, inst);
+						if (weightByFreq) {
+							final long extantWordObservationCount = vocab.getCount(word);
+							final double effectiveObsCountValue = isNullWordObservationCount(extantWordObservationCount)
+									? discountWeightingValue : extantWordObservationCount;
+							wordScore *= Math.log10(effectiveObsCountValue);
+						}
+						return new ReferentWordScore(ref, word, isInstructor, isOov, wordObsCount, wordScore);
+					});
 				});
 			}));
 		}
