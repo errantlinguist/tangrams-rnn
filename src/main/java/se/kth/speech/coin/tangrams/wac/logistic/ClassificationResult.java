@@ -49,6 +49,12 @@ final class ClassificationResult {
 	private final String[] words;
 
 	/**
+	 * The counts of observations of each word used for classification in the
+	 * dataset used for training.
+	 */
+	private final Map<String, Long> wordObservationCounts;
+
+	/**
 	 *
 	 * @param scoredReferents
 	 *            A list of {@link Weighted} instances representing the
@@ -65,14 +71,19 @@ final class ClassificationResult {
 	 *            A {@link Map} of the different word classifiers used
 	 *            (including the OOV label if used) mapping to a {@link Map} of
 	 *            classification scores computed for each {@link Referent}.
+	 * @param wordObservationCounts
+	 *            The counts of observations of each word used for
+	 *            classification in the dataset used for training.
 	 */
 	ClassificationResult(final List<Weighted<Referent>> scoredReferents, final String[] words,
 			final List<String> oovObservations,
-			final Map<Referent, Map<String, List<Double>>> refWordClassifierScoreLists) {
+			final Map<Referent, Map<String, List<Double>>> refWordClassifierScoreLists,
+			final Map<String, Long> wordObservationCounts) {
 		this.scoredReferents = scoredReferents;
 		this.words = words;
 		this.oovObservations = oovObservations;
 		this.refWordClassifierScoreLists = refWordClassifierScoreLists;
+		this.wordObservationCounts = wordObservationCounts;
 	}
 
 	/**
@@ -100,6 +111,14 @@ final class ClassificationResult {
 	 */
 	List<Weighted<Referent>> getScoredReferents() {
 		return scoredReferents;
+	}
+
+	/**
+	 * @return The counts of observations of each word used for classification
+	 *         in the dataset used for training.
+	 */
+	Map<String, Long> getWordObservationCounts() {
+		return wordObservationCounts;
 	}
 
 	/**

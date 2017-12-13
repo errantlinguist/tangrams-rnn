@@ -412,6 +412,22 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 				}
 			}
 
+		},
+		WORD_COUNTS {
+
+
+			@Override
+			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
+				final ClassificationResult classificationResult = evalResult.getClassificationResult();
+				final Map<String, Long> wordObsCounts = classificationResult.getWordObservationCounts();
+				try {
+					return JSON_MAPPER.writeValueAsString(new TreeMap<>(wordObsCounts));
+				} catch (final JsonProcessingException e) {
+					throw new RuntimeException(e);
+				}
+			}
+
 		};
 
 	}

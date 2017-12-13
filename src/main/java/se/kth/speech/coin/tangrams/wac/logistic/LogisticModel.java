@@ -24,8 +24,8 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -49,7 +49,6 @@ import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.RoundSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.Vocabulary;
-import se.kth.speech.concurrent.MapPopulator;
 import weka.classifiers.Classifier;
 import weka.classifiers.functions.Logistic;
 import weka.core.Attribute;
@@ -191,16 +190,22 @@ public final class LogisticModel { // NO_UCD (use default)
 				// performance isn't
 				// an issue here anyway
 				final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
-				final double discount = ((Integer) modelParams.get(ModelParameter.DISCOUNT)).doubleValue();
+				final Long discountCutoffValue = (Long) modelParams.get(ModelParameter.DISCOUNT);
+				final double discountWeightingValue = discountCutoffValue.doubleValue();
 				final List<String> oovObservations = new ArrayList<>();
 				final Logistic discountClassifier = wordClassifiers.getDiscountClassifier();
-				final Map<Referent, Map<String,List<Double>>> refWordClassifierScoreLists = new IdentityHashMap<>(
-						HashedCollections.capacity(words.length));
 				final List<Referent> refs = round.getReferents();
+				final Map<Referent, Map<String, List<Double>>> refWordClassifierScoreLists = new IdentityHashMap<>(
+						HashedCollections.capacity(refs.size()));
 				refs.forEach(ref -> refWordClassifierScoreLists.put(ref, new HashMap<>()));
-				
+				// Create an entirely-new map rather than referencing the
+				// classifiers so that they can be properly garbage-collected
+				// after ranking and before possible updating preceding the next
+				// classification
+				final Map<String, Long> wordObservationCounts = new HashMap<>(HashedCollections.capacity(words.length));
+
 				final Stream<Weighted<Referent>> scoredRefs = refs.stream().map(ref -> {
-					Map<String,List<Double>> wordClassifierScoreLists = refWordClassifierScoreLists.get(ref);
+					final Map<String, List<Double>> wordClassifierScoreLists = refWordClassifierScoreLists.get(ref);
 					final Instance inst = featureAttrs.createInstance(ref);
 					final double[] wordScores = new double[words.length];
 					for (int i = 0; i < words.length; ++i) {
@@ -212,16 +217,23 @@ public final class LogisticModel { // NO_UCD (use default)
 							oovObservations.add(word);
 							wordClassifierScoreList = wordClassifierScoreLists.computeIfAbsent(OOV_CLASS_LABEL,
 									key -> new ArrayList<>());
+							final Long oldDiscountObsCount = wordObservationCounts.putIfAbsent(OOV_CLASS_LABEL,
+									discountCutoffValue);
+							assert oldDiscountObsCount == null ? true : oldDiscountObsCount.equals(discountCutoffValue);
 						} else {
 							wordClassifierScoreList = wordClassifierScoreLists.computeIfAbsent(word,
 									key -> new ArrayList<>());
+							final Long oldWordObsCount = wordObservationCounts.computeIfAbsent(word,
+									key -> vocab.getCount(key));
+							assert oldWordObsCount == null ? true : oldWordObsCount.equals(vocab.getCount(word));
 						}
 						double wordScore = score(wordClassifier, inst);
 						if (weightByFreq) {
-							final Long seenWordObservationCount = vocab.getCount(word);
-							final double effectiveObservationCount = seenWordObservationCount == null ? discount
-									: seenWordObservationCount.doubleValue();
-							wordScore *= Math.log10(effectiveObservationCount);
+							final Long extantWordObservationCount = wordObservationCounts.get(word);
+							final double effectiveObsCountValue = extantWordObservationCount == null
+									? discountWeightingValue
+									: extantWordObservationCount.doubleValue();
+							wordScore *= Math.log10(effectiveObsCountValue);
 						}
 						wordScores[i] = wordScore;
 						wordClassifierScoreList.add(wordScore);
@@ -231,8 +243,8 @@ public final class LogisticModel { // NO_UCD (use default)
 				});
 				@SuppressWarnings("unchecked")
 				final List<Weighted<Referent>> scoredRefList = Arrays.asList(scoredRefs.toArray(Weighted[]::new));
-				result = Optional
-						.of(new ClassificationResult(scoredRefList, words, oovObservations, refWordClassifierScoreLists));
+				result = Optional.of(new ClassificationResult(scoredRefList, words, oovObservations,
+						refWordClassifierScoreLists, wordObservationCounts));
 			}
 			return result;
 		}
@@ -386,15 +398,15 @@ public final class LogisticModel { // NO_UCD (use default)
 
 		/**
 		 *
-		 * @param map
+		 * @param wordClassifiers
 		 *            A {@link ConcurrentMap} of words mapped to the
 		 *            {@link Logistic classifier} associated with each.
 		 * @param discountModel
 		 *            The {@code Logistic} classifier instance used for
 		 *            classifying unseen word observations.
 		 */
-		private WordClassifiers(final ConcurrentMap<String, Logistic> wordModels, final Logistic discountModel) {
-			wordClassifiers = wordModels;
+		private WordClassifiers(final ConcurrentMap<String, Logistic> wordClassifiers, final Logistic discountModel) {
+			this.wordClassifiers = wordClassifiers;
 			this.discountModel = discountModel;
 		}
 
@@ -458,7 +470,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		 *            The word to get the corresponding {@link Classifier} for.
 		 * @return The {@code Logistic} classifier instance representing the
 		 *         given word or {@link #getDiscountModel() the discount
-		 *         classifier} if no {@code Classifier} was found for the given
+		 *         classifier} if no {@code Logistic} was found for the given
 		 *         word.
 		 */
 		public Logistic getWordClassifierOrDiscount(final String word) {
@@ -493,6 +505,63 @@ public final class LogisticModel { // NO_UCD (use default)
 			builder.append(discountModel);
 			builder.append("]");
 			return builder.toString();
+		}
+
+	}
+
+	private static class MapPopulator extends ForkJoinTask<String> {
+
+		/**
+		 *
+		 */
+		private static final long serialVersionUID = 2476606510654821423L;
+
+		private String result;
+
+		private final ConcurrentMap<? super String, Logistic> wordClassifiers;
+
+		private final Supplier<Entry<String, Logistic>> wordClassifierTrainer;
+
+		public MapPopulator(final Supplier<Entry<String, Logistic>> wordClassifierTrainer,
+				final ConcurrentMap<? super String, Logistic> wordClassifiers) {
+			this.wordClassifierTrainer = wordClassifierTrainer;
+			this.wordClassifiers = wordClassifiers;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 *
+		 * @see java.util.concurrent.ForkJoinTask#getRawResult()
+		 */
+		@Override
+		public String getRawResult() {
+			return result;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 *
+		 * @see java.util.concurrent.ForkJoinTask#exec()
+		 */
+		@Override
+		protected boolean exec() {
+			final Entry<String, Logistic> trainingResults = wordClassifierTrainer.get();
+			final String word = trainingResults.getKey();
+			final Logistic newClassifier = trainingResults.getValue();
+			final Logistic oldClassifier = wordClassifiers.put(word, newClassifier);
+			assert oldClassifier == null ? true : !oldClassifier.equals(newClassifier);
+			result = word;
+			return true;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 *
+		 * @see java.util.concurrent.ForkJoinTask#setRawResult(java.lang.Object)
+		 */
+		@Override
+		protected void setRawResult(final String value) {
+			result = value;
 		}
 
 	}
@@ -593,15 +662,15 @@ public final class LogisticModel { // NO_UCD (use default)
 			discountClassifierTrainer.fork();
 			// Train a model for each word
 			final ConcurrentMap<String, Logistic> extantClassifiers = oldClassifiers.wordClassifiers;
-			@SuppressWarnings("unchecked")
-			final MapPopulator<String, Logistic>[] wordClassifierTrainers = words.stream()
-					.map(word -> new MapPopulator<>(
+			final MapPopulator[] wordClassifierTrainers = words.stream()
+					.map(word -> new MapPopulator(
 							new WordClassifierTrainer(word, () -> createWordClassExamples(trainingSet, word), weight),
 							extantClassifiers))
 					.toArray(MapPopulator[]::new);
 			ForkJoinTask.invokeAll(wordClassifierTrainers);
 
-			result = new WordClassifiers(extantClassifiers, discountClassifierTrainer.join().getValue());
+			final Entry<String, Logistic> discountResults = discountClassifierTrainer.join();
+			result = new WordClassifiers(extantClassifiers, discountResults.getValue());
 			return true;
 		}
 
@@ -863,7 +932,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		protected abstract void setValue(Instance instance, Referent ref, Map<ReferentFeature, Attribute> attrMap);
 	}
 
-	private static final int DEFAULT_EXPECTED_WORD_CLASS_COUNT = 1130;
+	private static final int DEFAULT_INITIAL_WORD_CLASS_MAP_CAPACITY = HashedCollections.capacity(1130);
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(LogisticModel.class);
 
@@ -987,6 +1056,11 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	private Vocabulary vocab;
 
+	/**
+	 * The number of word observations discounted for use in smoothing.
+	 */
+	private Long discountedWordCount = 0L;
+
 	private WordClassifiers wordClassifiers;
 
 	public LogisticModel() {
@@ -1002,17 +1076,16 @@ public final class LogisticModel { // NO_UCD (use default)
 	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool taskPool) { // NO_UCD
 																										// (use
 																										// default)
-		this(modelParams, taskPool, DEFAULT_EXPECTED_WORD_CLASS_COUNT);
+		this(modelParams, taskPool, DEFAULT_INITIAL_WORD_CLASS_MAP_CAPACITY);
 	}
 
 	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool taskPool, // NO_UCD
 																										// (use
 																										// private)
-			final int expectedWordClassCount) {
+			final int initialMapCapacity) {
 		this.modelParams = modelParams;
 		this.taskPool = taskPool;
-		wordClassifiers = new WordClassifiers(
-				new ConcurrentHashMap<>(HashedCollections.capacity(expectedWordClassCount)), new Logistic());
+		wordClassifiers = new WordClassifiers(new ConcurrentHashMap<>(initialMapCapacity), new Logistic());
 		featureAttrs = new FeatureAttributeData();
 	}
 
@@ -1050,7 +1123,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	}
 
 	/**
-	 * @param map
+	 * @param wordClassifiers
 	 *            the map to set
 	 */
 	public void setWordClassifiers(final WordClassifiers wordClassifiers) {
@@ -1114,7 +1187,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *            The weight of each datapoint representing a single observation
 	 *            for a given word.
 	 */
-	private void train(final List<String> words, final double weight) {
+	private void train(final List<String> words, final double weight, final long discountedWordCount) {
 		final Trainer trainer = new Trainer(words, weight, wordClassifiers);
 		wordClassifiers = submitTrainingJob(trainer);
 	}
@@ -1131,10 +1204,10 @@ public final class LogisticModel { // NO_UCD (use default)
 		// them to a final field because it's possible that the map values
 		// change at another place in the code and performance isn't an issue
 		// here anyway
-		vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
+		discountedWordCount = vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
 		final Number updateWeight = (Number) modelParams.get(ModelParameter.UPDATE_WEIGHT);
-		train(vocab.getUpdatedWordsSince(oldVocab),
-				NumberTypeConversions.finiteDoubleValue(updateWeight.doubleValue()));
+		train(vocab.getUpdatedWordsSince(oldVocab), NumberTypeConversions.finiteDoubleValue(updateWeight.doubleValue()),
+				discountedWordCount);
 	}
 
 	/**
@@ -1152,9 +1225,9 @@ public final class LogisticModel { // NO_UCD (use default)
 		// them to a final field because it's possible that the map values
 		// change at another place in the code and performance isn't an issue
 		// here anyway
-		vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
+		discountedWordCount = vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
 		featureAttrs = new FeatureAttributeData();
-		train(vocab.getWords(), 1.0);
+		train(vocab.getWords(), 1.0, discountedWordCount);
 	}
 
 }
