@@ -73,7 +73,7 @@ public final class TestSpace {
 					ref.setPosition(y, x);
 
 					for (final String w : wlist) {
-						final Logistic wordClassifier = model.getWordClassifiers().getWordClassifier(w);
+						final Logistic wordClassifier = model.getTrainingData().getWordClassifiers().getWordClassifier(w);
 						final double score = scorer.score(wordClassifier, ref);
 						pw.println("<div style=\"color:" + TestColor.getHTMLColorString(score) + "\">" + w + "</div>");
 					}

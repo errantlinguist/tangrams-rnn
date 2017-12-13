@@ -67,7 +67,7 @@ public final class WordStats { // NO_UCD (unused code)
 		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
 		for (final Round round : new RoundSet(set, onlyInstructor).getRounds()) {
 			round.getReferringTokens(onlyInstructor).forEach(word -> {
-				final Logistic wordClassifier = model.getWordClassifiers().getWordClassifier(word);
+				final Logistic wordClassifier = model.getTrainingData().getWordClassifiers().getWordClassifier(word);
 				if (wordClassifier != null) {
 					for (final Referent ref : round.getReferents()) {
 						final double score = scorer.score(wordClassifier, ref);

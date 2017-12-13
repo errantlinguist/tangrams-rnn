@@ -18,6 +18,7 @@ package se.kth.speech.coin.tangrams.wac.logistic;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -312,7 +313,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		 *             classification}.
 		 */
 		public DoubleStream score(final BatchPredictor wordClassifier, final List<Referent> refs) {
-			final Instances insts = featureAttrs.createInstances(refs);
+			final Instances insts = trainingData.getFeatureAttrs().createInstances(refs);
 			return score(wordClassifier, insts);
 		}
 
@@ -360,7 +361,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		 *             classification}.
 		 */
 		public double score(final Classifier wordClassifier, final Referent ref) throws ClassificationException {
-			return score(wordClassifier, featureAttrs.createInstance(ref));
+			return score(wordClassifier, trainingData.getFeatureAttrs().createInstance(ref));
 		}
 
 		/*
@@ -381,6 +382,160 @@ public final class LogisticModel { // NO_UCD (use default)
 			return LogisticModel.this;
 		}
 
+	}
+
+	public static final class TrainingData {
+
+		/**
+		 * The {@link FeatureAttributeData} used for training.
+		 */
+		private final FeatureAttributeData featureAttrs;
+
+		/**
+		 * The {@link RoundSet} used as training data.
+		 */
+		private final RoundSet trainingSet;
+
+		/**
+		 * The {@link Vocabulary} used during training.
+		 */
+		private final Vocabulary vocab;
+
+		/**
+		 * The {@link WordClassifiers} created during training.
+		 */
+		private final WordClassifiers wordClassifiers;
+
+		/**
+		 *
+		 * @param wordClassifiers
+		 *            The {@link WordClassifiers} created during training.
+		 * @param featureAttrs
+		 *            The {@link FeatureAttributeData} used for training.
+		 * @param vocab
+		 *            The {@link Vocabulary} used during training.
+		 * @param trainingSet
+		 *            The {@link RoundSet} used as training data.
+		 */
+		private TrainingData(final WordClassifiers wordClassifiers, final FeatureAttributeData featureAttrs,
+				final Vocabulary vocab, final RoundSet trainingSet) {
+			this.wordClassifiers = wordClassifiers;
+			this.featureAttrs = featureAttrs;
+			this.vocab = vocab;
+			this.trainingSet = trainingSet;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 *
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(final Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (!(obj instanceof TrainingData)) {
+				return false;
+			}
+			final TrainingData other = (TrainingData) obj;
+			if (featureAttrs == null) {
+				if (other.featureAttrs != null) {
+					return false;
+				}
+			} else if (!featureAttrs.equals(other.featureAttrs)) {
+				return false;
+			}
+			if (trainingSet == null) {
+				if (other.trainingSet != null) {
+					return false;
+				}
+			} else if (!trainingSet.equals(other.trainingSet)) {
+				return false;
+			}
+			if (vocab == null) {
+				if (other.vocab != null) {
+					return false;
+				}
+			} else if (!vocab.equals(other.vocab)) {
+				return false;
+			}
+			if (wordClassifiers == null) {
+				if (other.wordClassifiers != null) {
+					return false;
+				}
+			} else if (!wordClassifiers.equals(other.wordClassifiers)) {
+				return false;
+			}
+			return true;
+		}
+
+		/**
+		 * @return The {@link FeatureAttributeData} used for training.
+		 */
+		public FeatureAttributeData getFeatureAttrs() {
+			return featureAttrs;
+		}
+
+		/**
+		 * @return The {@link RoundSet} used as training data.
+		 */
+		public RoundSet getTrainingSet() {
+			return trainingSet;
+		}
+
+		/**
+		 * @return The {@link Vocabulary} used during training.
+		 */
+		public Vocabulary getVocabulary() {
+			return vocab;
+		}
+
+		/**
+		 * @return The {@link WordClassifiers} created during training.
+		 */
+		public WordClassifiers getWordClassifiers() {
+			return wordClassifiers;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 *
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + (featureAttrs == null ? 0 : featureAttrs.hashCode());
+			result = prime * result + (trainingSet == null ? 0 : trainingSet.hashCode());
+			result = prime * result + (vocab == null ? 0 : vocab.hashCode());
+			result = prime * result + (wordClassifiers == null ? 0 : wordClassifiers.hashCode());
+			return result;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 *
+		 * @see java.lang.Object#toString()
+		 */
+		@Override
+		public String toString() {
+			final StringBuilder builder = new StringBuilder(1024);
+			builder.append("TrainingData [featureAttrs=");
+			builder.append(featureAttrs);
+			builder.append(", trainingSet=");
+			builder.append(trainingSet);
+			builder.append(", vocab=");
+			builder.append(vocab);
+			builder.append(", wordClassifiers=");
+			builder.append(wordClassifiers);
+			builder.append("]");
+			return builder.toString();
+		}
 	}
 
 	public static final class WordClassifiers {
@@ -574,7 +729,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	 * @since 7 Dec 2017
 	 *
 	 */
-	private class Trainer extends ForkJoinTask<WordClassifiers> {
+	private class Trainer extends ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>> {
 
 		/**
 		 *
@@ -582,22 +737,27 @@ public final class LogisticModel { // NO_UCD (use default)
 		private static final long serialVersionUID = 466815336422504998L;
 
 		/**
-		 * The existing {@link WordClassifiers} object representing
-		 * previously-trained classifiers.
+		 * The {@link WordClassifiers} and {@link FeatureAttributeData} objects
+		 * representing newly-trained classifiers and the features used for
+		 * training them.
 		 */
-		private final WordClassifiers oldClassifiers;
+		private Entry<WordClassifiers, FeatureAttributeData> result;
 
 		/**
-		 * The {@link WordClassifiers} object representing newly-trained
-		 * classifiers.
+		 * The (new) {@link RoundSet} to use for training.
 		 */
-		private WordClassifiers result;
+		private final RoundSet trainingSet;
 
 		/**
 		 * The weight of each datapoint representing a single observation for a
 		 * given word.
 		 */
 		private final double weight;
+
+		/**
+		 * The {@link Map} of word classifiers to (re-)populate.
+		 */
+		private final ConcurrentMap<String, Logistic> wordClassifiers;
 
 		/**
 		 * The vocabulary words to train models for.
@@ -613,14 +773,17 @@ public final class LogisticModel { // NO_UCD (use default)
 		 * @param weight
 		 *            The weight of each datapoint representing a single
 		 *            observation for a given word.
-		 * @param oldClassifiers
-		 *            The existing {@link WordClassifiers} object representing
-		 *            previously-trained classifiers.
+		 * @param trainingSet
+		 *            The (new) {@link RoundSet} to use for training.
+		 * @param wordClassifiers
+		 *            The {@link Map} of word classifiers to (re-)populate.
 		 */
-		private Trainer(final List<String> words, final double weight, final WordClassifiers oldClassifiers) {
+		private Trainer(final List<String> words, final double weight, final RoundSet trainingSet,
+				final ConcurrentMap<String, Logistic> wordClassifiers) {
 			this.words = words;
 			this.weight = weight;
-			this.oldClassifiers = oldClassifiers;
+			this.trainingSet = trainingSet;
+			this.wordClassifiers = wordClassifiers;
 		}
 
 		/*
@@ -629,7 +792,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		 * @see java.util.concurrent.ForkJoinTask#getRawResult()
 		 */
 		@Override
-		public WordClassifiers getRawResult() {
+		public Entry<WordClassifiers, FeatureAttributeData> getRawResult() {
 			return result;
 		}
 
@@ -640,23 +803,26 @@ public final class LogisticModel { // NO_UCD (use default)
 		 */
 		@Override
 		protected boolean exec() {
+			// The feature attributes may change from one training iteration to
+			// the next, e.g. seeing new categorical values
+			final FeatureAttributeData featureAttrs = new FeatureAttributeData();
 			// Train the discount model. NOTE: The discount model should not be
 			// in the same map as the classifiers for actually-seen observations
 			final ForkJoinTask<Entry<String, Logistic>> discountClassifierTrainer = ForkJoinTask
 					.adapt(new WordClassifierTrainer(OOV_CLASS_LABEL,
-							() -> createDiscountClassExamples(trainingSet, words), weight));
+							() -> createDiscountClassExamples(trainingSet, words), weight, featureAttrs));
 			discountClassifierTrainer.fork();
-			// Train a model for each word
-			final ConcurrentMap<String, Logistic> extantClassifiers = oldClassifiers.wordClassifiers;
+			// Train a model for each word, re-using the old map and thus
+			// replacing any classifiers for words which were already used for
+			// previous training iterations
 			final MapPopulator[] wordClassifierTrainers = words.stream()
-					.map(word -> new MapPopulator(
-							new WordClassifierTrainer(word, () -> createWordClassExamples(trainingSet, word), weight),
-							extantClassifiers))
+					.map(word -> new MapPopulator(new WordClassifierTrainer(word,
+							() -> createWordClassExamples(trainingSet, word), weight, featureAttrs), wordClassifiers))
 					.toArray(MapPopulator[]::new);
 			ForkJoinTask.invokeAll(wordClassifierTrainers);
 
 			final Entry<String, Logistic> discountResults = discountClassifierTrainer.join();
-			result = new WordClassifiers(extantClassifiers, discountResults.getValue());
+			result = Pair.of(new WordClassifiers(wordClassifiers, discountResults.getValue()), featureAttrs);
 			return true;
 		}
 
@@ -666,13 +832,13 @@ public final class LogisticModel { // NO_UCD (use default)
 		 * @see java.util.concurrent.ForkJoinTask#setRawResult(java.lang.Object)
 		 */
 		@Override
-		protected void setRawResult(final WordClassifiers value) {
+		protected void setRawResult(final Entry<WordClassifiers, FeatureAttributeData> value) {
 			result = value;
 		}
 
 	}
 
-	private class WordClassifierTrainer
+	private static class WordClassifierTrainer
 			implements Callable<Entry<String, Logistic>>, Supplier<Entry<String, Logistic>> {
 
 		/**
@@ -680,6 +846,11 @@ public final class LogisticModel { // NO_UCD (use default)
 		 * use as training examples.
 		 */
 		private final Supplier<? extends Stream<Weighted<Referent>>> exampleSupplier;
+
+		/**
+		 * The {@link FeatureAttributeData} to use for training.
+		 */
+		private final FeatureAttributeData featureAttrs;
 
 		/**
 		 * The weight of each datapoint representing a single observation for
@@ -702,12 +873,16 @@ public final class LogisticModel { // NO_UCD (use default)
 		 * @param weight
 		 *            The weight of each datapoint representing a single
 		 *            observation for the given word.
+		 * @param featureAttrs
+		 *            The {@link FeatureAttributeData} to use for training.
 		 */
 		private WordClassifierTrainer(final String word,
-				final Supplier<? extends Stream<Weighted<Referent>>> exampleSupplier, final double weight) {
+				final Supplier<? extends Stream<Weighted<Referent>>> exampleSupplier, final double weight,
+				final FeatureAttributeData featureAttrs) {
 			this.word = word;
 			this.exampleSupplier = exampleSupplier;
 			this.weight = weight;
+			this.featureAttrs = featureAttrs;
 		}
 
 		/*
@@ -964,6 +1139,12 @@ public final class LogisticModel { // NO_UCD (use default)
 		return rounds.getDiscountRounds(words).flatMap(LogisticModel::createClassWeightedReferents);
 	}
 
+	private static TrainingData createDummyTrainingData(final int initialMapCapacity, final boolean onlyInstructor) {
+		return new TrainingData(new WordClassifiers(new ConcurrentHashMap<>(initialMapCapacity), new Logistic()),
+				new FeatureAttributeData(), new Vocabulary(Object2LongMaps.emptyMap()),
+				new RoundSet(Collections.emptyList(), onlyInstructor));
+	}
+
 	private static Stream<Weighted<Referent>> createWeightedReferents(final Referent[] refs, final double weight) {
 		return Arrays.stream(refs).map(ref -> new Weighted<>(ref, weight));
 	}
@@ -972,20 +1153,14 @@ public final class LogisticModel { // NO_UCD (use default)
 		return rounds.getExampleRounds(word).flatMap(LogisticModel::createClassWeightedReferents);
 	}
 
-	private FeatureAttributeData featureAttrs;
-
 	private final Map<ModelParameter, Object> modelParams;
 
 	private final ForkJoinPool taskPool;
 
 	/**
-	 * The {@link RoundSet} to use as training data.
+	 * The {@link TrainingData} created during the last training iteration.
 	 */
-	private RoundSet trainingSet;
-
-	private Vocabulary vocab;
-
-	private WordClassifiers wordClassifiers;
+	private TrainingData trainingData;
 
 	public LogisticModel() {
 		this(ModelParameter.createDefaultParamValueMap());
@@ -1009,9 +1184,8 @@ public final class LogisticModel { // NO_UCD (use default)
 			final int initialMapCapacity) {
 		this.modelParams = modelParams;
 		this.taskPool = taskPool;
-		wordClassifiers = new WordClassifiers(new ConcurrentHashMap<>(initialMapCapacity), new Logistic());
-		featureAttrs = new FeatureAttributeData();
-		vocab = new Vocabulary(Object2LongMaps.emptyMap());
+		trainingData = createDummyTrainingData(initialMapCapacity,
+				(Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR));
 	}
 
 	/**
@@ -1083,53 +1257,18 @@ public final class LogisticModel { // NO_UCD (use default)
 	}
 
 	/**
-	 * @return the featureAttrs
+	 * @return The {@link TrainingData} created during the last training iteration.
 	 */
-	public FeatureAttributeData getFeatureAttrs() {
-		return featureAttrs;
-	}
-
-	public Vocabulary getVocabulary() {
-		return vocab;
-	}
-
-	/**
-	 * @return the map
-	 */
-	public WordClassifiers getWordClassifiers() {
-		return wordClassifiers;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 *
-	 * @see java.lang.Object#toString()
-	 */
-	@Override
-	public String toString() {
-		final StringBuilder builder = new StringBuilder();
-		builder.append("LogisticModel [featureAttrs=");
-		builder.append(featureAttrs);
-		builder.append(", modelParams=");
-		builder.append(modelParams);
-		builder.append(", taskPool=");
-		builder.append(taskPool);
-		builder.append(", trainingSet=");
-		builder.append(trainingSet);
-		builder.append(", vocab=");
-		builder.append(vocab);
-		builder.append(", map=");
-		builder.append(wordClassifiers);
-		builder.append("]");
-		return builder.toString();
+	public TrainingData getTrainingData() {
+		return trainingData;
 	}
 
 	private int estimateUpdatedVocabSize() {
-		return vocab.getWordCount() + 5;
+		return trainingData.getVocabulary().getWordCount() + 5;
 	}
 
-	private ForkJoinTask<WordClassifiers> submitTrainingTask(final Trainer trainer) {
-		ForkJoinTask<WordClassifiers> result = null;
+	private ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>> submitTrainingTask(final Trainer trainer) {
+		ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>> result = null;
 
 		do {
 			try {
@@ -1161,11 +1300,16 @@ public final class LogisticModel { // NO_UCD (use default)
 	 * @param weight
 	 *            The weight of each datapoint representing a single observation
 	 *            for a given word.
-	 * @return A {@link ForkJoinTask} which asynchronously creates the new
-	 *         {@link WordClassifiers}.
+	 * @param trainingSet
+	 *            The {@link RoundSet} to use as training data.
+	 * @return A {@link ForkJoinTask} which asynchronously creates the new model
+	 *         data.
 	 */
-	private ForkJoinTask<WordClassifiers> trainWordClassifiers(final List<String> words, final double weight) {
-		final Trainer trainer = new Trainer(words, weight, wordClassifiers);
+	private ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>> trainWordClassifiers(final List<String> words,
+			final double weight, final RoundSet trainingSet) {
+		// Re-use old word classifier map
+		final ConcurrentMap<String, Logistic> extantClassifiers = trainingData.getWordClassifiers().wordClassifiers;
+		final Trainer trainer = new Trainer(words, weight, trainingSet, extantClassifiers);
 		return submitTrainingTask(trainer);
 	}
 
@@ -1184,26 +1328,29 @@ public final class LogisticModel { // NO_UCD (use default)
 	 */
 	void train(final SessionSet set) {
 		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
-		trainingSet = new RoundSet(set, onlyInstructor);
-		vocab = trainingSet.createVocabulary(Math.max(1000, estimateUpdatedVocabSize()));
+		final RoundSet trainingSet = new RoundSet(set, onlyInstructor);
+		final Vocabulary vocab = trainingSet.createVocabulary(Math.max(1000, estimateUpdatedVocabSize()));
 		// NOTE: Values are retrieved directly from the map instead of e.g.
 		// assigning
 		// them to a final field because it's possible that the map values
 		// change at another place in the code and performance isn't an issue
 		// here anyway
 		vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
-		featureAttrs = new FeatureAttributeData();
-		final ForkJoinTask<WordClassifiers> wordClassifierTrainingTask = trainWordClassifiers(vocab.getWords(), 1.0);
-		wordClassifiers = wordClassifierTrainingTask.join();
+		final ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>> wordClassifierTrainingTask = trainWordClassifiers(
+				vocab.getWords(), 1.0, trainingSet);
+		final Entry<WordClassifiers, FeatureAttributeData> trainingResults = wordClassifierTrainingTask.join();
+		trainingData = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet);
 	}
 
 	/**
 	 * Updates (trains) the models with the new round
 	 */
 	void updateModel(final Round round) {
+		// Re-use old training data plus data from the given round
+		final RoundSet trainingSet = trainingData.getTrainingSet();
 		trainingSet.getRounds().add(round);
-		final Vocabulary oldVocab = vocab;
-		vocab = trainingSet.createVocabulary(estimateUpdatedVocabSize());
+		final Vocabulary oldVocab = trainingData.getVocabulary();
+		final Vocabulary vocab = trainingSet.createVocabulary(estimateUpdatedVocabSize());
 		// NOTE: Values are retrieved directly from the map instead of e.g.
 		// assigning
 		// them to a final field because it's possible that the map values
@@ -1211,9 +1358,11 @@ public final class LogisticModel { // NO_UCD (use default)
 		// here anyway
 		vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
 		final Number updateWeight = (Number) modelParams.get(ModelParameter.UPDATE_WEIGHT);
-		final ForkJoinTask<WordClassifiers> wordClassifierTrainingTask = trainWordClassifiers(vocab.getUpdatedWordsSince(oldVocab),
-				NumberTypeConversions.finiteDoubleValue(updateWeight.doubleValue()));
-		wordClassifiers = wordClassifierTrainingTask.join();
+		final ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>> wordClassifierTrainingTask = trainWordClassifiers(
+				vocab.getUpdatedWordsSince(oldVocab),
+				NumberTypeConversions.finiteDoubleValue(updateWeight.doubleValue()), trainingSet);
+		final Entry<WordClassifiers, FeatureAttributeData> trainingResults = wordClassifierTrainingTask.join();
+		trainingData = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet);
 	}
 
 }

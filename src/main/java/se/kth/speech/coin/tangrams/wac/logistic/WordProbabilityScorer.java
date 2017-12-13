@@ -36,6 +36,7 @@ import se.kth.speech.coin.tangrams.wac.data.Utterance;
 import se.kth.speech.coin.tangrams.wac.data.Vocabulary;
 import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.FeatureAttributeData;
 import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.Scorer;
+import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.TrainingData;
 import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.WordClassifiers;
 import weka.classifiers.functions.Logistic;
 import weka.core.Instance;
@@ -217,9 +218,10 @@ public final class WordProbabilityScorer
 			// the map values change at another place in the code and
 			// performance isn't
 			// an issue here anyway
-			final WordClassifiers wordClassifiers = model.getWordClassifiers();
-			final FeatureAttributeData featureAttrs = model.getFeatureAttrs();
-			final Vocabulary vocab = model.getVocabulary();
+			final TrainingData trainingData = model.getTrainingData();
+			final WordClassifiers wordClassifiers = trainingData.getWordClassifiers();
+			final FeatureAttributeData featureAttrs = trainingData.getFeatureAttrs();
+			final Vocabulary vocab = trainingData.getVocabulary();
 			final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
 			final long discountCutoffValue = ((Number) modelParams.get(ModelParameter.DISCOUNT)).longValue();
 			final double discountWeightingValue = discountCutoffValue;

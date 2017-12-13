@@ -54,6 +54,7 @@ import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.Scorer;
+import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.TrainingData;
 import se.kth.speech.function.ThrowingSupplier;
 import weka.classifiers.functions.Logistic;
 import weka.core.Instances;
@@ -204,10 +205,11 @@ public final class RoundReferentConfidenceWriter {
 					final List<Referent> refs = round.getReferents();
 					final String targetRefIdStr = createTargetRefIdSet(refs).stream().map(Object::toString)
 							.collect(MULTIVALUE_JOINER);
-					final Instances refInsts = model.getFeatureAttrs().createInstances(refs);
+					final TrainingData trainingData = model.getTrainingData();
+					final Instances refInsts = trainingData.getFeatureAttrs().createInstances(refs);
 					final Stream<String> refTokens = round.getReferringTokens(onlyInstructor);
 					final Stream<Stream<String>> rowCellValues = refTokens.map(word -> {
-						final Logistic wordClassifier = model.getWordClassifiers().getWordClassifier(word);
+						final Logistic wordClassifier = trainingData.getWordClassifiers().getWordClassifier(word);
 						final Stream<String> positiveConfidences;
 						if (wordClassifier == null) {
 							positiveConfidences = Stream.generate(() -> DISCOUNTED_WORD_CLASSIFIER_CONFIDENCE_VAL)

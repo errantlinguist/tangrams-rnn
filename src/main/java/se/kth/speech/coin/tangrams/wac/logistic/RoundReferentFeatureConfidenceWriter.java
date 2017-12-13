@@ -47,6 +47,7 @@ import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.Scorer;
+import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.WordClassifiers;
 import se.kth.speech.function.ThrowingSupplier;
 import weka.classifiers.functions.Logistic;
 
@@ -169,10 +170,11 @@ public final class RoundReferentFeatureConfidenceWriter {
 					final String[] refTokens = round.getReferringTokens(onlyInstructor).toArray(String[]::new);
 					final List<Referent> refs = round.getReferents();
 					for (final String refToken : refTokens) {
-						Logistic wordClassifier = model.getWordClassifiers().getWordClassifier(refToken);
+						final WordClassifiers wordClassifiers = model.getTrainingData().getWordClassifiers();
+						Logistic wordClassifier = wordClassifiers.getWordClassifier(refToken);
 						final boolean isOov;
 						if (isOov = wordClassifier == null) {
-							wordClassifier = model.getWordClassifiers().getDiscountClassifier();
+							wordClassifier = wordClassifiers.getDiscountClassifier();
 						}
 						for (final ListIterator<Referent> refIter = refs.listIterator(); refIter.hasNext();) {
 							final Referent ref = refIter.next();
