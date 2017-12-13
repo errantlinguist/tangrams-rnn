@@ -1136,16 +1136,17 @@ public final class LogisticModel { // NO_UCD (use default)
 		return vocab.getWordCount() + 5;
 	}
 
-	private WordClassifiers submitTrainingJob(final Trainer trainer) {
-		WordClassifiers result = null;
+	private ForkJoinTask<WordClassifiers> submitTrainingTask(final Trainer trainer) {
+		ForkJoinTask<WordClassifiers> result = null;
+
 		do {
 			try {
-				result = taskPool.invoke(trainer);
+				result = taskPool.submit(trainer);
 			} catch (final RejectedExecutionException e) {
 				int tryCount = 1;
 				long waitTimeMins = calculateRetryWaitTime(tryCount);
 				LOGGER.info(String.format(
-						"A(n) %s occurred while trying to submit a training job to the task pool; Will wait %d minute(s) before trying again.",
+						"A(n) %s occurred while trying to submit a training task to the task pool; Will wait %d minute(s) before trying again.",
 						e.getClass().getSimpleName(), waitTimeMins), e);
 				boolean isReady = taskPool.awaitQuiescence(waitTimeMins, TimeUnit.MINUTES);
 				while (!isReady) {
@@ -1168,12 +1169,14 @@ public final class LogisticModel { // NO_UCD (use default)
 	 * @param weight
 	 *            The weight of each datapoint representing a single observation
 	 *            for a given word.
+	 * @return A {@link ForkJoinTask} which asynchronously creates the new
+	 *         {@link WordClassifiers}.
 	 */
-	private void trainWordClassifiers(final List<String> words, final double weight) {
+	private ForkJoinTask<WordClassifiers> trainWordClassifiers(final List<String> words, final double weight) {
 		final Trainer trainer = new Trainer(words, weight, wordClassifiers);
-		wordClassifiers = submitTrainingJob(trainer);
+		return submitTrainingTask(trainer);
 	}
-	
+
 	/**
 	 * @return the modelParams
 	 */
@@ -1198,7 +1201,8 @@ public final class LogisticModel { // NO_UCD (use default)
 		// here anyway
 		vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
 		featureAttrs = new FeatureAttributeData();
-		trainWordClassifiers(vocab.getWords(), 1.0);
+		final ForkJoinTask<WordClassifiers> wordClassifierTrainingTask = trainWordClassifiers(vocab.getWords(), 1.0);
+		wordClassifiers = wordClassifierTrainingTask.join();
 	}
 
 	/**
@@ -1215,8 +1219,9 @@ public final class LogisticModel { // NO_UCD (use default)
 		// here anyway
 		vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
 		final Number updateWeight = (Number) modelParams.get(ModelParameter.UPDATE_WEIGHT);
-		trainWordClassifiers(vocab.getUpdatedWordsSince(oldVocab),
+		final ForkJoinTask<WordClassifiers> wordClassifierTrainingTask = trainWordClassifiers(vocab.getUpdatedWordsSince(oldVocab),
 				NumberTypeConversions.finiteDoubleValue(updateWeight.doubleValue()));
+		wordClassifiers = wordClassifierTrainingTask.join();
 	}
 
 }
