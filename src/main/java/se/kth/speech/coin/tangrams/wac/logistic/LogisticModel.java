@@ -838,6 +838,85 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	}
 
+	private class Updater extends ForkJoinTask<TrainingData> {
+
+		/**
+		 *
+		 */
+		private static final long serialVersionUID = 4460720934736545439L;
+
+		/**
+		 * The {@link TrainingData} created during updating.
+		 */
+		private TrainingData result;
+
+		/**
+		 * The {@link Round} to add to the dataset for training.
+		 */
+		private final Round round;
+
+		/**
+		 *
+		 * @param round
+		 *            The {@link Round} to add to the dataset for training.
+		 */
+		private Updater(final Round round) {
+			this.round = round;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 *
+		 * @see java.util.concurrent.ForkJoinTask#getRawResult()
+		 */
+		@Override
+		public TrainingData getRawResult() {
+			return result;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 *
+		 * @see java.util.concurrent.ForkJoinTask#exec()
+		 */
+		@Override
+		protected boolean exec() {
+			// Re-use old training data plus data from the given round
+			final RoundSet trainingSet = trainingData.getTrainingSet();
+			trainingSet.getRounds().add(round);
+			final Vocabulary oldVocab = trainingData.getVocabulary();
+			final Vocabulary vocab = trainingSet.createVocabulary(estimateUpdatedVocabSize());
+			// NOTE: Values are retrieved directly from the map instead of e.g.
+			// assigning
+			// them to a final field because it's possible that the map values
+			// change at another place in the code and performance isn't an
+			// issue
+			// here anyway
+			vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
+			final Number updateWeight = (Number) modelParams.get(ModelParameter.UPDATE_WEIGHT);
+			// Re-use old word classifier map
+			final ConcurrentMap<String, Logistic> extantClassifiers = trainingData.getWordClassifiers().wordClassifiers;
+			final Trainer trainer = new Trainer(vocab.getUpdatedWordsSince(oldVocab),
+					NumberTypeConversions.finiteDoubleValue(updateWeight.doubleValue()), trainingSet,
+					extantClassifiers);
+			final Entry<WordClassifiers, FeatureAttributeData> trainingResults = trainer.fork().join();
+			result = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet);
+			trainingData = result;
+			return true;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 *
+		 * @see java.util.concurrent.ForkJoinTask#setRawResult(java.lang.Object)
+		 */
+		@Override
+		protected void setRawResult(final TrainingData value) {
+			result = value;
+		}
+
+	}
+
 	private static class WordClassifierTrainer
 			implements Callable<Entry<String, Logistic>>, Supplier<Entry<String, Logistic>> {
 
@@ -1100,6 +1179,8 @@ public final class LogisticModel { // NO_UCD (use default)
 	 */
 	private static final ReferentClassification DEFAULT_REF_CLASSIFICATION = ReferentClassification.TRUE;
 
+	private static final double INITIAL_TRAINING_DATAPOINT_WEIGHT = 1.0;
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(LogisticModel.class);
 
 	static final String OOV_CLASS_LABEL = "__OUT_OF_VOCABULARY__";
@@ -1264,7 +1345,8 @@ public final class LogisticModel { // NO_UCD (use default)
 	}
 
 	/**
-	 * @return The {@link TrainingData} created during the last training iteration.
+	 * @return The {@link TrainingData} created during the last training
+	 *         iteration.
 	 */
 	public TrainingData getTrainingData() {
 		return trainingData;
@@ -1274,12 +1356,12 @@ public final class LogisticModel { // NO_UCD (use default)
 		return trainingData.getVocabulary().getWordCount() + 5;
 	}
 
-	private ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>> submitTrainingTask(final Trainer trainer) {
-		ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>> result = null;
+	private <T> ForkJoinTask<T> submitTask(final ForkJoinTask<T> task) {
+		ForkJoinTask<T> result = null;
 
 		do {
 			try {
-				result = taskPool.submit(trainer);
+				result = taskPool.submit(task);
 			} catch (final RejectedExecutionException e) {
 				int tryCount = 1;
 				long waitTimeMins = calculateRetryWaitTime(tryCount);
@@ -1299,34 +1381,39 @@ public final class LogisticModel { // NO_UCD (use default)
 		return result;
 	}
 
-	/**
-	 * Trains models for the specified words asynchronously.
-	 *
-	 * @param words
-	 *            The vocabulary words to train models for.
-	 * @param weight
-	 *            The weight of each datapoint representing a single observation
-	 *            for a given word.
-	 * @param trainingSet
-	 *            The {@link RoundSet} to use as training data.
-	 * @return A {@link ForkJoinTask} which asynchronously creates the new model
-	 *         data.
-	 */
-	private ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>> trainWordClassifiers(final List<String> words,
-			final double weight, final RoundSet trainingSet) {
-		// Re-use old word classifier map
-		final ConcurrentMap<String, Logistic> extantClassifiers = trainingData.getWordClassifiers().wordClassifiers;
-		final Trainer trainer = new Trainer(words, weight, trainingSet, extantClassifiers);
-		return submitTrainingTask(trainer);
-	}
+	// /**
+	// * Trains models for the specified words asynchronously.
+	// *
+	// * @param words
+	// * The vocabulary words to train models for.
+	// * @param weight
+	// * The weight of each datapoint representing a single observation
+	// * for a given word.
+	// * @param trainingSet
+	// * The {@link RoundSet} to use as training data.
+	// * @return A {@link ForkJoinTask} which asynchronously creates the new
+	// model
+	// * data.
+	// */
+	// private ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>>
+	// trainWordClassifiers(final List<String> words,
+	// final double weight, final RoundSet trainingSet) {
+	// // Re-use old word classifier map
+	// final ConcurrentMap<String, Logistic> extantClassifiers =
+	// trainingData.getWordClassifiers().wordClassifiers;
+	// final Trainer trainer = new Trainer(words, weight, trainingSet,
+	// extantClassifiers);
+	// return submitTask(trainer);
+	// }
 
 	/**
 	 * Trains the word models using all data from a {@link SessionSet}.
 	 *
 	 * @param set
 	 *            The {@code SessionSet} to use as training data.
+	 * @return The new {@link TrainingData}.
 	 */
-	void train(final SessionSet set) {
+	TrainingData train(final SessionSet set) {
 		final RoundSet trainingSet = new RoundSet(set, (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR));
 		final Vocabulary vocab = trainingSet.createVocabulary(Math.max(1000, estimateUpdatedVocabSize()));
 		// NOTE: Values are retrieved directly from the map instead of e.g.
@@ -1335,33 +1422,29 @@ public final class LogisticModel { // NO_UCD (use default)
 		// change at another place in the code and performance isn't an issue
 		// here anyway
 		vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
-		final ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>> wordClassifierTrainingTask = trainWordClassifiers(
-				vocab.getWords(), 1.0, trainingSet);
+		// Re-use old word classifier map
+		final ConcurrentMap<String, Logistic> extantClassifiers = trainingData.getWordClassifiers().wordClassifiers;
+		final Trainer trainer = new Trainer(vocab.getWords(), INITIAL_TRAINING_DATAPOINT_WEIGHT, trainingSet,
+				extantClassifiers);
+		final ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>> wordClassifierTrainingTask = submitTask(
+				trainer);
 		final Entry<WordClassifiers, FeatureAttributeData> trainingResults = wordClassifierTrainingTask.join();
 		trainingData = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet);
+		return trainingData;
 	}
 
 	/**
 	 * Updates (trains) the models with the new round.
+	 *
+	 * @param round
+	 *            The {@link Round} to add to the dataset for training.
+	 * @return The new {@link TrainingData}.
 	 */
-	void updateModel(final Round round) {
-		// Re-use old training data plus data from the given round
-		final RoundSet trainingSet = trainingData.getTrainingSet();
-		trainingSet.getRounds().add(round);
-		final Vocabulary oldVocab = trainingData.getVocabulary();
-		final Vocabulary vocab = trainingSet.createVocabulary(estimateUpdatedVocabSize());
-		// NOTE: Values are retrieved directly from the map instead of e.g.
-		// assigning
-		// them to a final field because it's possible that the map values
-		// change at another place in the code and performance isn't an issue
-		// here anyway
-		vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
-		final Number updateWeight = (Number) modelParams.get(ModelParameter.UPDATE_WEIGHT);
-		final ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>> wordClassifierTrainingTask = trainWordClassifiers(
-				vocab.getUpdatedWordsSince(oldVocab),
-				NumberTypeConversions.finiteDoubleValue(updateWeight.doubleValue()), trainingSet);
-		final Entry<WordClassifiers, FeatureAttributeData> trainingResults = wordClassifierTrainingTask.join();
-		trainingData = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet);
+	TrainingData updateModel(final Round round) {
+		final Updater updater = new Updater(round);
+		final ForkJoinTask<TrainingData> updateTask = submitTask(updater);
+		trainingData = updateTask.join();
+		return trainingData;
 	}
 
 }
