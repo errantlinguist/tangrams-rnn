@@ -33,6 +33,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ForkJoinPool;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -51,6 +52,7 @@ import se.kth.speech.FileNames;
 import se.kth.speech.HashedCollections;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
+import se.kth.speech.coin.tangrams.wac.logistic.RankScorer.RoundEvaluationResult;
 
 public final class BatchCrossValidator { // NO_UCD (use default)
 
@@ -79,8 +81,10 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 			LOGGER.info("Will write results of cross-validation test named \"{}\" to \"{}\".", name, outfilePath);
 			final Map<ModelParameter, Object> modelParams = namedParamSet.getValue();
 			final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
-			final CrossValidator crossValidator = new CrossValidator(modelParams, modelFactory, executor,
-					cvIterBatchSize);
+			final Function<LogisticModel, Function<SessionSet, Stream<RoundEvaluationResult>>> evaluatorFactory = model -> model
+					.createRankScorer();
+			final CrossValidator<RoundEvaluationResult> crossValidator = new CrossValidator<>(modelParams, modelFactory,
+					executor, evaluatorFactory, cvIterBatchSize);
 			BufferedWriter fileWriter;
 			CrossValidationTablularDataWriter resultWriter;
 			try {

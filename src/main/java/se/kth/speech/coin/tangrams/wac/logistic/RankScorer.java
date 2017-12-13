@@ -23,6 +23,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import org.slf4j.Logger;
@@ -43,7 +44,75 @@ import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.WordClassifiers;
 import weka.classifiers.functions.Logistic;
 import weka.core.Instance;
 
-public final class RankScorer {
+public final class RankScorer implements Function<SessionSet, Stream<RankScorer.RoundEvaluationResult>> {
+
+	public static final class RoundEvaluationResult { // NO_UCD (use default)
+
+		private final String sessionId;
+
+		private final int roundId;
+
+		private final ClassificationResult classificationResult;
+
+		private final Round round;
+
+		private final long startNanos;
+
+		private final long endNanos;
+
+		RoundEvaluationResult(final long startNanos, final long endNanos, final String sessionId, final int roundId,
+				final Round round, final ClassificationResult classificationResult) {
+			this.startNanos = startNanos;
+			this.endNanos = endNanos;
+			this.sessionId = sessionId;
+			this.roundId = roundId;
+			this.round = round;
+			this.classificationResult = classificationResult;
+		}
+
+		/**
+		 * @return the classificationResult
+		 */
+		public ClassificationResult getClassificationResult() {
+			return classificationResult;
+		}
+
+		/**
+		 * @return the endNanos
+		 */
+		public long getEndNanos() {
+			return endNanos;
+		}
+
+		/**
+		 * @return the round
+		 */
+		public Round getRound() {
+			return round;
+		}
+
+		/**
+		 * @return the roundId
+		 */
+		public int getRoundId() {
+			return roundId;
+		}
+
+		/**
+		 * @return the sessionId
+		 */
+		public String getSessionId() {
+			return sessionId;
+		}
+
+		/**
+		 * @return the startNanos
+		 */
+		public long getStartNanos() {
+			return startNanos;
+		}
+
+	}
 
 	private static final Consumer<Round> DUMMY_INCREMENTAL_ROUND_TRAINING_UPDATER = round -> {
 		// Do nothing
@@ -82,6 +151,50 @@ public final class RankScorer {
 	RankScorer(final LogisticModel model, final Scorer scorer) {
 		this.model = model;
 		this.scorer = scorer;
+	}
+
+	@Override
+	public Stream<RoundEvaluationResult> apply(final SessionSet set) {
+		final Stream<SessionRoundDatum> sessionRoundData = set.getSessions().stream().map(session -> {
+			final String sessionId = session.getName();
+			final List<Round> rounds = session.getRounds();
+			final List<SessionRoundDatum> roundData = new ArrayList<>(rounds.size());
+			final ListIterator<Round> roundIter = rounds.listIterator();
+			while (roundIter.hasNext()) {
+				final Round round = roundIter.next();
+				// Game rounds are 1-indexed, thus calling this after
+				// calling
+				// "ListIterator.next()" rather than before
+				final int roundId = roundIter.nextIndex();
+				roundData.add(new SessionRoundDatum(sessionId, roundId, round));
+			}
+			return roundData;
+		}).flatMap(List::stream);
+
+		final Map<ModelParameter, Object> modelParams = model.getModelParams();
+		final double updateWeight = ((Number) modelParams.get(ModelParameter.UPDATE_WEIGHT)).doubleValue();
+		// TODO: Currently, this blocks until updating is complete,
+		// which could take a long time; Make this asynchronous and return
+		// the evaluation results, ensuring to block the NEXT evaluation
+		// until updating for THIS iteration is finished
+		final Consumer<Round> incrementalRoundTrainingUpdater = updateWeight > 0.0 ? model::updateModel
+				: DUMMY_INCREMENTAL_ROUND_TRAINING_UPDATER;
+		return sessionRoundData.flatMap(sessionRoundDatum -> {
+			final Round round = sessionRoundDatum.getRound();
+			final long startNanos = System.nanoTime();
+			final Optional<ClassificationResult> optClassificationResult = rank(round, modelParams);
+			return optClassificationResult.map(classificationResult -> {
+				incrementalRoundTrainingUpdater.accept(round);
+				final long endNanos = System.nanoTime();
+				return Stream.of(new RoundEvaluationResult(startNanos, endNanos, sessionRoundDatum.getSessionId(),
+						sessionRoundDatum.getRoundId(), round, classificationResult));
+			}).orElseGet(() -> {
+				LOGGER.warn(
+						"No referring language found for round {} of session \"{}\"; Skipping classification of that round.",
+						sessionRoundDatum.getRoundId(), sessionRoundDatum.getSessionId());
+				return Stream.empty();
+			});
+		});
 	}
 
 	/**
@@ -170,48 +283,5 @@ public final class RankScorer {
 					refWordClassifierScoreMaps, wordObservationCounts));
 		}
 		return result;
-	}
-
-	Stream<RoundEvaluationResult> eval(final SessionSet set) {
-		final Stream<SessionRoundDatum> sessionRoundData = set.getSessions().stream().map(session -> {
-			final String sessionId = session.getName();
-			final List<Round> rounds = session.getRounds();
-			final List<SessionRoundDatum> roundData = new ArrayList<>(rounds.size());
-			final ListIterator<Round> roundIter = rounds.listIterator();
-			while (roundIter.hasNext()) {
-				final Round round = roundIter.next();
-				// Game rounds are 1-indexed, thus calling this after
-				// calling
-				// "ListIterator.next()" rather than before
-				final int roundId = roundIter.nextIndex();
-				roundData.add(new SessionRoundDatum(sessionId, roundId, round));
-			}
-			return roundData;
-		}).flatMap(List::stream);
-
-		final Map<ModelParameter, Object> modelParams = model.getModelParams();
-		final double updateWeight = ((Number) modelParams.get(ModelParameter.UPDATE_WEIGHT)).doubleValue();
-		// TODO: Currently, this blocks until updating is complete,
-		// which could take a long time; Make this asynchronous and return
-		// the evaluation results, ensuring to block the NEXT evaluation
-		// until updating for THIS iteration is finished
-		final Consumer<Round> incrementalRoundTrainingUpdater = updateWeight > 0.0 ? model::updateModel
-				: DUMMY_INCREMENTAL_ROUND_TRAINING_UPDATER;
-		return sessionRoundData.flatMap(sessionRoundDatum -> {
-			final Round round = sessionRoundDatum.getRound();
-			final long startNanos = System.nanoTime();
-			final Optional<ClassificationResult> optClassificationResult = rank(round, modelParams);
-			return optClassificationResult.map(classificationResult -> {
-				incrementalRoundTrainingUpdater.accept(round);
-				final long endNanos = System.nanoTime();
-				return Stream.of(new RoundEvaluationResult(startNanos, endNanos, sessionRoundDatum.getSessionId(),
-						sessionRoundDatum.getRoundId(), round, classificationResult));
-			}).orElseGet(() -> {
-				LOGGER.warn(
-						"No referring language found for round {} of session \"{}\"; Skipping classification of that round.",
-						sessionRoundDatum.getRoundId(), sessionRoundDatum.getSessionId());
-				return Stream.empty();
-			});
-		});
 	}
 }

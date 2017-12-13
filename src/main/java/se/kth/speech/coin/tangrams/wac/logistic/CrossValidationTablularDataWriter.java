@@ -45,6 +45,7 @@ import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.Utterance;
+import se.kth.speech.coin.tangrams.wac.logistic.RankScorer.RoundEvaluationResult;
 
 /**
  * Prints cross-validation results. Is thread-safe.
@@ -56,10 +57,10 @@ import se.kth.speech.coin.tangrams.wac.data.Utterance;
 public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 
 	// @formatter:off
-	public enum Datum implements Function<CrossValidationRoundEvaluationResult, String> {
+	public enum Datum implements Function<CrossValidator.Result<RankScorer.RoundEvaluationResult>, String> {
 		START_TIME {
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final long start = evalResult.getStartNanos();
 				return Long.toString(start);
@@ -67,7 +68,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		},
 		END_TIME {
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final long end = evalResult.getEndNanos();
 				return Long.toString(end);
@@ -76,7 +77,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		CROSS_VALIDATION_ITER {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				return Integer.toString(cvResult.getCrossValidationIteration());
 			}
 
@@ -84,7 +85,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		DYAD {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				return evalResult.getSessionId();
 			}
@@ -93,7 +94,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		ROUND {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				return Integer.toString(evalResult.getRoundId());
 			}
@@ -104,7 +105,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 			private final Comparator<Weighted<Referent>> refScoreComparator = createComparator();
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
 				final List<Weighted<Referent>> scoredRefs = classificationResult.getScoredReferents();
@@ -122,7 +123,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		SCORE {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				return Integer.toString(round.getScore());
@@ -132,7 +133,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		ROUND_START_TIME {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				return Float.toString(round.getTime());
@@ -142,7 +143,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		UTT_COUNT {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Utterance> utts = round.getUtts();
@@ -153,7 +154,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		REFERRING_TOKEN_COUNT {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
 				final String[] refTokens = classificationResult.getWords();
@@ -170,7 +171,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		REFERRING_TOKENS {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
 				final String[] refTokens = classificationResult.getWords();
@@ -181,7 +182,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		OOV_TOKENS {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
 				final List<String> oovObservations = classificationResult.getOovObservations();
@@ -192,7 +193,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		OOV_COUNT {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
 				final List<String> oovObservations = classificationResult.getOovObservations();
@@ -203,7 +204,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		ORIG_TOKEN_COUNT {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Utterance> utts = round.getUtts();
@@ -215,7 +216,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		SHAPE {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Referent> refs = round.getReferents();
@@ -228,7 +229,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		EDGE_COUNT {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Referent> refs = round.getReferents();
@@ -241,7 +242,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		SIZE {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Referent> refs = round.getReferents();
@@ -254,7 +255,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		RED {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Referent> refs = round.getReferents();
@@ -267,7 +268,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		GREEN {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Referent> refs = round.getReferents();
@@ -280,7 +281,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		BLUE {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Referent> refs = round.getReferents();
@@ -293,7 +294,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		HUE {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Referent> refs = round.getReferents();
@@ -306,7 +307,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		POSITION_X {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Referent> refs = round.getReferents();
@@ -319,7 +320,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		POSITION_Y {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				final List<Referent> refs = round.getReferents();
@@ -332,7 +333,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		DISCOUNT {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
 				return modelParams.get(ModelParameter.DISCOUNT).toString();
 			}
@@ -341,7 +342,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		ONLY_INSTRUCTOR {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
 				return modelParams.get(ModelParameter.ONLY_INSTRUCTOR).toString();
 			}
@@ -350,7 +351,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		RANDOM_SEED {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
 				return modelParams.get(ModelParameter.RANDOM_SEED).toString();
 			}
@@ -359,7 +360,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		TRAINING_SET_SIZE_DISCOUNT {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
 				return modelParams.get(ModelParameter.TRAINING_SET_SIZE_DISCOUNT).toString();
 			}
@@ -368,7 +369,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		UPDATE_WEIGHT {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
 				return modelParams.get(ModelParameter.UPDATE_WEIGHT).toString();
 			}
@@ -377,7 +378,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		WEIGHT_BY_FREQ {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
 				return modelParams.get(ModelParameter.WEIGHT_BY_FREQ).toString();
 			}
@@ -386,7 +387,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		TARGET_WORD_CLASSIFIER_SCORES {
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
 				final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps = classificationResult.getRefWordClassifierScoreMaps();
@@ -403,7 +404,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RankScorer.RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
 				final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps = classificationResult.getRefWordClassifierScoreMaps();
@@ -420,7 +421,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 
 
 			@Override
-			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult> cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
 				final Object2LongMap<String> wordObsCounts = classificationResult.getWordObservationCounts();
@@ -503,9 +504,9 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		this(FORMAT.print(out), dataToWrite);
 	}
 
-	public void accept(final CrossValidationRoundEvaluationResult input) throws IOException { // NO_UCD
-																								// (use
-																								// default)
+	public void accept(final CrossValidator.Result<RankScorer.RoundEvaluationResult> input) throws IOException { // NO_UCD
+		// (use
+		// default)
 		final List<String> row = Arrays
 				.asList(dataToWrite.stream().map(datum -> datum.apply(input)).toArray(String[]::new));
 		writeLock.lock();

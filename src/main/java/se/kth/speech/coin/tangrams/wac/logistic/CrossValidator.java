@@ -29,6 +29,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -46,8 +47,9 @@ import org.slf4j.LoggerFactory;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
+import se.kth.speech.coin.tangrams.wac.logistic.RankScorer.RoundEvaluationResult;
 
-public final class CrossValidator { // NO_UCD (use default)
+public final class CrossValidator<R> { // NO_UCD (use default)
 
 	public static final class Exception extends RuntimeException { // NO_UCD
 																	// (use
@@ -71,6 +73,43 @@ public final class CrossValidator { // NO_UCD (use default)
 			super(createMessage(training, testing, cause), cause);
 		}
 
+	}
+
+	public static final class Result<R> {
+
+		private final int crossValidationIteration;
+
+		private final R evalResult;
+
+		private final Map<ModelParameter, Object> modelParams;
+
+		Result(final int crossValidationIteration, final R evalResult, final Map<ModelParameter, Object> modelParams) {
+			this.crossValidationIteration = crossValidationIteration;
+			this.evalResult = evalResult;
+			this.modelParams = modelParams;
+
+		}
+
+		/**
+		 * @return the crossValidationIteration
+		 */
+		int getCrossValidationIteration() {
+			return crossValidationIteration;
+		}
+
+		/**
+		 * @return the evalResult
+		 */
+		R getEvalResult() {
+			return evalResult;
+		}
+
+		/**
+		 * @return the modelParams
+		 */
+		Map<ModelParameter, Object> getModelParams() {
+			return modelParams;
+		}
 	}
 
 	private enum Parameter implements Supplier<Option> {
@@ -124,7 +163,10 @@ public final class CrossValidator { // NO_UCD (use default)
 				final CrossValidationTablularDataWriter resultWriter = new CrossValidationTablularDataWriter(
 						System.out);
 				final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
-				final CrossValidator crossValidator = new CrossValidator(modelParams, modelFactory, executor);
+				final Function<LogisticModel, Function<SessionSet, Stream<RoundEvaluationResult>>> evaluatorFactory = model -> model
+						.createRankScorer();
+				final CrossValidator<RoundEvaluationResult> crossValidator = new CrossValidator<>(modelParams,
+						modelFactory, evaluatorFactory, executor);
 				crossValidator.crossValidate(set, evalResult -> {
 					try {
 						resultWriter.accept(evalResult);
@@ -168,19 +210,23 @@ public final class CrossValidator { // NO_UCD (use default)
 
 	private final int cvIterBatchSize;
 
-	public CrossValidator(final Map<ModelParameter, Object> modelParams, final Supplier<LogisticModel> modelFactory,
-			final Executor executor) {
-		this(modelParams, modelFactory, executor, 1);
-	}
+	private final Function<LogisticModel, Function<SessionSet, Stream<R>>> evaluatorFactory;
 
 	public CrossValidator(final Map<ModelParameter, Object> modelParams, final Supplier<LogisticModel> modelFactory, // NO_UCD
 																														// (use
 																														// default)
-			final Executor executor, final int cvIterBatchSize) {
+			final Executor executor, final Function<LogisticModel, Function<SessionSet, Stream<R>>> evaluatorFactory,
+			final int cvIterBatchSize) {
 		this.modelParams = modelParams;
 		this.modelFactory = modelFactory;
 		this.executor = executor;
+		this.evaluatorFactory = evaluatorFactory;
 		this.cvIterBatchSize = cvIterBatchSize;
+	}
+
+	public CrossValidator(final Map<ModelParameter, Object> modelParams, final Supplier<LogisticModel> modelFactory,
+			final Function<LogisticModel, Function<SessionSet, Stream<R>>> evaluatorFactory, final Executor executor) {
+		this(modelParams, modelFactory, executor, evaluatorFactory, 1);
 	}
 
 	/**
@@ -189,13 +235,12 @@ public final class CrossValidator { // NO_UCD (use default)
 	 * @param set
 	 *            The {@link SessionSet} to perform cross-validation on.
 	 * @param resultHandler
-	 *            A {@link Consumer} of individual
-	 *            {@link CrossValidationRoundEvaluationResult} objects
+	 *            A {@link Consumer} of individual {@link Result} objects
 	 *            representing the results of testing on a single round in a
 	 *            single session.
 	 */
 	public void crossValidate(final SessionSet set, // NO_UCD (use default)
-			final Consumer<? super CrossValidationRoundEvaluationResult> resultHandler) {
+			final Consumer<? super Result<R>> resultHandler) {
 		final CompletableFuture<Void> allFinished = CompletableFuture
 				.allOf(crossValidateAsynchronously(set, resultHandler).toArray(CompletableFuture[]::new));
 		allFinished.join();
@@ -207,8 +252,7 @@ public final class CrossValidator { // NO_UCD (use default)
 	 * @param set
 	 *            The {@link SessionSet} to perform cross-validation on.
 	 * @param resultHandler
-	 *            A {@link Consumer} of individual
-	 *            {@link CrossValidationRoundEvaluationResult} objects
+	 *            A {@link Consumer} of individual {@link Result} objects
 	 *            representing the results of testing on a single round in a
 	 *            single session.
 	 * @return A {@link Stream} of <em>n</em> {@link CompletableFuture}, each of
@@ -219,7 +263,7 @@ public final class CrossValidator { // NO_UCD (use default)
 	public Stream<CompletableFuture<Void>> crossValidateAsynchronously(final SessionSet set, // NO_UCD
 																								// (use
 																								// private)
-			final Consumer<? super CrossValidationRoundEvaluationResult> resultHandler) {
+			final Consumer<? super Result<R>> resultHandler) {
 		final int cvIterCount = (Integer) modelParams.get(ModelParameter.CROSS_VALIDATION_ITER_COUNT);
 		// Pass the same Random instance to each cross-validation iteration so
 		// that each iteration is potentially different
@@ -235,10 +279,10 @@ public final class CrossValidator { // NO_UCD (use default)
 						try {
 							final LogisticModel model = modelFactory.get();
 							model.train(training);
-							final RankScorer scorer = model.createRankScorer();
-							final Stream<RoundEvaluationResult> roundEvalResults = scorer.eval(new SessionSet(testing));
-							roundEvalResults.map(evalResult -> new CrossValidationRoundEvaluationResult(cvIter,
-									evalResult, modelParams)).forEach(resultHandler);
+							final Function<SessionSet, Stream<R>> evaluator = evaluatorFactory.apply(model);
+							final Stream<R> roundEvalResults = evaluator.apply(new SessionSet(testing));
+							roundEvalResults.map(evalResult -> new Result<>(cvIter, evalResult, modelParams))
+									.forEach(resultHandler);
 						} catch (final ClassificationException e) {
 							throw new Exception(training, testing, e);
 						}
