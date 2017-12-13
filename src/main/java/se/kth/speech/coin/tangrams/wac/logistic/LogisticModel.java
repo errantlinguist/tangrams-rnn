@@ -133,6 +133,80 @@ public final class LogisticModel { // NO_UCD (use default)
 			return result;
 		}
 
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(final Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (!(obj instanceof FeatureAttributeData)) {
+				return false;
+			}
+			final FeatureAttributeData other = (FeatureAttributeData) obj;
+			if (attrList == null) {
+				if (other.attrList != null) {
+					return false;
+				}
+			} else if (!attrList.equals(other.attrList)) {
+				return false;
+			}
+			if (classAttr == null) {
+				if (other.classAttr != null) {
+					return false;
+				}
+			} else if (!classAttr.equals(other.classAttr)) {
+				return false;
+			}
+			if (featureAttrs == null) {
+				if (other.featureAttrs != null) {
+					return false;
+				}
+			} else if (!featureAttrs.equals(other.featureAttrs)) {
+				return false;
+			}
+			return true;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + (attrList == null ? 0 : attrList.hashCode());
+			result = prime * result + (classAttr == null ? 0 : classAttr.hashCode());
+			result = prime * result + (featureAttrs == null ? 0 : featureAttrs.hashCode());
+			return result;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.Object#toString()
+		 */
+		@Override
+		public String toString() {
+			final StringBuilder builder = new StringBuilder(256);
+			builder.append("FeatureAttributeData [featureAttrs=");
+			builder.append(featureAttrs);
+			builder.append(", attrList=");
+			builder.append(attrList);
+			builder.append(", classAttr=");
+			builder.append(classAttr);
+			builder.append("]");
+			return builder.toString();
+		}
+
 		private Instances createNewInstances(final int capacity) {
 			final Instances result = new Instances("Referents", attrList, capacity);
 			result.setClass(classAttr);
@@ -162,7 +236,7 @@ public final class LogisticModel { // NO_UCD (use default)
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see java.lang.Object#equals(java.lang.Object)
 		 */
 		@Override
@@ -188,7 +262,7 @@ public final class LogisticModel { // NO_UCD (use default)
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see java.lang.Object#hashCode()
 		 */
 		@Override
@@ -290,7 +364,7 @@ public final class LogisticModel { // NO_UCD (use default)
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see java.lang.Object#toString()
 		 */
 		@Override
