@@ -52,64 +52,21 @@ public final class WordProbabilityScorer
 
 		private final double score;
 
+		private final int uttSeqOrdinality;
+
 		private final String word;
 
 		private final long wordObsCount;
 
-		private ReferentWordScore(final Referent ref, final String word, final boolean isInstructor,
-				final boolean isOov, final long wordObsCount, final double score) {
+		private ReferentWordScore(final Referent ref, final int uttSeqOrdinality, final String word,
+				final boolean isInstructor, final boolean isOov, final long wordObsCount, final double score) {
 			this.ref = ref;
+			this.uttSeqOrdinality = uttSeqOrdinality;
 			this.word = word;
 			this.isInstructor = isInstructor;
 			this.isOov = isOov;
 			this.wordObsCount = wordObsCount;
 			this.score = score;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see java.lang.Object#equals(java.lang.Object)
-		 */
-		@Override
-		public boolean equals(final Object obj) {
-			if (this == obj) {
-				return true;
-			}
-			if (obj == null) {
-				return false;
-			}
-			if (!(obj instanceof ReferentWordScore)) {
-				return false;
-			}
-			final ReferentWordScore other = (ReferentWordScore) obj;
-			if (isInstructor != other.isInstructor) {
-				return false;
-			}
-			if (isOov != other.isOov) {
-				return false;
-			}
-			if (ref == null) {
-				if (other.ref != null) {
-					return false;
-				}
-			} else if (!ref.equals(other.ref)) {
-				return false;
-			}
-			if (Double.doubleToLongBits(score) != Double.doubleToLongBits(other.score)) {
-				return false;
-			}
-			if (word == null) {
-				if (other.word != null) {
-					return false;
-				}
-			} else if (!word.equals(other.word)) {
-				return false;
-			}
-			if (wordObsCount != other.wordObsCount) {
-				return false;
-			}
-			return true;
 		}
 
 		/**
@@ -127,6 +84,13 @@ public final class WordProbabilityScorer
 		}
 
 		/**
+		 * @return the uttSeqOrdinality
+		 */
+		public int getUttSeqOrdinality() {
+			return uttSeqOrdinality;
+		}
+
+		/**
 		 * @return the word
 		 */
 		public String getWord() {
@@ -138,26 +102,6 @@ public final class WordProbabilityScorer
 		 */
 		public long getWordObsCount() {
 			return wordObsCount;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see java.lang.Object#hashCode()
-		 */
-		@Override
-		public int hashCode() {
-			final int prime = 31;
-			int result = 1;
-			result = prime * result + (isInstructor ? 1231 : 1237);
-			result = prime * result + (isOov ? 1231 : 1237);
-			result = prime * result + (ref == null ? 0 : ref.hashCode());
-			long temp;
-			temp = Double.doubleToLongBits(score);
-			result = prime * result + (int) (temp ^ temp >>> 32);
-			result = prime * result + (word == null ? 0 : word.hashCode());
-			result = prime * result + (int) (wordObsCount ^ wordObsCount >>> 32);
-			return result;
 		}
 
 		/**
@@ -172,30 +116,6 @@ public final class WordProbabilityScorer
 		 */
 		public boolean isOov() {
 			return isOov;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see java.lang.Object#toString()
-		 */
-		@Override
-		public String toString() {
-			final StringBuilder builder = new StringBuilder(128);
-			builder.append("ReferentWordScore [isOov=");
-			builder.append(isOov);
-			builder.append(", ref=");
-			builder.append(ref);
-			builder.append(", score=");
-			builder.append(score);
-			builder.append(", word=");
-			builder.append(word);
-			builder.append(", wordObsCount=");
-			builder.append(wordObsCount);
-			builder.append(", isInstructor=");
-			builder.append(isInstructor);
-			builder.append("]");
-			return builder.toString();
 		}
 
 	}
@@ -293,11 +213,14 @@ public final class WordProbabilityScorer
 			final Logistic discountClassifier = wordClassifiers.getDiscountClassifier();
 			final List<Referent> refs = round.getReferents();
 			result = Optional.of(refs.stream().flatMap(ref -> {
+				final Stream.Builder<ReferentWordScore> wordScoreStreamBuilder = Stream.builder();
 				final Instance inst = featureAttrs.createInstance(ref);
-				return utts.stream().flatMap(utt -> {
+				final ListIterator<Utterance> uttIter = utts.listIterator();
+				do {
+					final Utterance utt = uttIter.next();
+					final int uttSeqOrdinality = uttIter.nextIndex();
 					final boolean isInstructor = utt.isInstructor();
-					final List<String> tokens = utt.getReferringTokens();
-					return tokens.stream().map(word -> {
+					final Stream<ReferentWordScore> wordScores = utt.getReferringTokens().stream().map(word -> {
 						Logistic wordClassifier = wordClassifiers.getWordClassifier(word);
 						final boolean isOov;
 						final long wordObsCount;
@@ -314,9 +237,12 @@ public final class WordProbabilityScorer
 									? discountWeightingValue : extantWordObservationCount;
 							wordScore *= Math.log10(effectiveObsCountValue);
 						}
-						return new ReferentWordScore(ref, word, isInstructor, isOov, wordObsCount, wordScore);
+						return new ReferentWordScore(ref, uttSeqOrdinality, word, isInstructor, isOov, wordObsCount,
+								wordScore);
 					});
-				});
+					wordScores.forEach(wordScoreStreamBuilder);
+					return wordScoreStreamBuilder.build();
+				} while (uttIter.hasNext());
 			}));
 		}
 		return result;
