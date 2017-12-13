@@ -456,6 +456,10 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		return result;
 	}
 
+	private static final List<Datum> createDefaultDataToWriteList() {
+		return Arrays.asList(Datum.values());
+	}
+
 	/**
 	 * Returns the rank of the target {@link Referent} in a round.
 	 *
@@ -477,16 +481,12 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 	}
 
 	private final List<Datum> dataToWrite;
-	
+
 	private final CSVPrinter printer;
 
 	private final Lock writeLock;
-	
-	private static final List<Datum> createDefaultDataToWriteList(){
-		return Arrays.asList(Datum.values());
-	}
 
-	private CrossValidationTablularDataWriter(final CSVPrinter printer, List<Datum> dataToWrite) {
+	private CrossValidationTablularDataWriter(final CSVPrinter printer, final List<Datum> dataToWrite) {
 		this.printer = printer;
 		this.dataToWrite = dataToWrite;
 		writeLock = new ReentrantLock();
@@ -495,15 +495,16 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 	CrossValidationTablularDataWriter(final Appendable out) throws IOException {
 		this(out, createDefaultDataToWriteList());
 	}
-	
-	CrossValidationTablularDataWriter(final Appendable out, List<Datum> dataToWrite) throws IOException {
+
+	CrossValidationTablularDataWriter(final Appendable out, final List<Datum> dataToWrite) throws IOException {
 		this(FORMAT.print(out), dataToWrite);
 	}
 
 	public void accept(final CrossValidationRoundEvaluationResult input) throws IOException { // NO_UCD
 																								// (use
 																								// default)
-		final List<String> row = Arrays.asList(dataToWrite.stream().map(datum -> datum.apply(input)).toArray(String[]::new));
+		final List<String> row = Arrays
+				.asList(dataToWrite.stream().map(datum -> datum.apply(input)).toArray(String[]::new));
 		writeLock.lock();
 		try {
 			printer.printRecord(row);
