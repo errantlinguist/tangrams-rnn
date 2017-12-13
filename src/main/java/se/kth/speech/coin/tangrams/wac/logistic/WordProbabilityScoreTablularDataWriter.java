@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -59,10 +58,10 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 															// default)
 
 	// @formatter:off
-	public enum Datum implements BiFunction<CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>>, WordProbabilityScorer.ReferentWordScore, String> {
+	public enum Datum {
 		START_TIME {
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
 				final long start = evalResult.getStartNanos();
 				return Long.toString(start);
@@ -70,7 +69,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		},
 		END_TIME {
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
 				final long end = evalResult.getEndNanos();
 				return Long.toString(end);
@@ -79,7 +78,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		CROSS_VALIDATION_ITER {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				return Integer.toString(cvResult.getCrossValidationIteration());
 			}
 
@@ -87,7 +86,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		DYAD {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
 				return evalResult.getSessionId();
 			}
@@ -96,7 +95,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		ROUND {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
 				return Integer.toString(evalResult.getRoundId());
 			}
@@ -105,52 +104,59 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		GAME_SCORE {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				return Integer.toString(round.getScore());
 			}
 
 		},
+		TOKEN_SEQ_ORDINALITY {
+
+			@Override
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
+				return Integer.toString(tokenSeqOrdinality);
+			}
+		},
 		WORD {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				return refWordScore.getWord();
 			}
 		},
 		WORD_OBS_COUNT {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				return Long.toString(refWordScore.getWordObsCount());
 			}
 		},
 		IS_OOV {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				return Boolean.toString(refWordScore.isOov());
 			}
 		},
 		PROBABILITY {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				return Double.toString(refWordScore.getScore());
 			}
 		},
 		IS_TARGET {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				return Boolean.toString(refWordScore.getRef().isTarget());
 			}
 		},
 		ROUND_START_TIME {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
 				final Round round = evalResult.getRound();
 				return Float.toString(round.getTime());
@@ -160,7 +166,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		SHAPE {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				return refWordScore.getRef().getShape();
 			}
 
@@ -168,7 +174,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		EDGE_COUNT {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				return Integer.toString(refWordScore.getRef().getEdgeCount());
 			}
 
@@ -176,7 +182,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		SIZE {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				return Double.toString(refWordScore.getRef().getSize());
 			}
 
@@ -184,7 +190,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		RED {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				return Float.toString(refWordScore.getRef().getRed());
 			}
 
@@ -192,7 +198,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		GREEN {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				return Float.toString(refWordScore.getRef().getGreen());
 			}
 
@@ -200,7 +206,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		BLUE {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				return Float.toString(refWordScore.getRef().getBlue());
 			}
 
@@ -208,7 +214,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		HUE {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				return Float.toString(refWordScore.getRef().getHue());
 			}
 
@@ -216,7 +222,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		POSITION_X {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				return Double.toString(refWordScore.getRef().getPositionX());
 			}
 
@@ -224,7 +230,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		POSITION_Y {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				return Double.toString(refWordScore.getRef().getPositionY());
 			}
 
@@ -232,7 +238,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		MID_X {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				return Double.toString(refWordScore.getRef().getMidX());
 			}
 
@@ -240,7 +246,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		MID_Y {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				return Double.toString(refWordScore.getRef().getMidY());
 			}
 
@@ -248,7 +254,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		DISCOUNT {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
 				return modelParams.get(ModelParameter.DISCOUNT).toString();
 			}
@@ -257,7 +263,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		ONLY_INSTRUCTOR {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
 				return modelParams.get(ModelParameter.ONLY_INSTRUCTOR).toString();
 			}
@@ -266,7 +272,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		RANDOM_SEED {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
 				return modelParams.get(ModelParameter.RANDOM_SEED).toString();
 			}
@@ -275,7 +281,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		TRAINING_SET_SIZE_DISCOUNT {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
 				return modelParams.get(ModelParameter.TRAINING_SET_SIZE_DISCOUNT).toString();
 			}
@@ -284,7 +290,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		UPDATE_WEIGHT {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
 				return modelParams.get(ModelParameter.UPDATE_WEIGHT).toString();
 			}
@@ -293,12 +299,14 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		WEIGHT_BY_FREQ {
 
 			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
 				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
 				return modelParams.get(ModelParameter.WEIGHT_BY_FREQ).toString();
 			}
 
 		};
+
+		public abstract String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, int tokenSeqOrdinality);
 
 	}
 	// @formatter:on
@@ -424,9 +432,11 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 			throws IOException { // NO_UCD (use default)
 		final RoundEvaluationResult<ReferentWordScore[]> evalResult = input.getEvalResult();
 		final WordProbabilityScorer.ReferentWordScore[] refWordScores = evalResult.getClassificationResult();
+		int nextTokenSeqOrdinality = 1;
 		for (final ReferentWordScore refWordScore : refWordScores) {
-			final List<String> row = Arrays
-					.asList(dataToWrite.stream().map(datum -> datum.apply(input, refWordScore)).toArray(String[]::new));
+			final int tokenSeqOrdinality = nextTokenSeqOrdinality++;
+			final List<String> row = Arrays.asList(dataToWrite.stream()
+					.map(datum -> datum.apply(input, refWordScore, tokenSeqOrdinality)).toArray(String[]::new));
 			writeLock.lock();
 			try {
 				printer.printRecord(row);
