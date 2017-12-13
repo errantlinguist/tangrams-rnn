@@ -125,6 +125,13 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 				return refWordScore.getWord();
 			}
 		},
+		IS_INSTRUCTOR {
+
+			@Override
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore, final int tokenSeqOrdinality) {
+				return Boolean.toString(refWordScore.isInstructor());
+			}
+		},
 		WORD_OBS_COUNT {
 
 			@Override
