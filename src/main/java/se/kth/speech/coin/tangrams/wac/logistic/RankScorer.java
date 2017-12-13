@@ -254,12 +254,7 @@ public final class RankScorer
 	 *         representing the results.
 	 */
 	private Optional<ClassificationResult> rank(final Round round, final Map<ModelParameter, Object> modelParams) {
-		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
-		final String[] words = round.getReferringTokens(onlyInstructor).toArray(String[]::new);
-		final WordClassifiers wordClassifiers = model.getWordClassifiers();
-		final FeatureAttributeData featureAttrs = model.getFeatureAttrs();
-		final Vocabulary vocab = model.getVocabulary();
-
+		final String[] words = round.getReferringTokens((Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR)).toArray(String[]::new);
 		final Optional<ClassificationResult> result;
 		if (words.length < 1) {
 			result = Optional.empty();
@@ -270,6 +265,9 @@ public final class RankScorer
 			// the map values change at another place in the code and
 			// performance isn't
 			// an issue here anyway
+			final WordClassifiers wordClassifiers = model.getWordClassifiers();
+			final FeatureAttributeData featureAttrs = model.getFeatureAttrs();
+			final Vocabulary vocab = model.getVocabulary();
 			final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
 			final long discountCutoffValue = ((Number) modelParams.get(ModelParameter.DISCOUNT)).longValue();
 			final double discountWeightingValue = discountCutoffValue;
