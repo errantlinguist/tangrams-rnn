@@ -17,16 +17,13 @@ package se.kth.speech.coin.tangrams.wac.data;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public final class RoundSet {
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 
-	private static final Collector<String, ?, Map<String, Long>> VOCAB_COUNTING_COLLECTOR = Collectors
-			.groupingBy(Function.identity(), Collectors.counting());
+public final class RoundSet {
 
 	private final List<Round> rounds;
 
@@ -45,14 +42,19 @@ public final class RoundSet {
 	}
 
 	public Vocabulary createVocabulary() {
-		final Map<String, Long> counts = rounds.stream().flatMap(round -> round.getReferringTokens(onlyInstructor))
-				.collect(VOCAB_COUNTING_COLLECTOR);
+		final Object2LongMap<String> counts = new Object2LongOpenHashMap<>(rounds.size() * 40);
+		counts.defaultReturnValue(0L);
+		final Stream<String> tokens = rounds.stream().flatMap(round -> round.getReferringTokens(onlyInstructor));
+		tokens.forEach(word -> {
+			final long oldValue = counts.getLong(word);
+			counts.put(word, oldValue + 1L);
+		});
 		return new Vocabulary(counts);
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
@@ -116,7 +118,7 @@ public final class RoundSet {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
@@ -130,7 +132,7 @@ public final class RoundSet {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#toString()
 	 */
 	@Override

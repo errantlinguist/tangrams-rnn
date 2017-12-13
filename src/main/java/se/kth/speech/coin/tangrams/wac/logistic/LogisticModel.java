@@ -41,6 +41,10 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
+import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import se.kth.speech.HashedCollections;
 import se.kth.speech.Lists;
 import se.kth.speech.NumberTypeConversions;
@@ -143,6 +147,8 @@ public final class LogisticModel { // NO_UCD (use default)
 			return result;
 		}
 	}
+	
+	
 
 	public final class Scorer {
 
@@ -163,6 +169,30 @@ public final class LogisticModel { // NO_UCD (use default)
 		 */
 		private Scorer(final ReferentClassification classification) {
 			this.classification = classification;
+		}
+		
+		private static final long NULL_WORD_OBSERVATION_COUNT = 0L;
+		
+		private Object2LongMap<String> createWordObservationCountMap(int expectedTokenTypeCount){
+			final Object2LongMap<String> result = new Object2LongOpenHashMap<>(expectedTokenTypeCount);
+			result.defaultReturnValue(NULL_WORD_OBSERVATION_COUNT);
+			return result;
+		}
+		
+		private boolean isNullWordObservationCount(long count){
+			return NULL_WORD_OBSERVATION_COUNT == count;
+		}
+		
+		private static final double NULL_WORD_CLASSIFIER_SCORE = Double.NaN;
+		
+		private  Object2DoubleMap<String> createWordClassifierScoreMap(int expectedTokenTypeCount){
+			final Object2DoubleMap<String> result = new Object2DoubleOpenHashMap<>(expectedTokenTypeCount);
+			result.defaultReturnValue(NULL_WORD_CLASSIFIER_SCORE);
+			return result;
+		}
+		
+		private boolean isNullWordClassifierScore(double score){
+			return Double.isNaN(score);
 		}
 
 		/**
@@ -190,61 +220,58 @@ public final class LogisticModel { // NO_UCD (use default)
 				// performance isn't
 				// an issue here anyway
 				final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
-				final Long discountCutoffValue = ((Number) modelParams.get(ModelParameter.DISCOUNT)).longValue();
-				final double discountWeightingValue = discountCutoffValue.doubleValue();
+				final long discountCutoffValue = ((Number) modelParams.get(ModelParameter.DISCOUNT)).longValue();
+				final double discountWeightingValue = discountCutoffValue;
 				final List<String> oovObservations = new ArrayList<>();
 				final Logistic discountClassifier = wordClassifiers.getDiscountClassifier();
 				final List<Referent> refs = round.getReferents();
-				final Map<Referent, Map<String, List<Double>>> refWordClassifierScoreLists = new IdentityHashMap<>(
+				final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps = new IdentityHashMap<>(
 						HashedCollections.capacity(refs.size()));
-				refs.forEach(ref -> refWordClassifierScoreLists.put(ref, new HashMap<>()));
+				refs.forEach(ref -> refWordClassifierScoreMaps.put(ref, createWordClassifierScoreMap(words.length)));
 				// Create an entirely-new map rather than referencing the
 				// classifiers so that they can be properly garbage-collected
 				// after ranking and before possible updating preceding the next
 				// classification
-				final Map<String, Long> wordObservationCounts = new HashMap<>(HashedCollections.capacity(words.length));
+				final Object2LongMap<String> wordObservationCounts = createWordObservationCountMap(words.length);
 
 				final Stream<Weighted<Referent>> scoredRefs = refs.stream().map(ref -> {
-					final Map<String, List<Double>> wordClassifierScoreLists = refWordClassifierScoreLists.get(ref);
 					final Instance inst = featureAttrs.createInstance(ref);
-					final double[] wordScores = new double[words.length];
+					final Object2DoubleMap<String> refWordClassifierScoreMap = refWordClassifierScoreMaps.get(ref);
+					final double[] wordScoreArray = new double[words.length];
 					for (int i = 0; i < words.length; ++i) {
 						final String word = words[i];
-						final List<Double> wordClassifierScoreList;
 						Logistic wordClassifier = wordClassifiers.getWordClassifier(word);
+						final String wordClassifierScoreMapKey;
 						if (wordClassifier == null) {
 							wordClassifier = discountClassifier;
 							oovObservations.add(word);
-							wordClassifierScoreList = wordClassifierScoreLists.computeIfAbsent(OOV_CLASS_LABEL,
-									key -> new ArrayList<>());
-							final Long oldDiscountObsCount = wordObservationCounts.putIfAbsent(OOV_CLASS_LABEL,
+							final long oldDiscountObsCount = wordObservationCounts.putIfAbsent(OOV_CLASS_LABEL,
 									discountCutoffValue);
-							assert oldDiscountObsCount == null ? true : oldDiscountObsCount.equals(discountCutoffValue);
+							assert isNullWordObservationCount(oldDiscountObsCount) ? true : oldDiscountObsCount == discountCutoffValue;
+							wordClassifierScoreMapKey = OOV_CLASS_LABEL;
 						} else {
-							wordClassifierScoreList = wordClassifierScoreLists.computeIfAbsent(word,
-									key -> new ArrayList<>());
-							final Long oldWordObsCount = wordObservationCounts.computeIfAbsent(word,
-									key -> vocab.getCount(key));
-							assert oldWordObsCount == null ? true : oldWordObsCount.equals(vocab.getCount(word));
+							final long oldWordObsCount = wordObservationCounts.computeLongIfAbsent(word,
+									vocab::getCount);
+							assert isNullWordObservationCount(oldWordObsCount) ? true : oldWordObsCount == vocab.getCount(word);
+							wordClassifierScoreMapKey = word;
 						}
 						double wordScore = score(wordClassifier, inst);
 						if (weightByFreq) {
-							final Long extantWordObservationCount = wordObservationCounts.get(word);
-							final double effectiveObsCountValue = extantWordObservationCount == null
-									? discountWeightingValue
-									: extantWordObservationCount.doubleValue();
+							final long extantWordObservationCount = wordObservationCounts.getLong(word);
+							final double effectiveObsCountValue = isNullWordObservationCount(extantWordObservationCount) ? discountWeightingValue : extantWordObservationCount;
 							wordScore *= Math.log10(effectiveObsCountValue);
 						}
-						wordScores[i] = wordScore;
-						wordClassifierScoreList.add(wordScore);
+						wordScoreArray[i] = wordScore;
+						final double oldWordClassifierScore = refWordClassifierScoreMap.putIfAbsent(wordClassifierScoreMapKey, wordScore);
+						assert isNullWordClassifierScore(oldWordClassifierScore) ? true : oldWordClassifierScore == wordScore;
 					}
-					final double score = Arrays.stream(wordScores).average().getAsDouble();
+					final double score = Arrays.stream(wordScoreArray).average().getAsDouble();
 					return new Weighted<>(ref, score);
 				});
 				@SuppressWarnings("unchecked")
 				final List<Weighted<Referent>> scoredRefList = Arrays.asList(scoredRefs.toArray(Weighted[]::new));
 				result = Optional.of(new ClassificationResult(scoredRefList, words, oovObservations,
-						refWordClassifierScoreLists, wordObservationCounts));
+						refWordClassifierScoreMaps, wordObservationCounts));
 			}
 			return result;
 		}
@@ -374,7 +401,8 @@ public final class LogisticModel { // NO_UCD (use default)
 					return Stream.of(new RoundEvaluationResult(startNanos, endNanos, sessionRoundDatum.sessionId,
 							sessionRoundDatum.roundId, round, classificationResult));
 				}).orElseGet(() -> {
-					LOGGER.warn("No referring language found for round {} of session \"{}\"; Skipping classification of that round.",
+					LOGGER.warn(
+							"No referring language found for round {} of session \"{}\"; Skipping classification of that round.",
 							sessionRoundDatum.roundId, sessionRoundDatum.sessionId);
 					return Stream.empty();
 				});

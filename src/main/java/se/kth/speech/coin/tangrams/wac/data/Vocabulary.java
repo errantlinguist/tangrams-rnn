@@ -18,13 +18,14 @@ package se.kth.speech.coin.tangrams.wac.data;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
+
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public final class Vocabulary {
 
-	private final Map<String, Long> wordObservationCounts;
+	private final Object2LongMap<String> wordObservationCounts;
 
-	Vocabulary(final Map<String, Long> wordObservationCounts) {
+	Vocabulary(final Object2LongMap<String> wordObservationCounts) {
 		this.wordObservationCounts = wordObservationCounts;
 	}
 
@@ -55,8 +56,8 @@ public final class Vocabulary {
 		return true;
 	}
 
-	public Long getCount(final String word) {
-		return wordObservationCounts.get(word);
+	public long getCount(final String word) {
+		return wordObservationCounts.getLong(word);
 	}
 
 	public List<String> getUpdatedWordsSince(final Vocabulary oldVocab) {
@@ -65,7 +66,7 @@ public final class Vocabulary {
 			// System.out.println(word + " " + oldVocab.dict.get(word) + " " +
 			// dict.get(word));
 			if (!oldVocab.wordObservationCounts.containsKey(word)
-					|| !oldVocab.wordObservationCounts.get(word).equals(wordObservationCounts.get(word))) {
+					|| !(oldVocab.wordObservationCounts.getLong(word) == wordObservationCounts.getLong(word))) {
 				newWords.add(word);
 			}
 		}
@@ -81,7 +82,7 @@ public final class Vocabulary {
 		words.sort(new Comparator<String>() {
 			@Override
 			public int compare(final String o1, final String o2) {
-				return wordObservationCounts.get(o2).compareTo(wordObservationCounts.get(o1));
+				return Long.compare(wordObservationCounts.getLong(o2), wordObservationCounts.getLong(o1));
 			}
 		});
 		return words;
@@ -109,8 +110,8 @@ public final class Vocabulary {
 	public long prune(final int n) {
 		long result = 0;
 		for (final String word : getWords()) {
-			if (wordObservationCounts.get(word) < n) {
-				final Long obsCount = wordObservationCounts.remove(word);
+			if (wordObservationCounts.getLong(word) < n) {
+				final long obsCount = wordObservationCounts.removeLong(word);
 				result += obsCount;
 			}
 		}
@@ -121,7 +122,7 @@ public final class Vocabulary {
 	public String toString() {
 		final StringBuilder sb = new StringBuilder();
 		for (final String word : getWordsSortedByFreq()) {
-			sb.append(word + " " + wordObservationCounts.get(word) + System.lineSeparator());
+			sb.append(word + " " + wordObservationCounts.getLong(word) + System.lineSeparator());
 		}
 		return sb.toString();
 	}

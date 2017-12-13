@@ -18,6 +18,8 @@ package se.kth.speech.coin.tangrams.wac.logistic;
 import java.util.List;
 import java.util.Map;
 
+import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 
 final class ClassificationResult {
@@ -37,10 +39,10 @@ final class ClassificationResult {
 
 	/**
 	 * A {@link Map} of the different word classifiers used (including the OOV
-	 * label if used) mapping to a {@link Map} of classification scores computed
+	 * label if used) mapping to a {@link Object2DoubleMap} of classification scores computed
 	 * for each {@link Referent}.
 	 */
-	private final Map<Referent, Map<String, List<Double>>> refWordClassifierScoreLists;
+	private final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps;
 
 	/**
 	 * An array of strings used for choosing word classifiers during
@@ -52,7 +54,7 @@ final class ClassificationResult {
 	 * The counts of observations of each word used for classification in the
 	 * dataset used for training.
 	 */
-	private final Map<String, Long> wordObservationCounts;
+	private final Object2LongMap<String> wordObservationCounts;
 
 	/**
 	 *
@@ -69,7 +71,7 @@ final class ClassificationResult {
 	 *            model for them instead.
 	 * @param wordClassifierScoreLists
 	 *            A {@link Map} of the different word classifiers used
-	 *            (including the OOV label if used) mapping to a {@link Map} of
+	 *            (including the OOV label if used) mapping to a {@link Object2DoubleMap} of
 	 *            classification scores computed for each {@link Referent}.
 	 * @param wordObservationCounts
 	 *            The counts of observations of each word used for
@@ -77,12 +79,12 @@ final class ClassificationResult {
 	 */
 	ClassificationResult(final List<Weighted<Referent>> scoredReferents, final String[] words,
 			final List<String> oovObservations,
-			final Map<Referent, Map<String, List<Double>>> refWordClassifierScoreLists,
-			final Map<String, Long> wordObservationCounts) {
+			final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps,
+			final Object2LongMap<String> wordObservationCounts) {
 		this.scoredReferents = scoredReferents;
 		this.words = words;
 		this.oovObservations = oovObservations;
-		this.refWordClassifierScoreLists = refWordClassifierScoreLists;
+		this.refWordClassifierScoreMaps = refWordClassifierScoreMaps;
 		this.wordObservationCounts = wordObservationCounts;
 	}
 
@@ -97,11 +99,11 @@ final class ClassificationResult {
 
 	/**
 	 * @return A {@link Map} of the different word classifiers used (including
-	 *         the OOV label if used) mapping to a {@link Map} of classification
+	 *         the OOV label if used) mapping to a {@link Object2DoubleMap} of classification
 	 *         scores computed for each {@link Referent}.
 	 */
-	Map<Referent, Map<String, List<Double>>> getRefWordClassifierScoreLists() {
-		return refWordClassifierScoreLists;
+	Map<Referent, Object2DoubleMap<String>> getRefWordClassifierScoreMaps() {
+		return refWordClassifierScoreMaps;
 	}
 
 	/**
@@ -117,7 +119,7 @@ final class ClassificationResult {
 	 * @return The counts of observations of each word used for classification
 	 *         in the dataset used for training.
 	 */
-	Map<String, Long> getWordObservationCounts() {
+	Object2LongMap<String> getWordObservationCounts() {
 		return wordObservationCounts;
 	}
 

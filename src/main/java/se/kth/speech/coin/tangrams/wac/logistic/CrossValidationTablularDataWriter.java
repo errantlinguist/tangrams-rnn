@@ -16,7 +16,6 @@
 package se.kth.speech.coin.tangrams.wac.logistic;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -39,6 +38,10 @@ import org.apache.commons.csv.CSVPrinter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
+import it.unimi.dsi.fastutil.doubles.DoubleList;
+import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.Utterance;
@@ -386,8 +389,8 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
-				final Map<Referent, Map<String, List<Double>>> refWordClassifierScoreLists = classificationResult.getRefWordClassifierScoreLists();
-				final NavigableMap<String,List<Double>> combinedWordScores = createCombinedWordScoreMap(refWordClassifierScoreLists, Referent::isTarget);
+				final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps = classificationResult.getRefWordClassifierScoreMaps();
+				final NavigableMap<String, DoubleList> combinedWordScores = createCombinedWordScoreMap(refWordClassifierScoreMaps, Referent::isTarget);
 				try {
 					return JSON_MAPPER.writeValueAsString(combinedWordScores);
 				} catch (final JsonProcessingException e) {
@@ -403,8 +406,8 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
-				final Map<Referent, Map<String, List<Double>>> refWordClassifierScoreLists = classificationResult.getRefWordClassifierScoreLists();
-				final NavigableMap<String,List<Double>> combinedWordScores = createCombinedWordScoreMap(refWordClassifierScoreLists, ref -> !ref.isTarget());
+				final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps = classificationResult.getRefWordClassifierScoreMaps();
+				final NavigableMap<String, DoubleList> combinedWordScores = createCombinedWordScoreMap(refWordClassifierScoreMaps, ref -> !ref.isTarget());
 				try {
 					return JSON_MAPPER.writeValueAsString(combinedWordScores);
 				} catch (final JsonProcessingException e) {
@@ -420,7 +423,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 			public String apply(final CrossValidationRoundEvaluationResult cvResult) {
 				final RoundEvaluationResult evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
-				final Map<String, Long> wordObsCounts = classificationResult.getWordObservationCounts();
+				final Object2LongMap<String> wordObsCounts = classificationResult.getWordObservationCounts();
 				try {
 					return JSON_MAPPER.writeValueAsString(new TreeMap<>(wordObsCounts));
 				} catch (final JsonProcessingException e) {
@@ -439,18 +442,18 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 
 	private static final CSVFormat FORMAT = CSVFormat.TDF.withHeader(Datum.class);
 
-	private static NavigableMap<String, List<Double>> createCombinedWordScoreMap(
-			final Map<Referent, Map<String, List<Double>>> refWordClassifierScoreLists,
+	private static NavigableMap<String, DoubleList> createCombinedWordScoreMap(
+			final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps,
 			final Predicate<? super Referent> refFilter) {
-		final Stream<Entry<Referent, Map<String, List<Double>>>> targetScores = refWordClassifierScoreLists.entrySet()
-				.stream().filter(entry -> refFilter.test(entry.getKey()));
-		final NavigableMap<String, List<Double>> result = new TreeMap<>();
-		targetScores.map(Entry::getValue).forEach(wordScoreLists -> {
-			for (final Entry<String, List<Double>> wordScoreList : wordScoreLists.entrySet()) {
-				final List<Double> scoreList = wordScoreList.getValue();
-				final List<Double> combinedScores = result.computeIfAbsent(wordScoreList.getKey(),
-						key -> new ArrayList<>(scoreList.size()));
-				combinedScores.addAll(scoreList);
+		@SuppressWarnings("unchecked")
+		final Entry<Referent, Object2DoubleMap<String>>[] targetScores = refWordClassifierScoreMaps.entrySet().stream()
+				.filter(entry -> refFilter.test(entry.getKey())).toArray(Entry[]::new);
+		final NavigableMap<String, DoubleList> result = new TreeMap<>();
+		Arrays.stream(targetScores).map(Entry::getValue).forEach(wordScoreLists -> {
+			for (final Object2DoubleMap.Entry<String> wordScore : wordScoreLists.object2DoubleEntrySet()) {
+				final DoubleList combinedScores = result.computeIfAbsent(wordScore.getKey(),
+						key -> new DoubleArrayList(targetScores.length));
+				combinedScores.add(wordScore.getDoubleValue());
 			}
 		});
 		return result;
