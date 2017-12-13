@@ -55,6 +55,26 @@ public final class RankScorer {
 
 	private static final long NULL_WORD_OBSERVATION_COUNT = 0L;
 
+	private static Object2DoubleMap<String> createWordClassifierScoreMap(final int expectedTokenTypeCount) {
+		final Object2DoubleMap<String> result = new Object2DoubleOpenHashMap<>(expectedTokenTypeCount);
+		result.defaultReturnValue(NULL_WORD_CLASSIFIER_SCORE);
+		return result;
+	}
+
+	private static Object2LongMap<String> createWordObservationCountMap(final int expectedTokenTypeCount) {
+		final Object2LongMap<String> result = new Object2LongOpenHashMap<>(expectedTokenTypeCount);
+		result.defaultReturnValue(NULL_WORD_OBSERVATION_COUNT);
+		return result;
+	}
+
+	private static boolean isNullWordClassifierScore(final double score) {
+		return Double.isNaN(score);
+	}
+
+	private static boolean isNullWordObservationCount(final long count) {
+		return NULL_WORD_OBSERVATION_COUNT == count;
+	}
+
 	private final LogisticModel model;
 
 	private final Scorer scorer;
@@ -62,26 +82,6 @@ public final class RankScorer {
 	RankScorer(final LogisticModel model, final Scorer scorer) {
 		this.model = model;
 		this.scorer = scorer;
-	}
-
-	private Object2DoubleMap<String> createWordClassifierScoreMap(final int expectedTokenTypeCount) {
-		final Object2DoubleMap<String> result = new Object2DoubleOpenHashMap<>(expectedTokenTypeCount);
-		result.defaultReturnValue(NULL_WORD_CLASSIFIER_SCORE);
-		return result;
-	}
-
-	private Object2LongMap<String> createWordObservationCountMap(final int expectedTokenTypeCount) {
-		final Object2LongMap<String> result = new Object2LongOpenHashMap<>(expectedTokenTypeCount);
-		result.defaultReturnValue(NULL_WORD_OBSERVATION_COUNT);
-		return result;
-	}
-
-	private boolean isNullWordClassifierScore(final double score) {
-		return Double.isNaN(score);
-	}
-
-	private boolean isNullWordObservationCount(final long count) {
-		return NULL_WORD_OBSERVATION_COUNT == count;
 	}
 
 	/**
