@@ -1419,10 +1419,6 @@ public final class LogisticModel { // NO_UCD (use default)
 		return trainingData;
 	}
 
-	private int estimateUpdatedVocabSize() {
-		return trainingData.getVocabulary().getWordCount() + 5;
-	}
-
 	private void executeAsynchronously(final ForkJoinTask<?> task) {
 		final boolean success = false;
 		do {
@@ -1454,7 +1450,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	 */
 	TrainingData train(final SessionSet set) {
 		final RoundSet trainingSet = new RoundSet(set, (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR));
-		final Vocabulary vocab = trainingSet.createVocabulary(Math.max(1000, estimateUpdatedVocabSize()));
+		final Vocabulary vocab = trainingSet.createVocabulary(Math.max(1000, trainingData.getVocabulary().getWordCount() + 5));
 		// NOTE: Values are retrieved directly from the map instead of e.g.
 		// assigning
 		// them to a final field because it's possible that the map values
