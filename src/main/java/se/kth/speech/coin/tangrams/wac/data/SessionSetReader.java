@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +64,16 @@ public final class SessionSetReader {
 	private static UtteranceTabularDataReader createUttReader(final Path uttRefLangFilePath) throws IOException {
 		final Map<List<String>, List<String>> uttRefs = new UtteranceReferringTokenMapReader()
 				.apply(uttRefLangFilePath);
-		return new UtteranceTabularDataReader(uttRefs::get);
+		final Function<List<String>, List<String>> refTokSeqFactory = tokens -> {
+			final List<String> result = uttRefs.get(tokens);
+			if (result == null) {
+				throw new IllegalArgumentException(
+						String.format("No referring-language mapping for token sequence: %s", tokens));
+			} else {
+				return result;
+			}
+		};
+		return new UtteranceTabularDataReader(refTokSeqFactory);
 	}
 
 	private static List<Utterance> fetchRoundUtts(final List<? extends List<Utterance>> roundUtts, final int roundId) {
@@ -120,7 +130,9 @@ public final class SessionSetReader {
 		this(createUttReader(uttRefLangFilePath));
 	}
 
-	public SessionSetReader(final String uttsFilename, final UtteranceTabularDataReader uttReader, // NO_UCD (use private)
+	public SessionSetReader(final String uttsFilename, final UtteranceTabularDataReader uttReader, // NO_UCD
+																									// (use
+																									// private)
 			final String eventsFilename, final RoundTabularDataReader roundReader) {
 		this.uttReader = uttReader;
 		this.roundReader = roundReader;
@@ -128,7 +140,9 @@ public final class SessionSetReader {
 		this.eventsFilename = eventsFilename;
 	}
 
-	public SessionSetReader(final UtteranceTabularDataReader uttReader) { // NO_UCD (use private)
+	public SessionSetReader(final UtteranceTabularDataReader uttReader) { // NO_UCD
+																			// (use
+																			// private)
 		this(DEFAULT_UTTS_FILENAME, uttReader, DEFAULT_EVENTS_FILENAME, new RoundTabularDataReader());
 	}
 
