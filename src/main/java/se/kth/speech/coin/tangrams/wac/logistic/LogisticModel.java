@@ -1423,12 +1423,11 @@ public final class LogisticModel { // NO_UCD (use default)
 		return trainingData.getVocabulary().getWordCount() + 5;
 	}
 
-	private <T> ForkJoinTask<T> submitTask(final ForkJoinTask<T> task) {
-		ForkJoinTask<T> result = null;
-
+	private void executeAsynchronously(final ForkJoinTask<?> task) {
+		final boolean success = false;
 		do {
 			try {
-				result = taskPool.submit(task);
+				taskPool.execute(task);
 			} catch (final RejectedExecutionException e) {
 				int tryCount = 1;
 				long waitTimeMins = calculateRetryWaitTime(tryCount);
@@ -1443,9 +1442,7 @@ public final class LogisticModel { // NO_UCD (use default)
 					isReady = taskPool.awaitQuiescence(waitTimeMins, TimeUnit.MINUTES);
 				}
 			}
-		} while (result == null);
-
-		return result;
+		} while (!success);
 	}
 
 	/**
@@ -1466,9 +1463,10 @@ public final class LogisticModel { // NO_UCD (use default)
 		vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
 		// Re-use old word classifier map
 		final ConcurrentMap<String, Logistic> extantClassifiers = trainingData.getWordClassifiers().wordClassifiers;
-		final ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>> wordClassifierTrainingTask = submitTask(
-				new TrainingTask(vocab.getWords(), INITIAL_TRAINING_DATAPOINT_WEIGHT, trainingSet, extantClassifiers));
-		final Entry<WordClassifiers, FeatureAttributeData> trainingResults = wordClassifierTrainingTask.join();
+		final TrainingTask trainingTask = new TrainingTask(vocab.getWords(), INITIAL_TRAINING_DATAPOINT_WEIGHT,
+				trainingSet, extantClassifiers);
+		executeAsynchronously(trainingTask);
+		final Entry<WordClassifiers, FeatureAttributeData> trainingResults = trainingTask.join();
 		trainingData = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet);
 		return trainingData;
 	}
@@ -1481,7 +1479,8 @@ public final class LogisticModel { // NO_UCD (use default)
 	 * @return The new {@link TrainingData}.
 	 */
 	TrainingData updateModel(final Round round) {
-		final ForkJoinTask<TrainingData> updateTask = submitTask(new UpdateTask(round, trainingData, modelParams));
+		final UpdateTask updateTask = new UpdateTask(round, trainingData, modelParams);
+		executeAsynchronously(updateTask);
 		trainingData = updateTask.join();
 		return trainingData;
 	}
