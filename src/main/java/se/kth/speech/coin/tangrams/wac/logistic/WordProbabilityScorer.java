@@ -53,22 +53,25 @@ public final class WordProbabilityScorer
 
 		private final Referent ref;
 
+		private final int refId;
+
 		private final double score;
 
 		private final int tokSeqOrdinality;
 
 		private final float uttEndTime;
-		
+
 		private final float uttStartTime;
 
 		private final String word;
 
 		private final long wordObsCount;
 
-		private ReferentWordScore(final Referent ref, final float uttStartTime, float uttEndTime, final int tokSeqOrdinality,
-				final String word, final boolean isInstructor, final boolean isOov, final long wordObsCount,
-				final double score) {
+		private ReferentWordScore(final Referent ref, final int refId, final float uttStartTime, final float uttEndTime,
+				final int tokSeqOrdinality, final String word, final boolean isInstructor, final boolean isOov,
+				final long wordObsCount, final double score) {
 			this.ref = ref;
+			this.refId = refId;
 			this.uttStartTime = uttStartTime;
 			this.uttEndTime = uttEndTime;
 			this.tokSeqOrdinality = tokSeqOrdinality;
@@ -84,6 +87,13 @@ public final class WordProbabilityScorer
 		 */
 		public Referent getRef() {
 			return ref;
+		}
+
+		/**
+		 * @return the refId
+		 */
+		public int getRefId() {
+			return refId;
 		}
 
 		/**
@@ -153,8 +163,7 @@ public final class WordProbabilityScorer
 	private static List<Utterance> createUttList(final Round round, final boolean onlyInstructor) {
 		final List<Utterance> allUtts = round.getUtts();
 		return onlyInstructor
-				? Arrays.asList(allUtts.stream().filter(Utterance::isInstructor).toArray(Utterance[]::new))
-				: allUtts;
+				? Arrays.asList(allUtts.stream().filter(Utterance::isInstructor).toArray(Utterance[]::new)) : allUtts;
 	}
 
 	private static boolean isNullWordObservationCount(final long count) {
@@ -236,12 +245,14 @@ public final class WordProbabilityScorer
 			final long discountCutoffValue = ((Number) modelParams.get(ModelParameter.DISCOUNT)).longValue();
 			final double discountWeightingValue = discountCutoffValue;
 			final Logistic discountClassifier = wordClassifiers.getDiscountClassifier();
-			final List<Referent> refs = round.getReferents();
-			result = Optional.of(refs.stream().flatMap(ref -> {
-				final Stream.Builder<ReferentWordScore> refWordScores = Stream.builder();
+
+			final Stream.Builder<ReferentWordScore> refWordScores = Stream.builder();
+			for (final ListIterator<Referent> refIter = round.getReferents().listIterator(); refIter.hasNext();) {
+				final Referent ref = refIter.next();
+				final int refId = refIter.nextIndex();
 				final Instance inst = featureAttrs.createInstance(ref);
 
-					// Process each utterance
+				// Process each utterance
 				for (final Utterance utt : utts) {
 					final float uttStartTime = utt.getStartTime();
 					final float uttEndTime = utt.getEndTime();
@@ -270,16 +281,16 @@ public final class WordProbabilityScorer
 												: extantWordObservationCount;
 								wordScore *= Math.log10(effectiveObsCountValue);
 							}
-							final ReferentWordScore refWordScore = new ReferentWordScore(ref, uttStartTime, uttEndTime,
-									tokSeqOrdinality, word, isInstructor, isOov, wordObsCount, wordScore);
+							final ReferentWordScore refWordScore = new ReferentWordScore(ref, refId, uttStartTime,
+									uttEndTime, tokSeqOrdinality, word, isInstructor, isOov, wordObsCount, wordScore);
 							refWordScores.add(refWordScore);
 						}
 					}
 				}
-
-				return refWordScores.build();
-			}));
+			}
+			result = Optional.of(refWordScores.build());
 		}
+
 		return result;
 	}
 

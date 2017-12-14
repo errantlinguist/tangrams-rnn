@@ -162,6 +162,14 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 				return Double.toString(refWordScore.getScore());
 			}
 		},
+		ENTITY {
+
+			@Override
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+				return Integer.toString(refWordScore.getRefId());
+			}
+
+		},
 		IS_TARGET {
 
 			@Override
