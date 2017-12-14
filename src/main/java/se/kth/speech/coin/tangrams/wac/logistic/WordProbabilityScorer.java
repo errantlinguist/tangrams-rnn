@@ -57,23 +57,9 @@ public final class WordProbabilityScorer
 
 		private final int tokSeqOrdinality;
 
-		private final float uttStartTime;
-		
 		private final float uttEndTime;
-
-		/**
-		 * @return the uttStartTime
-		 */
-		public float getUttStartTime() {
-			return uttStartTime;
-		}
-
-		/**
-		 * @return the uttEndTime
-		 */
-		public float getUttEndTime() {
-			return uttEndTime;
-		}
+		
+		private final float uttStartTime;
 
 		private final String word;
 
@@ -112,6 +98,20 @@ public final class WordProbabilityScorer
 		 */
 		public int getTokSeqOrdinality() {
 			return tokSeqOrdinality;
+		}
+
+		/**
+		 * @return the uttEndTime
+		 */
+		public float getUttEndTime() {
+			return uttEndTime;
+		}
+
+		/**
+		 * @return the uttStartTime
+		 */
+		public float getUttStartTime() {
+			return uttStartTime;
 		}
 
 		/**
