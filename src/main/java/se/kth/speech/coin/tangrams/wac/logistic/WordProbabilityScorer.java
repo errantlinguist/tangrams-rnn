@@ -158,7 +158,7 @@ public final class WordProbabilityScorer
 	}
 
 	private static boolean isNullWordObservationCount(final long count) {
-		return count < 1;
+		return count < 1L;
 	}
 
 	private final LogisticModel model;
