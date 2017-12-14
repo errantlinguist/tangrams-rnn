@@ -31,9 +31,9 @@ public final class Utterance implements Comparable<Utterance> {
 
 	private final boolean isInstructor;
 
-	private float startTime;
+	private final float startTime;
 
-	private float endTime;
+	private final float endTime;
 
 	public Utterance(final float startTime, final float endTime, final String speakerId, final boolean isInstructor, // NO_UCD (use default)
 			final List<String> tokens, final List<String> referringTokens) {
@@ -172,22 +172,6 @@ public final class Utterance implements Comparable<Utterance> {
 			}
 		}
 		return false;
-	}
-
-	/**
-	 * @param endTime
-	 *            the endTime to set
-	 */
-	public void setEndTime(final float endTime) {
-		this.endTime = endTime;
-	}
-
-	/**
-	 * @param startTime
-	 *            the startTime to set
-	 */
-	public void setStartTime(final float startTime) {
-		this.startTime = startTime;
 	}
 
 	/*
