@@ -846,6 +846,9 @@ public final class LogisticModel { // NO_UCD (use default)
 		 */
 		private static final long serialVersionUID = 4460720934736545439L;
 
+		/**
+		 * The {@link Map} of {@link ModelParameter} values to use for training.
+		 */
 		private final Map<ModelParameter, Object> modelParams;
 
 		/**
@@ -870,6 +873,9 @@ public final class LogisticModel { // NO_UCD (use default)
 		 * @param oldTrainingData
 		 *            The {@link TrainingData} created by the last training
 		 *            iteration.
+		 * @param modelParams
+		 *            The {@link Map} of {@link ModelParameter} values to use
+		 *            for training.
 		 */
 		private UpdateTask(final Round round, final TrainingData oldTrainingData,
 				final Map<ModelParameter, Object> modelParams) {
@@ -1234,6 +1240,17 @@ public final class LogisticModel { // NO_UCD (use default)
 		return rounds.getDiscountRounds(words).flatMap(LogisticModel::createClassWeightedReferents);
 	}
 
+	/**
+	 *
+	 * @param initialMapCapacity
+	 *            The initial capacity of the {@link ConcurrentHashMap} used to
+	 *            map words to their respective {@link Logistic classifiers},
+	 *            which is populated during training.
+	 * @param onlyInstructor
+	 *            A flag denoting if only instructor language should be used for
+	 *            training set or not.
+	 * @return A new, empty {@link TrainingData} instance.
+	 */
 	private static TrainingData createDummyTrainingData(final int initialMapCapacity, final boolean onlyInstructor) {
 		return new TrainingData(new WordClassifiers(new ConcurrentHashMap<>(initialMapCapacity), new Logistic()),
 				new FeatureAttributeData(), new Vocabulary(Object2LongMaps.emptyMap()),
@@ -1248,8 +1265,15 @@ public final class LogisticModel { // NO_UCD (use default)
 		return rounds.getExampleRounds(word).flatMap(LogisticModel::createClassWeightedReferents);
 	}
 
+	/**
+	 * The {@link Map} of {@link ModelParameter} values to use for training.
+	 */
 	private final Map<ModelParameter, Object> modelParams;
 
+	/**
+	 * The {@link ForkJoinPool} to use for executing parallelized training
+	 * (sub-)tasks.
+	 */
 	private final ForkJoinPool taskPool;
 
 	/**
@@ -1261,18 +1285,46 @@ public final class LogisticModel { // NO_UCD (use default)
 		this(ModelParameter.createDefaultParamValueMap());
 	}
 
+	/**
+	 *
+	 * @param modelParams
+	 *            The {@link Map} of {@link ModelParameter} values to use for
+	 *            training.
+	 */
 	public LogisticModel(final Map<ModelParameter, Object> modelParams) { // NO_UCD
 																			// (use
 																			// default)
 		this(modelParams, ForkJoinPool.commonPool());
 	}
 
+	/**
+	 *
+	 * @param modelParams
+	 *            The {@link Map} of {@link ModelParameter} values to use for
+	 *            training.
+	 * @param taskPool
+	 *            The {@link ForkJoinPool} to use for executing parallelized
+	 *            training (sub-)tasks.
+	 */
 	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool taskPool) { // NO_UCD
 																										// (use
 																										// default)
 		this(modelParams, taskPool, DEFAULT_INITIAL_WORD_CLASS_MAP_CAPACITY);
 	}
 
+	/**
+	 *
+	 * @param modelParams
+	 *            The {@link Map} of {@link ModelParameter} values to use for
+	 *            training.
+	 * @param taskPool
+	 *            The {@link ForkJoinPool} to use for executing parallelized
+	 *            training (sub-)tasks.
+	 * @param initialMapCapacity
+	 *            The initial capacity of the {@link ConcurrentHashMap} used to
+	 *            map words to their respective {@link Logistic classifiers},
+	 *            which is populated during training.
+	 */
 	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool taskPool, // NO_UCD
 																										// (use
 																										// private)
@@ -1352,7 +1404,8 @@ public final class LogisticModel { // NO_UCD (use default)
 	}
 
 	/**
-	 * @return the modelParams
+	 * @return The {@link Map} of {@link ModelParameter} values to use for
+	 *         training.
 	 */
 	public Map<ModelParameter, Object> getModelParams() {
 		return modelParams;
