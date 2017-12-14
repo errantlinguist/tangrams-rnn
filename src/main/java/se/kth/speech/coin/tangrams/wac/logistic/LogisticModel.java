@@ -1420,10 +1420,11 @@ public final class LogisticModel { // NO_UCD (use default)
 	}
 
 	private void executeAsynchronously(final ForkJoinTask<?> task) {
-		final boolean success = false;
+		boolean success = false;
 		do {
 			try {
 				taskPool.execute(task);
+				success = true;
 			} catch (final RejectedExecutionException e) {
 				int tryCount = 1;
 				long waitTimeMins = calculateRetryWaitTime(tryCount);
