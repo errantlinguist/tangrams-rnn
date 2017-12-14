@@ -106,11 +106,18 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 			}
 
 		},
-		UTT_SEQ_ORDINALITY {
+		UTT_START_TIME {
 
 			@Override
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Integer.toString(refWordScore.getUttSeqOrdinality());
+				return Float.toString(refWordScore.getUttStartTime());
+			}
+		},
+		UTT_END_TIME {
+
+			@Override
+			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+				return Float.toString(refWordScore.getUttEndTime());
 			}
 		},
 		TOKEN_SEQ_ORDINALITY {

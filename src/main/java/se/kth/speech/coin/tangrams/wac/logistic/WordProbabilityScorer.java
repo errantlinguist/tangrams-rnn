@@ -57,17 +57,34 @@ public final class WordProbabilityScorer
 
 		private final int tokSeqOrdinality;
 
-		private final int uttSeqOrdinality;
+		private final float uttStartTime;
+		
+		private final float uttEndTime;
+
+		/**
+		 * @return the uttStartTime
+		 */
+		public float getUttStartTime() {
+			return uttStartTime;
+		}
+
+		/**
+		 * @return the uttEndTime
+		 */
+		public float getUttEndTime() {
+			return uttEndTime;
+		}
 
 		private final String word;
 
 		private final long wordObsCount;
 
-		private ReferentWordScore(final Referent ref, final int uttSeqOrdinality, final int tokSeqOrdinality,
+		private ReferentWordScore(final Referent ref, final float uttStartTime, float uttEndTime, final int tokSeqOrdinality,
 				final String word, final boolean isInstructor, final boolean isOov, final long wordObsCount,
 				final double score) {
 			this.ref = ref;
-			this.uttSeqOrdinality = uttSeqOrdinality;
+			this.uttStartTime = uttStartTime;
+			this.uttEndTime = uttEndTime;
 			this.tokSeqOrdinality = tokSeqOrdinality;
 			this.word = word;
 			this.isInstructor = isInstructor;
@@ -95,13 +112,6 @@ public final class WordProbabilityScorer
 		 */
 		public int getTokSeqOrdinality() {
 			return tokSeqOrdinality;
-		}
-
-		/**
-		 * @return the uttSeqOrdinality
-		 */
-		public int getUttSeqOrdinality() {
-			return uttSeqOrdinality;
 		}
 
 		/**
@@ -231,13 +241,11 @@ public final class WordProbabilityScorer
 				final Stream.Builder<ReferentWordScore> refWordScores = Stream.builder();
 				final Instance inst = featureAttrs.createInstance(ref);
 
-				final ListIterator<Utterance> uttIter = utts.listIterator();
-				do {
 					// Process each utterance
-					final Utterance utt = uttIter.next();
-					final int uttSeqOrdinality = uttIter.nextIndex();
+				for (final Utterance utt : utts) {
+					final float uttStartTime = utt.getStartTime();
+					final float uttEndTime = utt.getEndTime();
 					final boolean isInstructor = utt.isInstructor();
-
 					{
 						// Process each token in the given utterance
 						int tokSeqOrdinality = 0;
@@ -262,13 +270,12 @@ public final class WordProbabilityScorer
 												: extantWordObservationCount;
 								wordScore *= Math.log10(effectiveObsCountValue);
 							}
-							final ReferentWordScore refWordScore = new ReferentWordScore(ref, uttSeqOrdinality,
+							final ReferentWordScore refWordScore = new ReferentWordScore(ref, uttStartTime, uttEndTime,
 									tokSeqOrdinality, word, isInstructor, isOov, wordObsCount, wordScore);
 							refWordScores.add(refWordScore);
 						}
 					}
-
-				} while (uttIter.hasNext());
+				}
 
 				return refWordScores.build();
 			}));
