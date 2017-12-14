@@ -31,8 +31,6 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
@@ -1259,8 +1257,6 @@ public final class LogisticModel { // NO_UCD (use default)
 	 */
 	private TrainingData trainingData;
 
-	private final Lock trainingLock;
-
 	public LogisticModel() {
 		this(ModelParameter.createDefaultParamValueMap());
 	}
@@ -1285,7 +1281,6 @@ public final class LogisticModel { // NO_UCD (use default)
 		this.taskPool = taskPool;
 		trainingData = createDummyTrainingData(initialMapCapacity,
 				(Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR));
-		trainingLock = new ReentrantLock();
 	}
 
 	/**
@@ -1421,14 +1416,8 @@ public final class LogisticModel { // NO_UCD (use default)
 		final ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>> wordClassifierTrainingTask = submitTask(
 				new TrainingTask(vocab.getWords(), INITIAL_TRAINING_DATAPOINT_WEIGHT, trainingSet, extantClassifiers));
 		final Entry<WordClassifiers, FeatureAttributeData> trainingResults = wordClassifierTrainingTask.join();
-
-		trainingLock.lock();
-		try {
-			trainingData = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet);
-			return trainingData;
-		} finally {
-			trainingLock.unlock();
-		}
+		trainingData = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet);
+		return trainingData;
 	}
 
 	/**
@@ -1440,13 +1429,8 @@ public final class LogisticModel { // NO_UCD (use default)
 	 */
 	TrainingData updateModel(final Round round) {
 		final ForkJoinTask<TrainingData> updateTask = submitTask(new UpdateTask(round, trainingData, modelParams));
-		trainingLock.lock();
-		try {
-			trainingData = updateTask.join();
-			return trainingData;
-		} finally {
-			trainingLock.unlock();
-		}
+		trainingData = updateTask.join();
+		return trainingData;
 	}
 
 	/**
