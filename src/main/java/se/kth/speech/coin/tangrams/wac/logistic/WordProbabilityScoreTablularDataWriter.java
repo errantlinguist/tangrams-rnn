@@ -387,6 +387,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 						throw new UncheckedIOException(e);
 					}
 				});
+				LOGGER.info("Finished writing results of cross-validation.");
 			}
 		}
 	}
