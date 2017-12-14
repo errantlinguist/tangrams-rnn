@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -54,9 +57,9 @@ public final class WordProbabilityScorer
 
 		private final double score;
 
-		private final int uttSeqOrdinality;
-
 		private final int tokSeqOrdinality;
+
+		private final int uttSeqOrdinality;
 
 		private final String word;
 
@@ -154,9 +157,15 @@ public final class WordProbabilityScorer
 
 	private final Scorer scorer;
 
+	private CompletableFuture<TrainingData> updatedTrainingDataFuture;
+
+	private final Lock updateLock;
+
 	WordProbabilityScorer(final LogisticModel model, final Scorer scorer) {
 		this.model = model;
 		this.scorer = scorer;
+		updateLock = new ReentrantLock();
+		updatedTrainingDataFuture = CompletableFuture.completedFuture(model.getTrainingData());
 	}
 
 	@Override
@@ -183,7 +192,7 @@ public final class WordProbabilityScorer
 		// which could take a long time; Make this asynchronous and return
 		// the evaluation results, ensuring to block the NEXT evaluation
 		// until updating for THIS iteration is finished
-		final Consumer<Round> incrementalRoundTrainingUpdater = updateWeight > 0.0 ? model::updateModel
+		final Consumer<Round> incrementalRoundTrainingUpdater = updateWeight > 0.0 ? this::updateModel
 				: DUMMY_INCREMENTAL_ROUND_TRAINING_UPDATER;
 		return sessionRoundData.flatMap(sessionRoundDatum -> {
 			final Round round = sessionRoundDatum.getRound();
@@ -218,7 +227,7 @@ public final class WordProbabilityScorer
 			// the map values change at another place in the code and
 			// performance isn't
 			// an issue here anyway
-			final TrainingData trainingData = model.getTrainingData();
+			final TrainingData trainingData = updatedTrainingDataFuture.join();
 			final WordClassifiers wordClassifiers = trainingData.getWordClassifiers();
 			final FeatureAttributeData featureAttrs = trainingData.getFeatureAttrs();
 			final Vocabulary vocab = trainingData.getVocabulary();
@@ -274,5 +283,18 @@ public final class WordProbabilityScorer
 			}));
 		}
 		return result;
+	}
+
+	/**
+	 * @param round
+	 *            The {@link Round} to add to the dataset for training.
+	 */
+	private void updateModel(final Round round) {
+		updateLock.lock();
+		try {
+			updatedTrainingDataFuture = model.updateModelAsynchronously(round);
+		} finally {
+			updateLock.unlock();
+		}
 	}
 }

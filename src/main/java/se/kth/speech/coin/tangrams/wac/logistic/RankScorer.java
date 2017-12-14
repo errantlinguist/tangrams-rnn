@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -195,9 +198,15 @@ public final class RankScorer
 
 	private final Scorer scorer;
 
+	private CompletableFuture<TrainingData> updatedTrainingDataFuture;
+
+	private final Lock updateLock;
+
 	RankScorer(final LogisticModel model, final Scorer scorer) {
 		this.model = model;
 		this.scorer = scorer;
+		updateLock = new ReentrantLock();
+		updatedTrainingDataFuture = CompletableFuture.completedFuture(model.getTrainingData());
 	}
 
 	@Override
@@ -224,7 +233,7 @@ public final class RankScorer
 		// which could take a long time; Make this asynchronous and return
 		// the evaluation results, ensuring to block the NEXT evaluation
 		// until updating for THIS iteration is finished
-		final Consumer<Round> incrementalRoundTrainingUpdater = updateWeight > 0.0 ? model::updateModel
+		final Consumer<Round> incrementalRoundTrainingUpdater = updateWeight > 0.0 ? this::updateModel
 				: DUMMY_INCREMENTAL_ROUND_TRAINING_UPDATER;
 		return sessionRoundData.flatMap(sessionRoundDatum -> {
 			final Round round = sessionRoundDatum.getRound();
@@ -255,7 +264,8 @@ public final class RankScorer
 	 *         representing the results.
 	 */
 	private Optional<ClassificationResult> rank(final Round round, final Map<ModelParameter, Object> modelParams) {
-		final String[] words = round.getReferringTokens((Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR)).toArray(String[]::new);
+		final String[] words = round.getReferringTokens((Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR))
+				.toArray(String[]::new);
 		final Optional<ClassificationResult> result;
 		if (words.length < 1) {
 			result = Optional.empty();
@@ -266,7 +276,7 @@ public final class RankScorer
 			// the map values change at another place in the code and
 			// performance isn't
 			// an issue here anyway
-			final TrainingData trainingData = model.getTrainingData();
+			final TrainingData trainingData = updatedTrainingDataFuture.join();
 			final WordClassifiers wordClassifiers = trainingData.getWordClassifiers();
 			final FeatureAttributeData featureAttrs = trainingData.getFeatureAttrs();
 			final Vocabulary vocab = trainingData.getVocabulary();
@@ -311,7 +321,8 @@ public final class RankScorer
 					if (weightByFreq) {
 						final long extantWordObservationCount = wordObservationCounts.getLong(word);
 						final double effectiveObsCountValue = isNullWordObservationCount(extantWordObservationCount)
-								? discountWeightingValue : extantWordObservationCount;
+								? discountWeightingValue
+								: extantWordObservationCount;
 						wordScore *= Math.log10(effectiveObsCountValue);
 					}
 					wordScoreArray[i] = wordScore;
@@ -329,5 +340,18 @@ public final class RankScorer
 					refWordClassifierScoreMaps, wordObservationCounts));
 		}
 		return result;
+	}
+
+	/**
+	 * @param round
+	 *            The {@link Round} to add to the dataset for training.
+	 */
+	private void updateModel(final Round round) {
+		updateLock.lock();
+		try {
+			updatedTrainingDataFuture = model.updateModelAsynchronously(round);
+		} finally {
+			updateLock.unlock();
+		}
 	}
 }

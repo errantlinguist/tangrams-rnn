@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ForkJoinPool;
@@ -729,7 +730,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	 * @since 7 Dec 2017
 	 *
 	 */
-	private class Trainer extends ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>> {
+	private static class TrainingTask extends ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>> {
 
 		/**
 		 *
@@ -765,8 +766,8 @@ public final class LogisticModel { // NO_UCD (use default)
 		private final List<String> words;
 
 		/**
-		 * Constructs a {@link Trainer} for training models for the specified
-		 * words asynchronously.
+		 * Constructs a {@link TrainingTask} for training models for the
+		 * specified words asynchronously.
 		 *
 		 * @param words
 		 *            The vocabulary words to train models for.
@@ -778,7 +779,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		 * @param wordClassifiers
 		 *            The {@link Map} of word classifiers to (re-)populate.
 		 */
-		private Trainer(final List<String> words, final double weight, final RoundSet trainingSet,
+		private TrainingTask(final List<String> words, final double weight, final RoundSet trainingSet,
 				final ConcurrentMap<String, Logistic> wordClassifiers) {
 			this.words = words;
 			this.weight = weight;
@@ -838,12 +839,19 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	}
 
-	private class Updater extends ForkJoinTask<TrainingData> {
+	private static class UpdateTask extends ForkJoinTask<TrainingData> {
 
 		/**
 		 *
 		 */
 		private static final long serialVersionUID = 4460720934736545439L;
+
+		private final Map<ModelParameter, Object> modelParams;
+
+		/**
+		 * The {@link TrainingData} created by the last training iteration.
+		 */
+		private final TrainingData oldTrainingData;
 
 		/**
 		 * The {@link TrainingData} created during updating.
@@ -859,9 +867,15 @@ public final class LogisticModel { // NO_UCD (use default)
 		 *
 		 * @param round
 		 *            The {@link Round} to add to the dataset for training.
+		 * @param oldTrainingData
+		 *            The {@link TrainingData} created by the last training
+		 *            iteration.
 		 */
-		private Updater(final Round round) {
+		private UpdateTask(final Round round, final TrainingData oldTrainingData,
+				final Map<ModelParameter, Object> modelParams) {
 			this.round = round;
+			this.oldTrainingData = oldTrainingData;
+			this.modelParams = modelParams;
 		}
 
 		/*
@@ -882,10 +896,10 @@ public final class LogisticModel { // NO_UCD (use default)
 		@Override
 		protected boolean exec() {
 			// Re-use old training data plus data from the given round
-			final RoundSet trainingSet = trainingData.getTrainingSet();
+			final RoundSet trainingSet = oldTrainingData.getTrainingSet();
 			trainingSet.getRounds().add(round);
-			final Vocabulary oldVocab = trainingData.getVocabulary();
-			final Vocabulary vocab = trainingSet.createVocabulary(estimateUpdatedVocabSize());
+			final Vocabulary oldVocab = oldTrainingData.getVocabulary();
+			final Vocabulary vocab = trainingSet.createVocabulary(oldVocab.getWordCount() + 5);
 			// NOTE: Values are retrieved directly from the map instead of e.g.
 			// assigning
 			// them to a final field because it's possible that the map values
@@ -895,13 +909,13 @@ public final class LogisticModel { // NO_UCD (use default)
 			vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
 			final Number updateWeight = (Number) modelParams.get(ModelParameter.UPDATE_WEIGHT);
 			// Re-use old word classifier map
-			final ConcurrentMap<String, Logistic> extantClassifiers = trainingData.getWordClassifiers().wordClassifiers;
-			final Trainer trainer = new Trainer(vocab.getUpdatedWordsSince(oldVocab),
+			final ConcurrentMap<String, Logistic> extantClassifiers = oldTrainingData
+					.getWordClassifiers().wordClassifiers;
+			final TrainingTask trainer = new TrainingTask(vocab.getUpdatedWordsSince(oldVocab),
 					NumberTypeConversions.finiteDoubleValue(updateWeight.doubleValue()), trainingSet,
 					extantClassifiers);
 			final Entry<WordClassifiers, FeatureAttributeData> trainingResults = trainer.fork().join();
 			result = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet);
-			trainingData = result;
 			return true;
 		}
 
@@ -1365,13 +1379,13 @@ public final class LogisticModel { // NO_UCD (use default)
 			} catch (final RejectedExecutionException e) {
 				int tryCount = 1;
 				long waitTimeMins = calculateRetryWaitTime(tryCount);
-				LOGGER.info(String.format(
+				LOGGER.warn(String.format(
 						"A(n) %s occurred while trying to submit a training task to the task pool; Will wait %d minute(s) before trying again.",
 						e.getClass().getSimpleName(), waitTimeMins), e);
 				boolean isReady = taskPool.awaitQuiescence(waitTimeMins, TimeUnit.MINUTES);
 				while (!isReady) {
 					waitTimeMins = calculateRetryWaitTime(++tryCount);
-					LOGGER.info("Still not quiescent; Waiting {} more minute(s) before try number {}.", waitTimeMins,
+					LOGGER.warn("Still not quiescent; Waiting {} more minute(s) before try number {}.", waitTimeMins,
 							tryCount);
 					isReady = taskPool.awaitQuiescence(waitTimeMins, TimeUnit.MINUTES);
 				}
@@ -1380,31 +1394,6 @@ public final class LogisticModel { // NO_UCD (use default)
 
 		return result;
 	}
-
-	// /**
-	// * Trains models for the specified words asynchronously.
-	// *
-	// * @param words
-	// * The vocabulary words to train models for.
-	// * @param weight
-	// * The weight of each datapoint representing a single observation
-	// * for a given word.
-	// * @param trainingSet
-	// * The {@link RoundSet} to use as training data.
-	// * @return A {@link ForkJoinTask} which asynchronously creates the new
-	// model
-	// * data.
-	// */
-	// private ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>>
-	// trainWordClassifiers(final List<String> words,
-	// final double weight, final RoundSet trainingSet) {
-	// // Re-use old word classifier map
-	// final ConcurrentMap<String, Logistic> extantClassifiers =
-	// trainingData.getWordClassifiers().wordClassifiers;
-	// final Trainer trainer = new Trainer(words, weight, trainingSet,
-	// extantClassifiers);
-	// return submitTask(trainer);
-	// }
 
 	/**
 	 * Trains the word models using all data from a {@link SessionSet}.
@@ -1424,10 +1413,8 @@ public final class LogisticModel { // NO_UCD (use default)
 		vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
 		// Re-use old word classifier map
 		final ConcurrentMap<String, Logistic> extantClassifiers = trainingData.getWordClassifiers().wordClassifiers;
-		final Trainer trainer = new Trainer(vocab.getWords(), INITIAL_TRAINING_DATAPOINT_WEIGHT, trainingSet,
-				extantClassifiers);
 		final ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>> wordClassifierTrainingTask = submitTask(
-				trainer);
+				new TrainingTask(vocab.getWords(), INITIAL_TRAINING_DATAPOINT_WEIGHT, trainingSet, extantClassifiers));
 		final Entry<WordClassifiers, FeatureAttributeData> trainingResults = wordClassifierTrainingTask.join();
 		trainingData = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet);
 		return trainingData;
@@ -1441,10 +1428,20 @@ public final class LogisticModel { // NO_UCD (use default)
 	 * @return The new {@link TrainingData}.
 	 */
 	TrainingData updateModel(final Round round) {
-		final Updater updater = new Updater(round);
-		final ForkJoinTask<TrainingData> updateTask = submitTask(updater);
+		final ForkJoinTask<TrainingData> updateTask = submitTask(new UpdateTask(round, trainingData, modelParams));
 		trainingData = updateTask.join();
 		return trainingData;
+	}
+
+	/**
+	 * Updates (trains) the models with the new round asynchronously.
+	 *
+	 * @param round
+	 *            The {@link Round} to add to the dataset for training.
+	 * @return The {@link CompletableFuture} submitted for updating.
+	 */
+	CompletableFuture<TrainingData> updateModelAsynchronously(final Round round) {
+		return CompletableFuture.supplyAsync(() -> updateModel(round), taskPool);
 	}
 
 }
