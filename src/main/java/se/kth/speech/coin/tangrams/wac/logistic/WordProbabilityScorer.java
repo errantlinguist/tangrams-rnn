@@ -23,8 +23,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -159,12 +157,9 @@ public final class WordProbabilityScorer
 
 	private CompletableFuture<TrainingData> updatedTrainingDataFuture;
 
-	private final Lock updateLock;
-
 	WordProbabilityScorer(final LogisticModel model, final Scorer scorer) {
 		this.model = model;
 		this.scorer = scorer;
-		updateLock = new ReentrantLock();
 		updatedTrainingDataFuture = CompletableFuture.completedFuture(model.getTrainingData());
 	}
 
@@ -290,11 +285,6 @@ public final class WordProbabilityScorer
 	 *            The {@link Round} to add to the dataset for training.
 	 */
 	private void updateModel(final Round round) {
-		updateLock.lock();
-		try {
-			updatedTrainingDataFuture = model.updateModelAsynchronously(round);
-		} finally {
-			updateLock.unlock();
-		}
+		updatedTrainingDataFuture = model.updateModelAsynchronously(round);
 	}
 }
