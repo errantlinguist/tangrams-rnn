@@ -183,10 +183,6 @@ public final class WordProbabilityScorer
 
 		final Map<ModelParameter, Object> modelParams = model.getModelParams();
 		final double updateWeight = ((Number) modelParams.get(ModelParameter.UPDATE_WEIGHT)).doubleValue();
-		// TODO: Currently, this blocks until updating is complete,
-		// which could take a long time; Make this asynchronous and return
-		// the evaluation results, ensuring to block the NEXT evaluation
-		// until updating for THIS iteration is finished
 		final Consumer<Round> incrementalRoundTrainingUpdater = updateWeight > 0.0 ? this::updateModel
 				: DUMMY_INCREMENTAL_ROUND_TRAINING_UPDATER;
 		return sessionRoundData.flatMap(sessionRoundDatum -> {
