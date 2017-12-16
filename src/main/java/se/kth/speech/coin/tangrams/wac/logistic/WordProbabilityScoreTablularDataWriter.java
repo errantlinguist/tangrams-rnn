@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -43,7 +42,6 @@ import org.apache.commons.csv.CSVPrinter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.coin.tangrams.wac.logistic.WordProbabilityScorer.ReferentWordScore;
@@ -57,271 +55,6 @@ import se.kth.speech.coin.tangrams.wac.logistic.WordProbabilityScorer.ReferentWo
  */
 public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 															// default)
-
-	// @formatter:off
-	public enum Datum implements BiFunction<CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>>, WordProbabilityScorer.ReferentWordScore, String> {
-		CROSS_VALIDATION_ITER {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Integer.toString(cvResult.getCrossValidationIteration());
-			}
-
-		},
-		DYAD {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
-				return evalResult.getSessionId();
-			}
-
-		},
-		ROUND {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
-				return Integer.toString(evalResult.getRoundId());
-			}
-
-		},
-		ROUND_START_TIME {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
-				final Round round = evalResult.getRound();
-				return Float.toString(round.getTime());
-			}
-
-		},
-		GAME_SCORE {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]> evalResult = cvResult.getEvalResult();
-				final Round round = evalResult.getRound();
-				return Integer.toString(round.getScore());
-			}
-
-		},
-		UTT_START_TIME {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Float.toString(refWordScore.getUttStartTime());
-			}
-		},
-		UTT_END_TIME {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Float.toString(refWordScore.getUttEndTime());
-			}
-		},
-		TOKEN_SEQ_ORDINALITY {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Integer.toString(refWordScore.getTokSeqOrdinality());
-			}
-		},
-		IS_INSTRUCTOR {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Boolean.toString(refWordScore.isInstructor());
-			}
-		},
-		WORD {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return refWordScore.getWord();
-			}
-		},
-		WORD_OBS_COUNT {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Long.toString(refWordScore.getWordObsCount());
-			}
-		},
-		IS_OOV {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Boolean.toString(refWordScore.isOov());
-			}
-		},
-		PROBABILITY {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Double.toString(refWordScore.getScore());
-			}
-		},
-		ENTITY {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Integer.toString(refWordScore.getRefId());
-			}
-
-		},
-		IS_TARGET {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Boolean.toString(refWordScore.getRef().isTarget());
-			}
-		},
-		SHAPE {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return refWordScore.getRef().getShape();
-			}
-
-		},
-		EDGE_COUNT {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Integer.toString(refWordScore.getRef().getEdgeCount());
-			}
-
-		},
-		SIZE {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Double.toString(refWordScore.getRef().getSize());
-			}
-
-		},
-		RED {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Float.toString(refWordScore.getRef().getRed());
-			}
-
-		},
-		GREEN {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Float.toString(refWordScore.getRef().getGreen());
-			}
-
-		},
-		BLUE {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Float.toString(refWordScore.getRef().getBlue());
-			}
-
-		},
-		HUE {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Float.toString(refWordScore.getRef().getHue());
-			}
-
-		},
-		POSITION_X {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Double.toString(refWordScore.getRef().getPositionX());
-			}
-
-		},
-		POSITION_Y {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Double.toString(refWordScore.getRef().getPositionY());
-			}
-
-		},
-		MID_X {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Double.toString(refWordScore.getRef().getMidX());
-			}
-
-		},
-		MID_Y {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				return Double.toString(refWordScore.getRef().getMidY());
-			}
-
-		},
-		DISCOUNT {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
-				return modelParams.get(ModelParameter.DISCOUNT).toString();
-			}
-
-		},
-		ONLY_INSTRUCTOR {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
-				return modelParams.get(ModelParameter.ONLY_INSTRUCTOR).toString();
-			}
-
-		},
-		RANDOM_SEED {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
-				return modelParams.get(ModelParameter.RANDOM_SEED).toString();
-			}
-
-		},
-		TRAINING_SET_SIZE_DISCOUNT {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
-				return modelParams.get(ModelParameter.TRAINING_SET_SIZE_DISCOUNT).toString();
-			}
-
-		},
-		UPDATE_WEIGHT {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
-				return modelParams.get(ModelParameter.UPDATE_WEIGHT).toString();
-			}
-
-		},
-		WEIGHT_BY_FREQ {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
-				return modelParams.get(ModelParameter.WEIGHT_BY_FREQ).toString();
-			}
-
-		};
-
-	}
-	// @formatter:on
 
 	private enum Parameter implements Supplier<Option> {
 		HELP("?") {
@@ -347,7 +80,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 
 	}
 
-	private static final CSVFormat FORMAT = CSVFormat.TDF.withHeader(Datum.class);
+	private static final CSVFormat FORMAT = CSVFormat.TDF.withHeader(WordProbabilityScoreDatum.class);
 
 	private static final Options OPTIONS = createOptions();
 
@@ -403,8 +136,8 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		}
 	}
 
-	private static final List<Datum> createDefaultDataToWriteList() {
-		return Arrays.asList(Datum.values());
+	private static final List<WordProbabilityScoreDatum> createDefaultDataToWriteList() {
+		return Arrays.asList(WordProbabilityScoreDatum.values());
 	}
 
 	private static Options createOptions() {
@@ -420,13 +153,13 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		formatter.printHelp(WordProbabilityScoreTablularDataWriter.class.getName() + " INPATHS...", OPTIONS);
 	}
 
-	private final List<Datum> dataToWrite;
+	private final List<WordProbabilityScoreDatum> dataToWrite;
 
 	private final CSVPrinter printer;
 
 	private final Lock writeLock;
 
-	private WordProbabilityScoreTablularDataWriter(final CSVPrinter printer, final List<Datum> dataToWrite) {
+	private WordProbabilityScoreTablularDataWriter(final CSVPrinter printer, final List<WordProbabilityScoreDatum> dataToWrite) {
 		this.printer = printer;
 		this.dataToWrite = dataToWrite;
 		writeLock = new ReentrantLock();
@@ -436,7 +169,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		this(out, createDefaultDataToWriteList());
 	}
 
-	WordProbabilityScoreTablularDataWriter(final Appendable out, final List<Datum> dataToWrite) throws IOException {
+	WordProbabilityScoreTablularDataWriter(final Appendable out, final List<WordProbabilityScoreDatum> dataToWrite) throws IOException {
 		this(FORMAT.print(out), dataToWrite);
 	}
 
