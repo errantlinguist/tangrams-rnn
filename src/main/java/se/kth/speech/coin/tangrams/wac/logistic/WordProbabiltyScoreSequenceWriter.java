@@ -163,11 +163,73 @@ public final class WordProbabiltyScoreSequenceWriter {
 
 	private static class SequenceDatapoint {
 
+		private boolean isInstructor;
+
+		private boolean isOov;
+
+		private boolean isTarget;
+
+		private double score;
+
+		private int tokSeqOrdinality;
+
+		private String word;
+
+		private SequenceDatapoint(int tokSeqOrdinality, String word, boolean isInstructor, boolean isTarget,
+				boolean isOov, double score) {
+			this.tokSeqOrdinality = tokSeqOrdinality;
+			this.word = word;
+			this.isInstructor = isInstructor;
+			this.isTarget = isTarget;
+			this.isOov = isOov;
+			this.score = score;
+		}
+
+		private SequenceDatapoint(SequenceDatapoint copyee) {
+			this(copyee.tokSeqOrdinality, copyee.word, copyee.isInstructor, copyee.isTarget, copyee.isOov,
+					copyee.score);
+		}
+
+		/**
+		 * @return the score
+		 */
+		private double getScore() {
+			return score;
+		}
+
+		/**
+		 * @return the tokSeqOrdinality
+		 */
+		private int getTokSeqOrdinality() {
+			return tokSeqOrdinality;
+		}
+
+		/**
+		 * @return the word
+		 */
+		private String getWord() {
+			return word;
+		}
+
 		/**
 		 * @return the isInstructor
 		 */
 		private boolean isInstructor() {
 			return isInstructor;
+		}
+
+		/**
+		 * @return the isOov
+		 */
+		private boolean isOov() {
+			return isOov;
+		}
+
+		/**
+		 * @return the isTarget
+		 */
+		private boolean isTarget() {
+			return isTarget;
 		}
 
 		/**
@@ -179,40 +241,11 @@ public final class WordProbabiltyScoreSequenceWriter {
 		}
 
 		/**
-		 * @return the isOov
-		 */
-		private boolean isOov() {
-			return isOov;
-		}
-
-		/**
 		 * @param isOov
 		 *            the isOov to set
 		 */
 		private void setOov(boolean isOov) {
 			this.isOov = isOov;
-		}
-
-		/**
-		 * @return the isTarget
-		 */
-		private boolean isTarget() {
-			return isTarget;
-		}
-
-		/**
-		 * @param isTarget
-		 *            the isTarget to set
-		 */
-		private void setTarget(boolean isTarget) {
-			this.isTarget = isTarget;
-		}
-
-		/**
-		 * @return the score
-		 */
-		private double getScore() {
-			return score;
 		}
 
 		/**
@@ -222,27 +255,13 @@ public final class WordProbabiltyScoreSequenceWriter {
 		private void setScore(double score) {
 			this.score = score;
 		}
-
+		
 		/**
-		 * @return the word
+		 * @param isTarget
+		 *            the isTarget to set
 		 */
-		private String getWord() {
-			return word;
-		}
-
-		/**
-		 * @param word
-		 *            the word to set
-		 */
-		private void setWord(String word) {
-			this.word = word;
-		}
-
-		/**
-		 * @return the tokSeqOrdinality
-		 */
-		private int getTokSeqOrdinality() {
-			return tokSeqOrdinality;
+		private void setTarget(boolean isTarget) {
+			this.isTarget = isTarget;
 		}
 
 		/**
@@ -253,31 +272,12 @@ public final class WordProbabiltyScoreSequenceWriter {
 			this.tokSeqOrdinality = tokSeqOrdinality;
 		}
 
-		private boolean isInstructor;
-
-		private boolean isOov;
-
-		private boolean isTarget;
-
-		private double score;
-
-		private String word;
-
-		private int tokSeqOrdinality;
-
-		private SequenceDatapoint(SequenceDatapoint copyee) {
-			this(copyee.tokSeqOrdinality, copyee.word, copyee.isInstructor, copyee.isTarget, copyee.isOov,
-					copyee.score);
-		}
-
-		private SequenceDatapoint(int tokSeqOrdinality, String word, boolean isInstructor, boolean isTarget,
-				boolean isOov, double score) {
-			this.tokSeqOrdinality = tokSeqOrdinality;
+		/**
+		 * @param word
+		 *            the word to set
+		 */
+		private void setWord(String word) {
 			this.word = word;
-			this.isInstructor = isInstructor;
-			this.isTarget = isTarget;
-			this.isOov = isOov;
-			this.score = score;
 		}
 	}
 
@@ -362,6 +362,9 @@ public final class WordProbabiltyScoreSequenceWriter {
 	}
 
 	private static final String COL_DELIM = "\t";
+
+	private static final String[] COL_HEADERS =  new String[] {"CROSS_VALIDATION_ITER", "DYAD", "UTT_START_TIME", "UTT_END_TIME", "SPLIT_SEQ_NO", "TOKEN_SEQ_ORDINALITY", "WORD", "IS_INSTRUCTOR",
+					"IS_OOV", "ENTITY", "IS_TARGET", "PROBABILITY"};
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(WordProbabiltyScoreSequenceWriter.class);
 
@@ -458,6 +461,23 @@ public final class WordProbabiltyScoreSequenceWriter {
 		this.seqLen = seqLen;
 	}
 
+	public void accept(Map<UniqueTokenSequenceKey, ReferentTokenSequences> rows,
+			final ThrowingSupplier<PrintStream, IOException> outStreamGetter) throws IOException {
+		LOGGER.info("Writing to output.");
+		Iterator<Entry<UniqueTokenSequenceKey, ReferentTokenSequences>> entryIter = rows.entrySet().stream()
+				.sorted(Comparator.comparing(Entry::getKey)).iterator();
+		try (PrintStream outStream = outStreamGetter.get()) {
+			CSVPrinter printer = CSVFormat.TDF.withHeader(COL_HEADERS).print(outStream);
+			while (entryIter.hasNext()) {
+				Entry<UniqueTokenSequenceKey, ReferentTokenSequences> entry = entryIter.next();
+				UniqueTokenSequenceKey key = entry.getKey();
+				ReferentTokenSequences seqs = entry.getValue();
+				writePaddedSequences(key, seqs, printer);
+			}	
+		}
+		LOGGER.info("Finished writing.");
+	}
+
 	private List<SequenceDatapoint> createPaddedSequence(List<SequenceDatapoint> seq, int windowStartIdx,
 			int windowEndIdx) {
 		List<SequenceDatapoint> result;
@@ -482,44 +502,23 @@ public final class WordProbabiltyScoreSequenceWriter {
 		return result;
 	}
 
-	private static final String[] COL_HEADERS = Stream.of(WordProbabilityScoreDatum.CROSS_VALIDATION_ITER, WordProbabilityScoreDatum.DYAD,
-					WordProbabilityScoreDatum.UTT_START_TIME, WordProbabilityScoreDatum.UTT_END_TIME,
-					WordProbabilityScoreDatum.TOKEN_SEQ_ORDINALITY, WordProbabilityScoreDatum.WORD, WordProbabilityScoreDatum.IS_INSTRUCTOR,
-					WordProbabilityScoreDatum.IS_OOV, WordProbabilityScoreDatum.ENTITY, WordProbabilityScoreDatum.IS_TARGET,
-					WordProbabilityScoreDatum.PROBABILITY).map(Enum::name).toArray(String[]::new);
-
 	private void writePaddedSequences(UniqueTokenSequenceKey key, ReferentTokenSequences seqs, CSVPrinter printer) throws IOException {
 		ListIterator<List<SequenceDatapoint>> refTokSeqIter = seqs.refTokenRows.listIterator();
 		do {
-			List<SequenceDatapoint> seq = refTokSeqIter.next();
-			int refId = refTokSeqIter.nextIndex();
+			final List<SequenceDatapoint> seq = refTokSeqIter.next();
+			final int refId = refTokSeqIter.nextIndex();
+			int splitSeqNo = 1;
 			for (int windowEndIdx = 1; windowEndIdx <= seq.size(); ++windowEndIdx) {
-				int windowStartIdx = windowEndIdx - seqLen;
-				List<SequenceDatapoint> splitSeq = createPaddedSequence(seq, windowStartIdx, windowEndIdx);
+				final int windowStartIdx = windowEndIdx - seqLen;
+				final List<SequenceDatapoint> splitSeq = createPaddedSequence(seq, windowStartIdx, windowEndIdx);
 				for (SequenceDatapoint datapoint : splitSeq) {
-					Stream<String> rowCells = Stream.of(key.cvId, key.dyad, key.uttStart, key.uttEnd, datapoint.getTokSeqOrdinality(), datapoint.getWord(), datapoint.isInstructor(), datapoint.isOov(), refId, datapoint.isTarget(), datapoint.getScore()).map(Object::toString);
+					final Stream<String> rowCells = Stream.of(key.cvId, key.dyad, key.uttStart, key.uttEnd, splitSeqNo, datapoint.getTokSeqOrdinality(), datapoint.getWord(), datapoint.isInstructor(), datapoint.isOov(), refId, datapoint.isTarget(), datapoint.getScore()).map(Object::toString);
 					printer.printRecord((Iterable<String>) rowCells::iterator);
 				}
+				splitSeqNo++;
 			}
 
 		} while (refTokSeqIter.hasNext());
-	}
-
-	public void accept(Map<UniqueTokenSequenceKey, ReferentTokenSequences> rows,
-			final ThrowingSupplier<PrintStream, IOException> outStreamGetter) throws IOException {
-		LOGGER.info("Writing to output.");
-		Iterator<Entry<UniqueTokenSequenceKey, ReferentTokenSequences>> entryIter = rows.entrySet().stream()
-				.sorted(Comparator.comparing(Entry::getKey)).iterator();
-		try (PrintStream outStream = outStreamGetter.get()) {
-			CSVPrinter printer = CSVFormat.TDF.withHeader(COL_HEADERS).print(outStream);
-			while (entryIter.hasNext()) {
-				Entry<UniqueTokenSequenceKey, ReferentTokenSequences> entry = entryIter.next();
-				UniqueTokenSequenceKey key = entry.getKey();
-				ReferentTokenSequences seqs = entry.getValue();
-				writePaddedSequences(key, seqs, printer);
-			}	
-		}
-		LOGGER.info("Finished writing.");
 	}
 
 }
