@@ -66,34 +66,9 @@ public final class SVGIconImagePNGTranscoder {
 		final PNGTranscoder pngTranscoder = new PNGTranscoder();
 		final UserAgent userAgent = pngTranscoder.getUserAgent();
 
-		final Matcher lengthValMatcher = LENGTH_MEASUREMENT_PATTERN.matcher("");
-		final NodeList svgNodes = doc.getElementsByTagName("svg");
-		float maxWidth = -1;
-		float maxHeight = -1;
-		for (int i = 0; i < svgNodes.getLength(); ++i) {
-			final Node svgNode = svgNodes.item(i);
-			final NamedNodeMap svgNodeAttrs = svgNode.getAttributes();
-			{
-				final Node svgWidthAttrNode = svgNodeAttrs.getNamedItem("width");
-				lengthValMatcher.reset(svgWidthAttrNode.getTextContent());
-				if (lengthValMatcher.matches()) {
-					final float width = getNormalizedLength(lengthValMatcher, userAgent);
-					maxWidth = Math.max(maxWidth, width);
-				}
-			}
-			{
-				final Node svgHeightAttrNode = svgNodeAttrs.getNamedItem("height");
-				lengthValMatcher.reset(svgHeightAttrNode.getTextContent());
-				if (lengthValMatcher.matches()) {
-					final float height = getNormalizedLength(lengthValMatcher, userAgent);
-					maxHeight = Math.max(maxHeight, height);
-				}
-			}
-
-		}
-
-		pngTranscoder.addTranscodingHint(SVGAbstractTranscoder.KEY_WIDTH, Float.valueOf(maxWidth));
-		pngTranscoder.addTranscodingHint(SVGAbstractTranscoder.KEY_HEIGHT, Float.valueOf(maxHeight));
+		final float[] maxDimensions = findMaxDimensions(doc, userAgent);
+		pngTranscoder.addTranscodingHint(SVGAbstractTranscoder.KEY_WIDTH, Float.valueOf(maxDimensions[0]));
+		pngTranscoder.addTranscodingHint(SVGAbstractTranscoder.KEY_HEIGHT, Float.valueOf(maxDimensions[1]));
 		pngTranscoder.transcode(transcoderInput, transcoderOutput);
 
 		try (OutputStream os = new BufferedOutputStream(
@@ -132,6 +107,35 @@ public final class SVGIconImagePNGTranscoder {
 		final String parser = XMLResourceDescriptor.getXMLParserClassName();
 		final SAXSVGDocumentFactory factory = new SAXSVGDocumentFactory(parser);
 		return factory.createDocument(uri);
+	}
+
+	private static float[] findMaxDimensions(final Document doc, final UserAgent userAgent) {
+		final Matcher lengthValMatcher = LENGTH_MEASUREMENT_PATTERN.matcher("");
+		final NodeList svgNodes = doc.getElementsByTagName("svg");
+		float maxWidth = -1;
+		float maxHeight = -1;
+		for (int i = 0; i < svgNodes.getLength(); ++i) {
+			final Node svgNode = svgNodes.item(i);
+			final NamedNodeMap svgNodeAttrs = svgNode.getAttributes();
+			{
+				final Node svgWidthAttrNode = svgNodeAttrs.getNamedItem("width");
+				lengthValMatcher.reset(svgWidthAttrNode.getTextContent());
+				if (lengthValMatcher.matches()) {
+					final float width = getNormalizedLength(lengthValMatcher, userAgent);
+					maxWidth = Math.max(maxWidth, width);
+				}
+			}
+			{
+				final Node svgHeightAttrNode = svgNodeAttrs.getNamedItem("height");
+				lengthValMatcher.reset(svgHeightAttrNode.getTextContent());
+				if (lengthValMatcher.matches()) {
+					final float height = getNormalizedLength(lengthValMatcher, userAgent);
+					maxHeight = Math.max(maxHeight, height);
+				}
+			}
+
+		}
+		return new float[] { maxWidth, maxHeight };
 	}
 
 	private static float getNormalizedLength(final Matcher lengthValMatcher, final UserAgent userAgent) {
