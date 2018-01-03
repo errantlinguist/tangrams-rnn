@@ -171,11 +171,25 @@ public final class SVGImageViewingTest {
 	 *            The name of the CSS property. See the CSS property index.
 	 * @param value
 	 *            The new value of the property.
+	 */
+	private static void setPathStyles(final Document doc, final String propertyName, final String value) {
+		setPathStyles(doc, propertyName, value, "");
+	}
+
+	/**
+	 *
+	 * @param doc
+	 *            The {@link Document} containing the paths to which the given
+	 *            property is to be set.
+	 * @param propertyName
+	 *            The name of the CSS property. See the CSS property index.
+	 * @param value
+	 *            The new value of the property.
 	 * @param priority
 	 *            The new priority of the property (e.g. "important") or the empty
 	 *            string if none.
 	 */
-	private static void appendPathStyle(final Document doc, final String propertyName, final String value,
+	private static void setPathStyles(final Document doc, final String propertyName, final String value,
 			final String priority) {
 		final NodeList pathNodes = doc.getElementsByTagName("path");
 		for (int pathNodeIdx = 0; pathNodeIdx < pathNodes.getLength(); ++pathNodeIdx) {
@@ -200,20 +214,6 @@ public final class SVGImageViewingTest {
 			// scale(1.0)";
 			// transformAttr.setTextContent(scaledTransformStr);
 		}
-	}
-
-	/**
-	 *
-	 * @param doc
-	 *            The {@link Document} containing the paths to which the given
-	 *            property is to be set.
-	 * @param propertyName
-	 *            The name of the CSS property. See the CSS property index.
-	 * @param value
-	 *            The new value of the property.
-	 */
-	private static void setPathStyles(final Document doc, final String propertyName, final String value) {
-		appendPathStyle(doc, propertyName, value, "");
 	}
 
 }
