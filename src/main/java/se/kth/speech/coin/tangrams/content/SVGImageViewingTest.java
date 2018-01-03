@@ -15,27 +15,23 @@
  */
 package se.kth.speech.coin.tangrams.content;
 
+import java.awt.Dimension;
 import java.awt.EventQueue;
+import java.awt.Toolkit;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import javax.swing.JFrame;
 import javax.swing.WindowConstants;
 
-import org.apache.batik.anim.dom.SVGOMPathElement;
 import org.apache.batik.swing.JSVGCanvas;
-import org.apache.batik.swing.svg.JSVGComponent;
-import org.apache.batik.swing.svg.SVGDocumentLoaderAdapter;
-import org.apache.batik.swing.svg.SVGDocumentLoaderEvent;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.css.CSSStyleDeclaration;
-import org.w3c.dom.svg.SVGAnimatedRect;
 import org.w3c.dom.svg.SVGDocument;
-import org.w3c.dom.svg.SVGRect;
-import org.w3c.dom.svg.SVGSVGElement;
 
 /**
  * @author <a href="mailto:errantlinguist+github@gmail.com>Todd Shore</a>
@@ -44,117 +40,28 @@ import org.w3c.dom.svg.SVGSVGElement;
  */
 public final class SVGImageViewingTest {
 
+//	private static final Logger LOGGER = LoggerFactory.getLogger(SVGImageViewingTest.class);
+
 	private static final StyleDeclarationParser STYLE_DECLARATION_PARSER = new StyleDeclarationParser();
 
-	public static void main(final String[] args) {
+	public static void main(final String[] args) throws IOException {
 		final Path infilePath = Paths.get(args[0]);
+		final SVGDocument doc = SVGDocuments.read(infilePath.toUri().toString());
+		// Change the properties of the SVG document before rendering
+		setPathStyles(doc, "fill", "purple");
 		final JFrame frame = new JFrame("Image viewer");
-		// f.setLayout(new BorderLayout());
-		// f.setPreferredSize(new Dimension(1000,100));
 		final JSVGCanvas canvas = new JSVGCanvas();
-		// canvas.setPreferredSize(new Dimension(1000,100));
-		// canvas.set
-		// canvas.setLayout(new BorderLayout());
-		canvas.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC);
+//		canvas.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC);
+		canvas.setDocument(doc);
+		final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+		final int minDim = Math.min(screenSize.width, screenSize.height);
+		final int imgDim = Math.toIntExact(Math.round(Math.floor(minDim * 0.8f)));
+		// NOTE: The "width" and "height" attributes of the SVG document need not be
+		// changed in order to change the display size
+		canvas.setPreferredSize(new Dimension(imgDim, imgDim));
 		frame.add(canvas);
+
 		EventQueue.invokeLater(() -> {
-			canvas.addSVGDocumentLoaderListener(new SVGDocumentLoaderAdapter() {
-
-				/*
-				 * (non-Javadoc)
-				 *
-				 * @see org.apache.batik.swing.svg.SVGDocumentLoaderAdapter#
-				 * documentLoadingCompleted(org.apache.batik.swing.svg. SVGDocumentLoaderEvent)
-				 */
-				@Override
-				public void documentLoadingCompleted(final SVGDocumentLoaderEvent e) {
-					final SVGDocument doc = e.getSVGDocument();
-					setPathStyles(doc, "fill", "purple");
-
-					final NodeList svgNodes = doc.getElementsByTagName("svg");
-					for (int svgNodeIdx = 0; svgNodeIdx < svgNodes.getLength(); ++svgNodeIdx) {
-						final SVGSVGElement svgNode = (SVGSVGElement) svgNodes.item(svgNodeIdx);
-						final SVGAnimatedRect viewBox = svgNode.getViewBox();
-						final SVGRect viewBoxVal = viewBox.getBaseVal();
-						final float newWidth = viewBoxVal.getWidth() * 2;
-						viewBoxVal.setWidth(newWidth);
-						final float newHeight = viewBoxVal.getHeight() * 2;
-						viewBoxVal.setHeight(newHeight);
-						// svgNode.createSVGTransform().setScale(2.0f, 2.0f);
-						System.out.println(svgNode);
-						final NamedNodeMap svgAttrs = svgNode.getAttributes();
-						final Node widthAttrNode = svgAttrs.getNamedItem("width");
-						final String width = widthAttrNode.getTextContent();
-						System.out.println("old width:" + width);
-						// widthAttrNode.setTextContent("100%");
-						// widthAttrNode.setTextContent("1000mm");
-						// widthAttrNode.setTextContent(newWidth + "mm");
-						System.out.println("new width:" + widthAttrNode.getTextContent());
-						final Node heightAttrNode = svgAttrs.getNamedItem("height");
-						final String height = heightAttrNode.getTextContent();
-						System.out.println("old height:" + height);
-						// heightAttrNode.setTextContent("100%");
-						// heightAttrNode.setTextContent("2000mm");
-						// heightAttrNode.setTextContent(newHeight + "mm");
-						// svgAttrs.removeNamedItem("height");
-						System.out.println("new height:" + heightAttrNode.getTextContent());
-						// Node viewBoxAttr = svgAttrs.getNamedItem("viewBox");
-						// String viewBoxAttrStr = viewBoxAttr.getTextContent();
-						// viewBoxAttr.setTextContent("0 0 " + width + " " +
-						// height);
-					}
-
-					final SVGSVGElement rootElem = doc.getRootElement();
-					rootElem.createSVGTransform().setScale(2.0f, 2.0f);
-					// rootElem.trans
-					// rootElem.forceRedraw();
-
-					// System.out.println("currentScale:" +
-					// rootElem.getCurrentScale());
-					// rootElem.
-					// rootElem.createSVGTransform()
-					// rootElem.getHeight();
-					// rootElem.setCurrentScale(2.0f);
-
-					// EventQueue.invokeLater(()-> {
-					// JFrame conv = new JFrame("Converted");
-					// JSVGCanvas convCanvas = new JSVGCanvas();
-					// conv.add(convCanvas);
-					// convCanvas.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC);
-					// convCanvas.setSVGDocument(doc);
-					// convCanvas.addSVGDocumentLoaderListener(new
-					// SVGDocumentLoaderAdapter(){
-					//
-					// });
-					// conv.pack();
-					//// conv.setLocation(null);
-					// conv.setVisible(true);
-					// });
-
-					// try {
-					// BufferedImage img = convertSVGToPNG(doc);
-					// EventQueue.invokeLater(() -> {
-					// JFrame c = new JFrame("Converted");
-					// c.add(new JLabel(new ImageIcon(img)));
-					// c.pack();
-					// c.setLocationByPlatform(true);
-					// c.setVisible(true);
-					// });
-					// } catch (IOException e1) {
-					// throw new UncheckedIOException(e1);
-					// } catch (TranscoderException e1) {
-					// throw new RuntimeException(e1);
-					// }
-
-					// canvas.setSVGDocument(doc);
-					// f.invalidate();
-					// canvas.repaint();
-				}
-
-			});
-			canvas.setURI(infilePath.toString());
-			canvas.setVisible(true);
-
 			frame.pack();
 			frame.setLocationByPlatform(true);
 			frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -193,10 +100,27 @@ public final class SVGImageViewingTest {
 			final String priority) {
 		final NodeList pathNodes = doc.getElementsByTagName("path");
 		for (int pathNodeIdx = 0; pathNodeIdx < pathNodes.getLength(); ++pathNodeIdx) {
-			final SVGOMPathElement pathNode = (SVGOMPathElement) pathNodes.item(pathNodeIdx);
+			final Node pathNode = pathNodes.item(pathNodeIdx);
 			setStyle(pathNode, propertyName, value, priority);
 		}
 	}
+
+//	private static void setSize(final SVGDocument doc, final float width, final float height, final String unit) {
+//		final SVGSVGElement rootElem = doc.getRootElement();
+//		setSize(rootElem, width + unit, height + unit);
+//	}
+//
+//	private static void setSize(final SVGSVGElement elem, final String width, final String height) {
+//		// This has been tested; The property changes are in fact persisted
+//		final String tag = elem.getTagName();
+//		LOGGER.info("Original dimensions of element \"{}\" are {} * {}.", tag,
+//				elem.getWidth().getBaseVal().getValueAsString(), elem.getHeight().getBaseVal().getValueAsString());
+//		// https://xmlgraphics.apache.org/batik/faq.html#changes-are-not-rendered
+//		elem.setAttributeNS(null, "width", width);
+//		elem.setAttributeNS(null, "height", height);
+//		LOGGER.info("New dimensions of element \"{}\" are {} * {}.", tag,
+//				elem.getWidth().getBaseVal().getValueAsString(), elem.getHeight().getBaseVal().getValueAsString());
+//	}
 
 	/**
 	 *
