@@ -66,7 +66,7 @@ public final class SVGIconImageViewingTest {
 				 */
 				@Override
 				public void documentLoadingCompleted(final SVGDocumentLoaderEvent e) {
-					final SVGDocument doc = canvas.getSVGDocument();
+					final SVGDocument doc = e.getSVGDocument();
 
 					final NodeList pathNodes = doc.getElementsByTagName("path");
 					for (int pathNodeIdx = 0; pathNodeIdx < pathNodes.getLength(); ++pathNodeIdx) {
