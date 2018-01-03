@@ -46,7 +46,7 @@ import org.w3c.dom.NodeList;
  * @since 7 Mar 2017
  *
  */
-public final class SVGIconImagePNGTranscoder {
+public final class SVGFiletoPNGConverter {
 
 	private static final Pattern LENGTH_MEASUREMENT_PATTERN = Pattern.compile("(\\d+(?:\\.\\d+)?)(\\S*)");
 
@@ -98,7 +98,7 @@ public final class SVGIconImagePNGTranscoder {
 	public static void main(final String[] args) throws TranscoderException, IOException, URISyntaxException {
 		if (args.length < 1) {
 			System.err
-					.println(String.format("Usage: %s <infile> <outfile>", SVGIconImagePNGTranscoder.class.getName()));
+					.println(String.format("Usage: %s <infile> <outfile>", SVGFiletoPNGConverter.class.getName()));
 			System.exit(64);
 		} else {
 			final Path infilePath = Paths.get(args[0]);
