@@ -69,6 +69,14 @@ public final class TfIdfKeywordWriter {
 				return Option.builder(optName).longOpt("help").desc("Prints this message.").build();
 			}
 		},
+		ONLY_INSTRUCTOR("i") {
+			@Override
+			public Option get() {
+				return Option.builder(optName).longOpt("only-instructor")
+						.desc("If this flag is set, only instructor language will be used for TF-IDF calculation.")
+						.build();
+			}
+		},
 		OUTPATH("o") {
 			@Override
 			public Option get() {
@@ -95,14 +103,6 @@ public final class TfIdfKeywordWriter {
 								"The method of calculating term frequencies. Possible values: %s; Default value: %s\"",
 								Arrays.toString(possibleVals), DEFAULT_TF_VARIANT))
 						.hasArg().argName("name").build();
-			}
-		},
-		ONLY_INSTRUCTOR("i") {
-			@Override
-			public Option get() {
-				return Option.builder(optName).longOpt("only-instructor")
-						.desc("If this flag is set, only instructor language will be used for TF-IDF calculation.")
-						.build();
 			}
 		};
 
@@ -168,11 +168,8 @@ public final class TfIdfKeywordWriter {
 						.parseOutpath((File) cl.getParsedOptionValue(Parameter.OUTPATH.optName));
 				final Path refTokenFilePath = ((File) cl.getParsedOptionValue(Parameter.REFERRING_TOKENS.optName))
 						.toPath();
-				final NavigableMap<Session, List<List<String>>> sessionNgrams = new TreeMap<>(
-						Comparator.comparing(Session::getName));
-
-				new SessionSetReader(refTokenFilePath).apply(inpaths).getSessions().forEach(
-						session -> sessionNgrams.put(session, createNgrams(session).collect(Collectors.toList())));
+				final NavigableMap<Session, List<List<String>>> sessionNgrams = createSessionNgramMap(
+						new SessionSetReader(refTokenFilePath).apply(inpaths).getSessions());
 				LOGGER.info("Will extract keywords from {} session(s).", sessionNgrams.size());
 				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
 				LOGGER.info("Only use instructor language? {}", onlyInstructor);
@@ -210,7 +207,8 @@ public final class TfIdfKeywordWriter {
 		final Stream.Builder<List<String>> resultBuilder = Stream.builder();
 		while (tokenizer.hasMoreElements()) {
 			final String nextStr = tokenizer.nextElement();
-			final List<String> ngram = Arrays.asList(Arrays.stream(nextStr.split(TOKEN_DELIMITER)).map(String::intern).toArray(String[]::new));
+			final List<String> ngram = Arrays
+					.asList(Arrays.stream(nextStr.split(TOKEN_DELIMITER)).map(String::intern).toArray(String[]::new));
 			resultBuilder.accept(ngram);
 		}
 		return resultBuilder.build();
@@ -226,8 +224,8 @@ public final class TfIdfKeywordWriter {
 		final List<String> ngram = scoredNgram.getWrapped();
 		final double weight = scoredNgram.getWeight();
 		final String ngramRepr = ngram.stream().collect(TOKEN_JOINER);
-		return Stream.of(sessionName, ngramRepr, weight, ngram.size(),
-				normalizeWeight(scoredNgram)).map(Object::toString);
+		return Stream.of(sessionName, ngramRepr, weight, ngram.size(), normalizeWeight(scoredNgram))
+				.map(Object::toString);
 	}
 
 	private static Comparator<Weighted<? extends List<?>>> createScoredNgramComparator() {
@@ -236,6 +234,12 @@ public final class TfIdfKeywordWriter {
 		final Comparator<Weighted<? extends List<?>>> normalizedWeightAscending = Comparator
 				.comparingDouble(TfIdfKeywordWriter::normalizeWeight);
 		return normalizedWeightAscending.reversed().thenComparing(ngramLengthAscending.reversed());
+	}
+
+	private static NavigableMap<Session, List<List<String>>> createSessionNgramMap(final Iterable<Session> sessions) {
+		final NavigableMap<Session, List<List<String>>> result = new TreeMap<>(Comparator.comparing(Session::getName));
+		sessions.forEach(session -> result.put(session, createNgrams(session).collect(Collectors.toList())));
+		return result;
 	}
 
 	private static double normalizeWeight(final Weighted<? extends Collection<?>> weightedColl) {
