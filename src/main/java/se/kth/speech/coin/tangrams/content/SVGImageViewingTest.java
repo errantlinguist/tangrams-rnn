@@ -194,26 +194,33 @@ public final class SVGImageViewingTest {
 		final NodeList pathNodes = doc.getElementsByTagName("path");
 		for (int pathNodeIdx = 0; pathNodeIdx < pathNodes.getLength(); ++pathNodeIdx) {
 			final SVGOMPathElement pathNode = (SVGOMPathElement) pathNodes.item(pathNodeIdx);
-			// final CSSStyleDeclaration style = pathNode.getStyle();
-			// NOTE: For whatever reason "SVGOMPathElement.getStyle()" throws a
-			// NullPointerException
-			final NamedNodeMap pathNodeAttrs = pathNode.getAttributes();
-			final Node styleAttrNode = pathNodeAttrs.getNamedItem("style");
-			final String styleStr = styleAttrNode.getTextContent();
-			final CSSStyleDeclaration styleDeclaration = STYLE_DECLARATION_PARSER.apply(styleStr);
-			styleDeclaration.setProperty(propertyName, value, priority);
-			styleAttrNode.setTextContent(styleDeclaration.getCssText());
-			// parseStyle(styleStr);
-			// styleAttrNode.setTextContent(styleStr + ";" + styleToAppend);
-
-			// final Node transformAttr =
-			// pathNodeAttrs.getNamedItem("transform");
-			// final String transformStr =
-			// transformAttr.getTextContent();
-			// final String scaledTransformStr = transformStr + "
-			// scale(1.0)";
-			// transformAttr.setTextContent(scaledTransformStr);
+			setStyle(pathNode, propertyName, value, priority);
 		}
+	}
+
+	/**
+	 *
+	 * @param node
+	 *            The {@link Node} to set the property for.
+	 * @param propertyName
+	 *            The name of the CSS property. See the CSS property index.
+	 * @param value
+	 *            The new value of the property.
+	 * @param priority
+	 *            The new priority of the property (e.g. "important") or the empty
+	 *            string if none.
+	 */
+	private static void setStyle(final Node node, final String propertyName, final String value,
+			final String priority) {
+		// final CSSStyleDeclaration style = pathNode.getStyle();
+		// NOTE: For whatever reason "SVGOMPathElement.getStyle()" throws a
+		// NullPointerException
+		final NamedNodeMap pathNodeAttrs = node.getAttributes();
+		final Node styleAttrNode = pathNodeAttrs.getNamedItem("style");
+		final String styleStr = styleAttrNode.getTextContent();
+		final CSSStyleDeclaration styleDeclaration = STYLE_DECLARATION_PARSER.apply(styleStr);
+		styleDeclaration.setProperty(propertyName, value, priority);
+		styleAttrNode.setTextContent(styleDeclaration.getCssText());
 	}
 
 }
