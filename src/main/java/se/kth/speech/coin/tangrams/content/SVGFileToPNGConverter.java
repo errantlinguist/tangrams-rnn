@@ -27,14 +27,12 @@ import java.nio.file.StandardOpenOption;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.batik.anim.dom.SAXSVGDocumentFactory;
 import org.apache.batik.bridge.UserAgent;
 import org.apache.batik.transcoder.SVGAbstractTranscoder;
 import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
 import org.apache.batik.transcoder.TranscoderOutput;
 import org.apache.batik.transcoder.image.PNGTranscoder;
-import org.apache.batik.util.XMLResourceDescriptor;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
@@ -49,31 +47,16 @@ public final class SVGFileToPNGConverter {
 
 	private static final Pattern LENGTH_MEASUREMENT_PATTERN = Pattern.compile("(\\d+(?:\\.\\d+)?)(\\S*)");
 
-	private static final ThreadLocal<SAXSVGDocumentFactory> SVG_DOC_FACTORY = new ThreadLocal<SAXSVGDocumentFactory>() {
-
-		private final String xmlParserName = XMLResourceDescriptor.getXMLParserClassName();
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see java.lang.ThreadLocal#initialValue()
-		 */
-		@Override
-		protected SAXSVGDocumentFactory initialValue() {
-			return new SAXSVGDocumentFactory(xmlParserName);
-		}
-
-	};
-
 	/**
 	 * @see <a href= "http://stackoverflow.com/q/32721467/1391325">StackOverflow</a>
-	 * @param doc
+	 * @param inputUri
+	 * @param outpath
 	 * @throws TranscoderException
 	 * @throws IOException
 	 */
 	public static void convertSVGToPNG(final String inputUri, final Path outpath)
 			throws TranscoderException, IOException {
-		final Document doc = createSVGDocument(inputUri);
+		final Document doc = SVGDocuments.read(inputUri);
 		final ByteArrayOutputStream resultByteStream = new ByteArrayOutputStream();
 		final TranscoderInput transcoderInput = new TranscoderInput(doc);
 		final TranscoderOutput transcoderOutput = new TranscoderOutput(resultByteStream);
@@ -127,20 +110,6 @@ public final class SVGFileToPNGConverter {
 			}
 		}
 		return result;
-	}
-
-	/**
-	 * Uses a {@link SAXSVGDocumentFactory} to parse the given URI into a DOM.
-	 *
-	 * @param uri
-	 *            A URI identifying the SVG file to read.
-	 * @return A {@link Document} instance that represents the SVG file.
-	 * @throws IOException
-	 *             if an error occurred while reading the document.
-	 */
-	private static Document createSVGDocument(final String uri) throws IOException {
-		final SAXSVGDocumentFactory factory = SVG_DOC_FACTORY.get();
-		return factory.createDocument(uri);
 	}
 
 	/**
