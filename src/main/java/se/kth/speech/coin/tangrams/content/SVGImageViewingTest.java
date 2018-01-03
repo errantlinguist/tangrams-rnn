@@ -1,19 +1,18 @@
 /*
- *  This file is part of client.
+ * 	Copyright 2017 Todd Shore
  *
- *  client is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
+ *	Licensed under the Apache License, Version 2.0 (the "License");
+ *	you may not use this file except in compliance with the License.
+ *	You may obtain a copy of the License at
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ *	Unless required by applicable law or agreed to in writing, software
+ *	distributed under the License is distributed on an "AS IS" BASIS,
+ *	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *	See the License for the specific language governing permissions and
+ *	limitations under the License.
+ */
 package se.kth.speech.coin.tangrams.content;
 
 import java.awt.EventQueue;
@@ -28,20 +27,24 @@ import org.apache.batik.swing.JSVGCanvas;
 import org.apache.batik.swing.svg.JSVGComponent;
 import org.apache.batik.swing.svg.SVGDocumentLoaderAdapter;
 import org.apache.batik.swing.svg.SVGDocumentLoaderEvent;
+import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.w3c.dom.css.CSSStyleDeclaration;
 import org.w3c.dom.svg.SVGAnimatedRect;
 import org.w3c.dom.svg.SVGDocument;
 import org.w3c.dom.svg.SVGRect;
 import org.w3c.dom.svg.SVGSVGElement;
 
 /**
- * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
+ * @author <a href="mailto:errantlinguist+github@gmail.com>Todd Shore</a>
  * @since 7 Mar 2017
  *
  */
 public final class SVGImageViewingTest {
+
+	private static final StyleDeclarationParser STYLE_DECLARATION_PARSER = new StyleDeclarationParser();
 
 	public static void main(final String[] args) {
 		final Path infilePath = Paths.get(args[0]);
@@ -61,32 +64,13 @@ public final class SVGImageViewingTest {
 				 * (non-Javadoc)
 				 *
 				 * @see org.apache.batik.swing.svg.SVGDocumentLoaderAdapter#
-				 * documentLoadingCompleted(org.apache.batik.swing.svg.
-				 * SVGDocumentLoaderEvent)
+				 * documentLoadingCompleted(org.apache.batik.swing.svg. SVGDocumentLoaderEvent)
 				 */
 				@Override
 				public void documentLoadingCompleted(final SVGDocumentLoaderEvent e) {
 					final SVGDocument doc = e.getSVGDocument();
+					setPathStyles(doc, "fill", "purple");
 
-					final NodeList pathNodes = doc.getElementsByTagName("path");
-					for (int pathNodeIdx = 0; pathNodeIdx < pathNodes.getLength(); ++pathNodeIdx) {
-						final SVGOMPathElement pathNode = (SVGOMPathElement) pathNodes.item(pathNodeIdx);
-						// CSSStyleDeclaration style = pathNode.getStyle();
-						// System.out.println(style);
-						final NamedNodeMap pathNodeAttrs = pathNode.getAttributes();
-						final Node styleAttrNode = pathNodeAttrs.getNamedItem("style");
-						final String styleStr = styleAttrNode.getTextContent();
-						// System.out.println(styleStr);
-						styleAttrNode.setTextContent(styleStr + ";fill:purple");
-
-						// final Node transformAttr =
-						// pathNodeAttrs.getNamedItem("transform");
-						// final String transformStr =
-						// transformAttr.getTextContent();
-						// final String scaledTransformStr = transformStr + "
-						// scale(1.0)";
-						// transformAttr.setTextContent(scaledTransformStr);
-					}
 					final NodeList svgNodes = doc.getElementsByTagName("svg");
 					for (int svgNodeIdx = 0; svgNodeIdx < svgNodes.getLength(); ++svgNodeIdx) {
 						final SVGSVGElement svgNode = (SVGSVGElement) svgNodes.item(svgNodeIdx);
@@ -176,6 +160,60 @@ public final class SVGImageViewingTest {
 			frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 			frame.setVisible(true);
 		});
+	}
+
+	/**
+	 *
+	 * @param doc
+	 *            The {@link Document} containing the paths to which the given
+	 *            property is to be set.
+	 * @param propertyName
+	 *            The name of the CSS property. See the CSS property index.
+	 * @param value
+	 *            The new value of the property.
+	 * @param priority
+	 *            The new priority of the property (e.g. "important") or the empty
+	 *            string if none.
+	 */
+	private static void appendPathStyle(final Document doc, final String propertyName, final String value,
+			final String priority) {
+		final NodeList pathNodes = doc.getElementsByTagName("path");
+		for (int pathNodeIdx = 0; pathNodeIdx < pathNodes.getLength(); ++pathNodeIdx) {
+			final SVGOMPathElement pathNode = (SVGOMPathElement) pathNodes.item(pathNodeIdx);
+			// final CSSStyleDeclaration style = pathNode.getStyle();
+			// NOTE: For whatever reason "SVGOMPathElement.getStyle()" throws a
+			// NullPointerException
+			final NamedNodeMap pathNodeAttrs = pathNode.getAttributes();
+			final Node styleAttrNode = pathNodeAttrs.getNamedItem("style");
+			final String styleStr = styleAttrNode.getTextContent();
+			final CSSStyleDeclaration styleDeclaration = STYLE_DECLARATION_PARSER.apply(styleStr);
+			styleDeclaration.setProperty(propertyName, value, priority);
+			styleAttrNode.setTextContent(styleDeclaration.getCssText());
+			// parseStyle(styleStr);
+			// styleAttrNode.setTextContent(styleStr + ";" + styleToAppend);
+
+			// final Node transformAttr =
+			// pathNodeAttrs.getNamedItem("transform");
+			// final String transformStr =
+			// transformAttr.getTextContent();
+			// final String scaledTransformStr = transformStr + "
+			// scale(1.0)";
+			// transformAttr.setTextContent(scaledTransformStr);
+		}
+	}
+
+	/**
+	 *
+	 * @param doc
+	 *            The {@link Document} containing the paths to which the given
+	 *            property is to be set.
+	 * @param propertyName
+	 *            The name of the CSS property. See the CSS property index.
+	 * @param value
+	 *            The new value of the property.
+	 */
+	private static void setPathStyles(final Document doc, final String propertyName, final String value) {
+		appendPathStyle(doc, propertyName, value, "");
 	}
 
 }
