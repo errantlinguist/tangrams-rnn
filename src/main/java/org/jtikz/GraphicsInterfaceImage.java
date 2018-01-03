@@ -1,36 +1,45 @@
 package org.jtikz;
 
-import java.awt.*;
-import java.awt.image.*;
+import java.awt.Graphics;
+import java.awt.Image;
+import java.awt.image.ImageObserver;
+import java.awt.image.ImageProducer;
 
-public class GraphicsInterfaceImage extends Image {
-    AbstractGraphicsInterface g;
+final class GraphicsInterfaceImage extends Image {
 
-    public GraphicsInterfaceImage(AbstractGraphicsInterface g) {
-        this.g = g;
-    }
+	private final AbstractGraphicsInterface g;
 
-    public void flush() {
-        g.flush();
-    }
+	GraphicsInterfaceImage(final AbstractGraphicsInterface g) {
+		this.g = g;
+	}
 
-    public Graphics getGraphics() {
-        return g.create();
-    }
+	@Override
+	public void flush() {
+		g.flush();
+	}
 
-    public int getWidth(ImageObserver io) {
-        return Integer.MAX_VALUE;
-    }
+	@Override
+	public Graphics getGraphics() {
+		return g.create();
+	}
 
-    public int getHeight(ImageObserver io) {
-        return Integer.MAX_VALUE;
-    }
+	@Override
+	public int getHeight(final ImageObserver io) {
+		return Integer.MAX_VALUE;
+	}
 
-    public ImageProducer getSource() {
-        return null;
-    }
+	@Override
+	public Object getProperty(final String name, final ImageObserver observer) {
+		return null;
+	}
 
-    public Object getProperty(String name, ImageObserver observer) {
-        return null;
-    }
+	@Override
+	public ImageProducer getSource() {
+		return null;
+	}
+
+	@Override
+	public int getWidth(final ImageObserver io) {
+		return Integer.MAX_VALUE;
+	}
 }
