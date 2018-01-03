@@ -41,7 +41,7 @@ import org.w3c.dom.svg.SVGSVGElement;
  * @since 7 Mar 2017
  *
  */
-public final class SVGIconImageViewingTest {
+public final class SVGImageViewingTest {
 
 	public static void main(final String[] args) {
 		final Path infilePath = Paths.get(args[0]);
