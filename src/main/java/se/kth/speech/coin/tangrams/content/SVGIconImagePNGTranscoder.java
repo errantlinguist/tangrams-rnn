@@ -50,28 +50,13 @@ public final class SVGIconImagePNGTranscoder {
 
 	private static final Pattern LENGTH_MEASUREMENT_PATTERN = Pattern.compile("(\\d+(?:\\.\\d+)?)(\\S*)");
 
-	public static void main(final String[] args) throws TranscoderException, IOException, URISyntaxException {
-		if (args.length < 1) {
-			System.err
-					.println(String.format("Usage: %s <infile> <outfile>", SVGIconImagePNGTranscoder.class.getName()));
-			System.exit(64);
-		} else {
-			final Path infilePath = Paths.get(args[0]);
-			final Path outfilePath = Paths.get(args[1]);
-			System.out.print(infilePath + " > ");
-			convertSVGToPNG(infilePath.toString(), outfilePath);
-			System.out.println(outfilePath);
-		}
-
-	}
-
 	/**
 	 * @see <a href= "http://stackoverflow.com/q/32721467/1391325">StackOverflow</a>
 	 * @param doc
 	 * @throws TranscoderException
 	 * @throws IOException
 	 */
-	private static void convertSVGToPNG(final String inputUri, final Path outpath)
+	public static void convertSVGToPNG(final String inputUri, final Path outpath)
 			throws TranscoderException, IOException {
 		final Document doc = createSVGDocument(inputUri);
 		final ByteArrayOutputStream resultByteStream = new ByteArrayOutputStream();
@@ -107,8 +92,6 @@ public final class SVGIconImagePNGTranscoder {
 
 		}
 
-		// FIXME: Setting size of actual drawing doesn't work: Only extra
-		// whitespace is added
 		pngTranscoder.addTranscodingHint(SVGAbstractTranscoder.KEY_WIDTH, Float.valueOf(maxWidth));
 		pngTranscoder.addTranscodingHint(SVGAbstractTranscoder.KEY_HEIGHT, Float.valueOf(maxHeight));
 		pngTranscoder.transcode(transcoderInput, transcoderOutput);
@@ -117,6 +100,21 @@ public final class SVGIconImagePNGTranscoder {
 				Files.newOutputStream(outpath, StandardOpenOption.CREATE, StandardOpenOption.APPEND))) {
 			resultByteStream.writeTo(os);
 			// writer.flush();
+		}
+
+	}
+
+	public static void main(final String[] args) throws TranscoderException, IOException, URISyntaxException {
+		if (args.length < 1) {
+			System.err
+					.println(String.format("Usage: %s <infile> <outfile>", SVGIconImagePNGTranscoder.class.getName()));
+			System.exit(64);
+		} else {
+			final Path infilePath = Paths.get(args[0]);
+			final Path outfilePath = Paths.get(args[1]);
+			System.out.print(infilePath + " > ");
+			convertSVGToPNG(infilePath.toString(), outfilePath);
+			System.out.println(outfilePath);
 		}
 
 	}
