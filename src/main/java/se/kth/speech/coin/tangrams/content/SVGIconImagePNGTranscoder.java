@@ -57,7 +57,7 @@ public final class SVGIconImagePNGTranscoder {
 			System.exit(64);
 		} else {
 			final Path infilePath = Paths.get(args[0]);
-			final Path outfilePath = Paths.get(args[0]);
+			final Path outfilePath = Paths.get(args[1]);
 			System.out.print(infilePath + " > ");
 			convertSVGToPNG(infilePath.toString(), outfilePath);
 			System.out.println(outfilePath);
