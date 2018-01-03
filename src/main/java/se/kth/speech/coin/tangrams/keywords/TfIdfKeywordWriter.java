@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.TreeMap;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.Collector;
@@ -53,7 +54,6 @@ import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.coin.tangrams.wac.data.Utterance;
 import se.kth.speech.coin.tangrams.wac.logistic.Weighted;
 import se.kth.speech.function.ThrowingSupplier;
-import weka.core.tokenizers.NGramTokenizer;
 
 /**
  * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
@@ -141,14 +141,9 @@ public final class TfIdfKeywordWriter {
 
 	private static final Comparator<Weighted<? extends List<?>>> SCORED_NGRAM_COMPARATOR = createScoredNgramComparator();
 
-	private static final String TOKEN_DELIMITER;
+	private static final Collector<CharSequence, ?, String> TOKEN_JOINER = Collectors.joining(" ");;
 
-	private static final Collector<CharSequence, ?, String> TOKEN_JOINER;
-
-	static {
-		TOKEN_DELIMITER = " ";
-		TOKEN_JOINER = Collectors.joining(TOKEN_DELIMITER);
-	}
+	private static final Function<List<String>, List<List<String>>> NGRAM_FACTORY = new NGramFactory();
 
 	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD
 																						// (use
@@ -197,27 +192,10 @@ public final class TfIdfKeywordWriter {
 		}
 	}
 
-	private static Stream<List<String>> createNgrams(final List<String> tokenSeq) {
-		final NGramTokenizer tokenizer = new NGramTokenizer();
-		tokenizer.setDelimiters(TOKEN_DELIMITER);
-		tokenizer.setNGramMinSize(1);
-		tokenizer.setNGramMaxSize(tokenSeq.size());
-		final String inputStr = tokenSeq.stream().collect(TOKEN_JOINER);
-		tokenizer.tokenize(inputStr);
-		final Stream.Builder<List<String>> resultBuilder = Stream.builder();
-		while (tokenizer.hasMoreElements()) {
-			final String nextStr = tokenizer.nextElement();
-			final List<String> ngram = Arrays
-					.asList(Arrays.stream(nextStr.split(TOKEN_DELIMITER)).map(String::intern).toArray(String[]::new));
-			resultBuilder.accept(ngram);
-		}
-		return resultBuilder.build();
-	}
-
 	private static Stream<List<String>> createNgrams(final Session session) {
 		final Stream<List<String>> uttTokenSeqs = session.getRounds().stream().map(Round::getUtts).flatMap(List::stream)
 				.map(Utterance::getReferringTokens);
-		return uttTokenSeqs.flatMap(TfIdfKeywordWriter::createNgrams);
+		return uttTokenSeqs.map(NGRAM_FACTORY).flatMap(List::stream);
 	}
 
 	private static Stream<String> createRow(final String sessionName, final Weighted<List<String>> scoredNgram) {
