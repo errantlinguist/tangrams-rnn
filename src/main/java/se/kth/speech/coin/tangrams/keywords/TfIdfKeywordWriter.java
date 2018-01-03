@@ -175,7 +175,7 @@ public final class TfIdfKeywordWriter {
 						session -> sessionNgrams.put(session, createNgrams(session).collect(Collectors.toList())));
 				LOGGER.info("Will extract keywords from {} session(s).", sessionNgrams.size());
 				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
-				LOGGER.info("Only use instructor language ? {}", onlyInstructor);
+				LOGGER.info("Only use instructor language? {}", onlyInstructor);
 				final TfIdfCalculator<List<String>> tfIdfCalculator = TfIdfCalculator.create(sessionNgrams,
 						onlyInstructor, tfVariant);
 				final TfIdfKeywordWriter keywordWriter = new TfIdfKeywordWriter(sessionNgrams, tfIdfCalculator);
