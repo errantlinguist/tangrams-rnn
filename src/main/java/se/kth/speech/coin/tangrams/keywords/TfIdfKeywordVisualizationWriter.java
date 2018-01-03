@@ -45,7 +45,13 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.swing.JFrame;
+import javax.swing.WindowConstants;
+
+import org.apache.batik.anim.dom.SVGOMPathElement;
 import org.apache.batik.swing.JSVGCanvas;
+import org.apache.batik.swing.svg.SVGDocumentLoaderAdapter;
+import org.apache.batik.swing.svg.SVGDocumentLoaderEvent;
 import org.apache.batik.util.SVGConstants;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -59,6 +65,13 @@ import org.apache.commons.csv.CSVPrinter;
 import org.jtikz.TikzGraphics2D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.svg.SVGAnimatedRect;
+import org.w3c.dom.svg.SVGDocument;
+import org.w3c.dom.svg.SVGRect;
+import org.w3c.dom.svg.SVGSVGElement;
 
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
@@ -107,8 +120,8 @@ public final class TfIdfKeywordVisualizationWriter {
 		OUTPATH("o") {
 			@Override
 			public Option get() {
-				return Option.builder(optName).longOpt("outpath")
-						.desc("The file to write the results to; If this option is not supplied, the standard output stream will be used.")
+				return Option.builder(optName).longOpt("outpath").desc(
+						"The file to write the results to; If this option is not supplied, the standard output stream will be used.")
 						.hasArg().argName("path").type(File.class).build();
 			}
 		},
@@ -576,6 +589,129 @@ public final class TfIdfKeywordVisualizationWriter {
 		LOGGER.debug("Loading image from \"{}\".", uriString);
 		svgCanvas.setURI(uriString);
 		svgCanvas.setDocumentState(JSVGCanvas.ALWAYS_DYNAMIC);
+		svgCanvas.addSVGDocumentLoaderListener(new SVGDocumentLoaderAdapter() {
+
+			/*
+			 * (non-Javadoc)
+			 *
+			 * @see org.apache.batik.swing.svg.SVGDocumentLoaderAdapter#
+			 * documentLoadingCompleted(org.apache.batik.swing.svg. SVGDocumentLoaderEvent)
+			 */
+			@Override
+			public void documentLoadingCompleted(final SVGDocumentLoaderEvent e) {
+				final SVGDocument doc = e.getSVGDocument();
+
+				final NodeList pathNodes = doc.getElementsByTagName("path");
+				for (int pathNodeIdx = 0; pathNodeIdx < pathNodes.getLength(); ++pathNodeIdx) {
+					final SVGOMPathElement pathNode = (SVGOMPathElement) pathNodes.item(pathNodeIdx);
+					// CSSStyleDeclaration style = pathNode.getStyle();
+					// System.out.println(style);
+					final NamedNodeMap pathNodeAttrs = pathNode.getAttributes();
+					final Node styleAttrNode = pathNodeAttrs.getNamedItem("style");
+					final String styleStr = styleAttrNode.getTextContent();
+					// System.out.println(styleStr);
+					styleAttrNode.setTextContent(styleStr + ";fill:purple");
+
+					// final Node transformAttr =
+					// pathNodeAttrs.getNamedItem("transform");
+					// final String transformStr =
+					// transformAttr.getTextContent();
+					// final String scaledTransformStr = transformStr + "
+					// scale(1.0)";
+					// transformAttr.setTextContent(scaledTransformStr);
+				}
+				final NodeList svgNodes = doc.getElementsByTagName("svg");
+				for (int svgNodeIdx = 0; svgNodeIdx < svgNodes.getLength(); ++svgNodeIdx) {
+					final SVGSVGElement svgNode = (SVGSVGElement) svgNodes.item(svgNodeIdx);
+					final SVGAnimatedRect viewBox = svgNode.getViewBox();
+					final SVGRect viewBoxVal = viewBox.getBaseVal();
+					final float newWidth = viewBoxVal.getWidth() * 2;
+					viewBoxVal.setWidth(newWidth);
+					final float newHeight = viewBoxVal.getHeight() * 2;
+					viewBoxVal.setHeight(newHeight);
+					// svgNode.createSVGTransform().setScale(2.0f, 2.0f);
+					System.out.println(svgNode);
+					final NamedNodeMap svgAttrs = svgNode.getAttributes();
+					final Node widthAttrNode = svgAttrs.getNamedItem("width");
+					final String width = widthAttrNode.getTextContent();
+					System.out.println("old width:" + width);
+					// widthAttrNode.setTextContent("100%");
+					// widthAttrNode.setTextContent("1000mm");
+					// widthAttrNode.setTextContent(newWidth + "mm");
+					System.out.println("new width:" + widthAttrNode.getTextContent());
+					final Node heightAttrNode = svgAttrs.getNamedItem("height");
+					final String height = heightAttrNode.getTextContent();
+					System.out.println("old height:" + height);
+					// heightAttrNode.setTextContent("100%");
+					// heightAttrNode.setTextContent("2000mm");
+					// heightAttrNode.setTextContent(newHeight + "mm");
+					// svgAttrs.removeNamedItem("height");
+					System.out.println("new height:" + heightAttrNode.getTextContent());
+					// Node viewBoxAttr = svgAttrs.getNamedItem("viewBox");
+					// String viewBoxAttrStr = viewBoxAttr.getTextContent();
+					// viewBoxAttr.setTextContent("0 0 " + width + " " +
+					// height);
+				}
+
+				final SVGSVGElement rootElem = doc.getRootElement();
+				rootElem.createSVGTransform().setScale(2.0f, 2.0f);
+				// rootElem.trans
+				// rootElem.forceRedraw();
+
+				// System.out.println("currentScale:" +
+				// rootElem.getCurrentScale());
+				// rootElem.
+				// rootElem.createSVGTransform()
+				// rootElem.getHeight();
+				// rootElem.setCurrentScale(2.0f);
+
+				// EventQueue.invokeLater(()-> {
+				// JFrame conv = new JFrame("Converted");
+				// JSVGCanvas convCanvas = new JSVGCanvas();
+				// conv.add(convCanvas);
+				// convCanvas.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC);
+				// convCanvas.setSVGDocument(doc);
+				// convCanvas.addSVGDocumentLoaderListener(new
+				// SVGDocumentLoaderAdapter(){
+				//
+				// });
+				// conv.pack();
+				//// conv.setLocation(null);
+				// conv.setVisible(true);
+				// });
+
+				// try {
+				// BufferedImage img = convertSVGToPNG(doc);
+				// EventQueue.invokeLater(() -> {
+				// JFrame c = new JFrame("Converted");
+				// c.add(new JLabel(new ImageIcon(img)));
+				// c.pack();
+				// c.setLocationByPlatform(true);
+				// c.setVisible(true);
+				// });
+				// } catch (IOException e1) {
+				// throw new UncheckedIOException(e1);
+				// } catch (TranscoderException e1) {
+				// throw new RuntimeException(e1);
+				// }
+
+				// canvas.setSVGDocument(doc);
+				// f.invalidate();
+				// canvas.repaint();
+			}
+
+		});
+		final JFrame frame = new JFrame("Image viewer");
+		frame.add(svgCanvas);
+		frame.pack();
+		// f.setLocationByPlatform(true);
+		frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+		frame.setVisible(true);
+		final TikzGraphics2D t = new TikzGraphics2D();
+		LOGGER.info("Painting component.");
+		t.paintComponent(frame);
+		LOGGER.info("Finished painting component.");
+		frame.dispose();
 	}
 
 	// private Stream<String> createRow(final Session session, final
