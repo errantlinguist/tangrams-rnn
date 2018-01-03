@@ -95,6 +95,26 @@ public final class SVGIconImagePNGTranscoder {
 	}
 
 	/**
+	 *
+	 * @param lengthValMatcher
+	 *            The {@link Matcher} object matching the length to normalize
+	 * @param userAgent
+	 *            The {@link UserAgent} instance to use for converting lengths to
+	 *            pixel equivalents.
+	 * @return A floating-point value representing the matched length in pixels.
+	 */
+	private static float createPixelLength(final Matcher lengthValMatcher, final UserAgent userAgent) {
+		float result = Float.parseFloat(lengthValMatcher.group(1));
+		if (lengthValMatcher.groupCount() > 1) {
+			final String measurement = lengthValMatcher.group(2);
+			if (measurement.equalsIgnoreCase("mm")) {
+				result = result / userAgent.getPixelUnitToMillimeter();
+			}
+		}
+		return result;
+	}
+
+	/**
 	 * Uses a {@link SAXSVGDocumentFactory} to parse the given URI into a DOM.
 	 *
 	 * @param uri
@@ -109,6 +129,17 @@ public final class SVGIconImagePNGTranscoder {
 		return factory.createDocument(uri);
 	}
 
+	/**
+	 * Finds the width of the widest element and the height of the tallest element
+	 * in a given {@link Document} in pixels.
+	 *
+	 * @param doc
+	 *            The {@code Document} to find the maximum dimensions for.
+	 * @param userAgent
+	 *            The {@link UserAgent} instance to use for converting lengths to
+	 *            pixel equivalents.
+	 * @return A two-element array of <code>{width, height}</code>.
+	 */
 	private static float[] findMaxDimensions(final Document doc, final UserAgent userAgent) {
 		final Matcher lengthValMatcher = LENGTH_MEASUREMENT_PATTERN.matcher("");
 		final NodeList svgNodes = doc.getElementsByTagName("svg");
@@ -121,7 +152,7 @@ public final class SVGIconImagePNGTranscoder {
 				final Node svgWidthAttrNode = svgNodeAttrs.getNamedItem("width");
 				lengthValMatcher.reset(svgWidthAttrNode.getTextContent());
 				if (lengthValMatcher.matches()) {
-					final float width = getNormalizedLength(lengthValMatcher, userAgent);
+					final float width = createPixelLength(lengthValMatcher, userAgent);
 					maxWidth = Math.max(maxWidth, width);
 				}
 			}
@@ -129,24 +160,13 @@ public final class SVGIconImagePNGTranscoder {
 				final Node svgHeightAttrNode = svgNodeAttrs.getNamedItem("height");
 				lengthValMatcher.reset(svgHeightAttrNode.getTextContent());
 				if (lengthValMatcher.matches()) {
-					final float height = getNormalizedLength(lengthValMatcher, userAgent);
+					final float height = createPixelLength(lengthValMatcher, userAgent);
 					maxHeight = Math.max(maxHeight, height);
 				}
 			}
 
 		}
 		return new float[] { maxWidth, maxHeight };
-	}
-
-	private static float getNormalizedLength(final Matcher lengthValMatcher, final UserAgent userAgent) {
-		float result = Float.parseFloat(lengthValMatcher.group(1));
-		if (lengthValMatcher.groupCount() > 1) {
-			final String measurement = lengthValMatcher.group(2);
-			if (measurement.equalsIgnoreCase("mm")) {
-				result = result / userAgent.getPixelUnitToMillimeter();
-			}
-		}
-		return result;
 	}
 
 }
