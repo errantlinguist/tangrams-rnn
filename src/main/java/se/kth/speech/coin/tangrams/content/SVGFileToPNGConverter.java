@@ -137,7 +137,7 @@ public final class SVGFileToPNGConverter {
 	 *            A URI identifying the SVG file to read.
 	 * @return A {@link Document} instance that represents the SVG file.
 	 * @throws IOException
-	 *             if an error occured while reading the document.
+	 *             if an error occurred while reading the document.
 	 */
 	private static Document createSVGDocument(final String uri) throws IOException {
 		final SAXSVGDocumentFactory factory = SVG_DOC_FACTORY.get();
