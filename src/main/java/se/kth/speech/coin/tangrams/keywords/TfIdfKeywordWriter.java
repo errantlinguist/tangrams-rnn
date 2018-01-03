@@ -225,7 +225,8 @@ public final class TfIdfKeywordWriter {
 	private static Stream<String> createRow(final String sessionName, final Weighted<List<String>> scoredNgram) {
 		final List<String> ngram = scoredNgram.getWrapped();
 		final double weight = scoredNgram.getWeight();
-		return Stream.of(sessionName, ngram.stream().collect(TOKEN_JOINER), weight, ngram.size(),
+		final String ngramRepr = ngram.stream().collect(TOKEN_JOINER);
+		return Stream.of(sessionName, ngramRepr, weight, ngram.size(),
 				normalizeWeight(scoredNgram)).map(Object::toString);
 	}
 
