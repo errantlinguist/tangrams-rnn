@@ -45,7 +45,7 @@ public final class SVGImageViewingTest {
 
 	public static void main(final String[] args) {
 		final Path infilePath = Paths.get(args[0]);
-		final JFrame f = new JFrame("Image viewer");
+		final JFrame frame = new JFrame("Image viewer");
 		// f.setLayout(new BorderLayout());
 		// f.setPreferredSize(new Dimension(1000,100));
 		final JSVGCanvas canvas = new JSVGCanvas();
@@ -53,7 +53,7 @@ public final class SVGImageViewingTest {
 		// canvas.set
 		// canvas.setLayout(new BorderLayout());
 		canvas.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC);
-		f.add(canvas);
+		frame.add(canvas);
 		EventQueue.invokeLater(() -> {
 			canvas.addSVGDocumentLoaderListener(new SVGDocumentLoaderAdapter() {
 
@@ -169,11 +169,12 @@ public final class SVGImageViewingTest {
 
 			});
 			canvas.setURI(infilePath.toString());
+			canvas.setVisible(true);
 
-			f.pack();
-			f.setLocationByPlatform(true);
-			f.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-			f.setVisible(true);
+			frame.pack();
+			frame.setLocationByPlatform(true);
+			frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+			frame.setVisible(true);
 		});
 	}
 
