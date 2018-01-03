@@ -130,7 +130,7 @@ public final class SVGIconImagePNGTranscoder {
 	}
 
 	/**
-	 * Finds the width of the widest element and the height of the tallest element
+	 * Finds the width of the widest <code>svg</code> element and the height of the tallest <code>svg</code> element
 	 * in a given {@link Document} in pixels.
 	 *
 	 * @param doc
