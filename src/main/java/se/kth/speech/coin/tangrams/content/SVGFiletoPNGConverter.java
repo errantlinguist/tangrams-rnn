@@ -96,7 +96,7 @@ public final class SVGFiletoPNGConverter {
 	}
 
 	public static void main(final String[] args) throws TranscoderException, IOException, URISyntaxException {
-		if (args.length < 2) {
+		if (args.length != 2) {
 			System.err
 					.println(String.format("Usage: %s <infile> <outfile>", SVGFiletoPNGConverter.class.getName()));
 			System.exit(64);
