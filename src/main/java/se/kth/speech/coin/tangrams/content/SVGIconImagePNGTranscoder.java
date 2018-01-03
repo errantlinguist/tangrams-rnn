@@ -95,13 +95,13 @@ public final class SVGIconImagePNGTranscoder {
 	}
 
 	/**
-	 * Use the SAXSVGDocumentFactory to parse the given URI into a DOM.
+	 * Uses a {@link SAXSVGDocumentFactory} to parse the given URI into a DOM.
 	 *
 	 * @param uri
-	 *            The path to the SVG file to read.
-	 * @return A Document instance that represents the SVG file.
+	 *            A URI identifying the SVG file to read.
+	 * @return A {@link Document} instance that represents the SVG file.
 	 * @throws IOException
-	 *             The file could not be read.
+	 *             if an error occured while reading the document.
 	 */
 	private static Document createSVGDocument(final String uri) throws IOException {
 		final String parser = XMLResourceDescriptor.getXMLParserClassName();
