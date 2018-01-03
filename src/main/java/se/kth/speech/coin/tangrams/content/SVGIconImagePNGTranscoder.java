@@ -50,6 +50,22 @@ public final class SVGIconImagePNGTranscoder {
 
 	private static final Pattern LENGTH_MEASUREMENT_PATTERN = Pattern.compile("(\\d+(?:\\.\\d+)?)(\\S*)");
 
+	private static final ThreadLocal<SAXSVGDocumentFactory> SVG_DOC_FACTORY = new ThreadLocal<SAXSVGDocumentFactory>() {
+
+		private final String xmlParserName = XMLResourceDescriptor.getXMLParserClassName();
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.ThreadLocal#initialValue()
+		 */
+		@Override
+		protected SAXSVGDocumentFactory initialValue() {
+			return new SAXSVGDocumentFactory(xmlParserName);
+		}
+
+	};
+
 	/**
 	 * @see <a href= "http://stackoverflow.com/q/32721467/1391325">StackOverflow</a>
 	 * @param doc
@@ -124,14 +140,13 @@ public final class SVGIconImagePNGTranscoder {
 	 *             if an error occured while reading the document.
 	 */
 	private static Document createSVGDocument(final String uri) throws IOException {
-		final String parser = XMLResourceDescriptor.getXMLParserClassName();
-		final SAXSVGDocumentFactory factory = new SAXSVGDocumentFactory(parser);
+		final SAXSVGDocumentFactory factory = SVG_DOC_FACTORY.get();
 		return factory.createDocument(uri);
 	}
 
 	/**
-	 * Finds the width of the widest <code>svg</code> element and the height of the tallest <code>svg</code> element
-	 * in a given {@link Document} in pixels.
+	 * Finds the width of the widest <code>svg</code> element and the height of the
+	 * tallest <code>svg</code> element in a given {@link Document} in pixels.
 	 *
 	 * @param doc
 	 *            The {@code Document} to find the maximum dimensions for.
