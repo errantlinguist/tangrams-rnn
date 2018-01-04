@@ -36,7 +36,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.Collector;
@@ -62,6 +61,9 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 import org.w3c.dom.svg.SVGDocument;
 import org.w3c.dom.svg.SVGSVGElement;
+
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
@@ -249,141 +251,6 @@ public final class TfIdfKeywordVisualizationWriter {
 
 	}
 
-	private static class VisualizableReferent {
-
-		private static final Map<Referent, VisualizableReferent> INSTANCES = new ConcurrentHashMap<>();
-
-		private static VisualizableReferent fetch(final Referent ref) {
-			return INSTANCES.computeIfAbsent(ref, VisualizableReferent::new);
-		}
-
-		private final int blue;
-
-		private final int green;
-
-		private final float hue;
-
-		private final int red;
-
-		private final String shape;
-
-		private VisualizableReferent(final Referent ref) {
-			blue = ref.getBlueInt();
-			green = ref.getGreenInt();
-			hue = ref.getHue();
-			red = ref.getRedInt();
-			shape = ref.getShape();
-		}
-
-		/*
-		 * (non-Javadoc)
-		 *
-		 * @see java.lang.Object#equals(java.lang.Object)
-		 */
-		@Override
-		public boolean equals(final Object obj) {
-			if (this == obj) {
-				return true;
-			}
-			if (obj == null) {
-				return false;
-			}
-			if (!(obj instanceof VisualizableReferent)) {
-				return false;
-			}
-			final VisualizableReferent other = (VisualizableReferent) obj;
-			if (Float.floatToIntBits(blue) != Float.floatToIntBits(other.blue)) {
-				return false;
-			}
-			if (Float.floatToIntBits(green) != Float.floatToIntBits(other.green)) {
-				return false;
-			}
-			if (Float.floatToIntBits(hue) != Float.floatToIntBits(other.hue)) {
-				return false;
-			}
-			if (Float.floatToIntBits(red) != Float.floatToIntBits(other.red)) {
-				return false;
-			}
-			if (shape == null) {
-				if (other.shape != null) {
-					return false;
-				}
-			} else if (!shape.equals(other.shape)) {
-				return false;
-			}
-			return true;
-		}
-
-		/**
-		 * @return the blue
-		 */
-		public int getBlue() {
-			return blue;
-		}
-
-		/**
-		 * @return the green
-		 */
-		public int getGreen() {
-			return green;
-		}
-
-		/**
-		 * @return the red
-		 */
-		public int getRed() {
-			return red;
-		}
-
-		/**
-		 * @return the shape
-		 */
-		public String getShape() {
-			return shape;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 *
-		 * @see java.lang.Object#hashCode()
-		 */
-		@Override
-		public int hashCode() {
-			final int prime = 31;
-			int result = 1;
-			result = prime * result + Float.floatToIntBits(blue);
-			result = prime * result + Float.floatToIntBits(green);
-			result = prime * result + Float.floatToIntBits(hue);
-			result = prime * result + Float.floatToIntBits(red);
-			result = prime * result + (shape == null ? 0 : shape.hashCode());
-			return result;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 *
-		 * @see java.lang.Object#toString()
-		 */
-		@Override
-		public String toString() {
-			final StringBuilder builder = new StringBuilder(256);
-			builder.append("Referent [edgeCount=");
-			builder.append(", blue=");
-			builder.append(blue);
-			builder.append(", green=");
-			builder.append(green);
-			builder.append(", hue=");
-			builder.append(hue);
-			builder.append(", red=");
-			builder.append(red);
-			builder.append(", shape=");
-			builder.append(shape);
-			builder.append("]");
-			return builder.toString();
-		}
-
-	}
-
 	private static class WeightedNGramCountMapScorer implements ToDoubleFunction<Object2IntMap<List<String>>> {
 
 		private final ToDoubleFunction<List<String>> ngramScorer;
@@ -484,9 +351,11 @@ public final class TfIdfKeywordVisualizationWriter {
 				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
 				LOGGER.info("Only use instructor language? {}", onlyInstructor);
 				final NGramFactory ngramFactory = Parameter.createNgramFactory(cl);
+				final Table<Session, VisualizableReferent, Object2IntMap<List<String>>> sessionRefNgramCounts = createSessionReferentNgramCountTable(sessions, ngramFactory);
+				// FIXME: Switch this logic with "sessionRefNgramCounts"
 				final Map<Session, List<List<String>>> sessionNgrams = createSessionNgramMap(
 						new SessionSetReader(refTokenFilePath).apply(inpaths).getSessions(), ngramFactory);
-				final Map<Session, ReferentNGramCounts> sessionRefNgramCounts = createReferentNgramCountMap(
+				final Map<Session, ReferentNGramCounts> sessionNgramCounts = createReferentNgramCountMap(
 						sessionNgrams);
 
 				LOGGER.info("Calculating TF-IDF scores.");
@@ -501,7 +370,7 @@ public final class TfIdfKeywordVisualizationWriter {
 				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs,
 						nbestNgrams);
 				final TfIdfKeywordVisualizationWriter keywordWriter = new TfIdfKeywordVisualizationWriter(imgResDir,
-						sessionRefNgramCounts, tfIdfCalculator, nbestRefs, nbestNgrams);
+						sessionNgramCounts, tfIdfCalculator, nbestRefs, nbestNgrams);
 
 				int rowsWritten = 0;
 				LOGGER.info("Writing rows.");
@@ -584,8 +453,7 @@ public final class TfIdfKeywordVisualizationWriter {
 		final List<Round> rounds = session.getRounds();
 		final Map<VisualizableReferent, Object2IntMap<List<String>>> result = new HashMap<>();
 		for (final Round round : rounds) {
-			final VisualizableReferent[] refs = round.getReferents().stream().filter(Referent::isTarget)
-					.map(VisualizableReferent::fetch).toArray(VisualizableReferent[]::new);
+			final VisualizableReferent[] refs = getVisualizableTargetRefs(round).toArray(VisualizableReferent[]::new);
 			for (final VisualizableReferent ref : refs) {
 				final Object2IntMap<List<String>> ngramCounts = result.computeIfAbsent(ref, key -> {
 					final Object2IntOpenHashMap<List<String>> newCountMap = new Object2IntOpenHashMap<>();
@@ -603,7 +471,7 @@ public final class TfIdfKeywordVisualizationWriter {
 	private static Map<VisualizableReferent, SVGSVGElement> createRefSVGRootElementMap(
 			final Collection<Session> sessions, final Path imgResDir) {
 		final Iterable<VisualizableReferent> uniqueRefs = sessions.stream().map(Session::getRounds)
-				.flatMap(List::stream).map(Round::getReferents).flatMap(List::stream).map(VisualizableReferent::new)
+				.flatMap(List::stream).flatMap(TfIdfKeywordVisualizationWriter::getVisualizableTargetRefs)
 				.distinct()::iterator;
 		final Map<VisualizableReferent, SVGSVGElement> result = new HashMap<>(
 				HashedCollections.capacity(sessions.size()));
@@ -631,6 +499,32 @@ public final class TfIdfKeywordVisualizationWriter {
 				Math.toIntExact(Math.round(Math.ceil(sessions.size() * 1.25))));
 		sessions.forEach(
 				session -> result.put(session, createNgrams(session, ngramFactory).collect(Collectors.toList())));
+		return result;
+	}
+
+	private static Table<Session, VisualizableReferent, Object2IntMap<List<String>>> createSessionReferentNgramCountTable(
+			final Collection<Session> sessions, final NGramFactory ngramFactory) {
+		final Table<Session, VisualizableReferent, Object2IntMap<List<String>>> result = HashBasedTable
+				.create(sessions.size(), 20);
+		sessions.forEach(session -> {
+			final List<Round> rounds = session.getRounds();
+			rounds.forEach(round -> {
+				@SuppressWarnings("unchecked")
+				final List<List<String>> roundNgrams = Arrays
+						.asList(createNgrams(round, ngramFactory).toArray(List[]::new));
+				getVisualizableTargetRefs(round).forEach(ref -> {
+					Object2IntMap<List<String>> ngramCounts = result.get(sessions, ref);
+					if (ngramCounts == null) {
+						ngramCounts = new Object2IntOpenHashMap<>();
+						ngramCounts.defaultReturnValue(0);
+						result.put(session, ref, ngramCounts);
+					}
+					for (List<String> ngram : roundNgrams) {
+						incrementCount(ngram, ngramCounts);
+					}
+				});
+			});
+		});
 		return result;
 	}
 
@@ -685,6 +579,10 @@ public final class TfIdfKeywordVisualizationWriter {
 		return result;
 	}
 
+	private static Stream<VisualizableReferent> getVisualizableTargetRefs(final Round round) {
+		return round.getReferents().stream().filter(Referent::isTarget).map(VisualizableReferent::fetch);
+	}
+
 	private static <K> void incrementCount(final K key, final Object2IntMap<? super K> counts) {
 		final int oldValue = counts.getInt(key);
 		final int oldValue2 = counts.put(key, oldValue + 1);
@@ -715,7 +613,8 @@ public final class TfIdfKeywordVisualizationWriter {
 
 	public TfIdfKeywordVisualizationWriter(final Path imgResDir,
 			final Map<Session, ReferentNGramCounts> sessionRefNgramCounts,
-			final TfIdfCalculator<List<String>, Session> tfidfCalculator, final long nbestRefs, final long nbestNgrams) {
+			final TfIdfCalculator<List<String>, Session> tfidfCalculator, final long nbestRefs,
+			final long nbestNgrams) {
 		this.sessionRefNgramCounts = sessionRefNgramCounts;
 		refSvgRootElems = createRefSVGRootElementMap(sessionRefNgramCounts.keySet(), imgResDir);
 		this.tfidfCalculator = tfidfCalculator;
