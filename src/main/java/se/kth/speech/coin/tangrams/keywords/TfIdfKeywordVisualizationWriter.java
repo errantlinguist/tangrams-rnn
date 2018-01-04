@@ -535,7 +535,7 @@ public final class TfIdfKeywordVisualizationWriter {
 		return createColorHexCode(ref.getRed(), ref.getGreen(), ref.getBlue());
 	}
 
-	private static String createHtmlDocumentString(final ContainerTag html) {
+	private static String createHTMLDocumentString(final ContainerTag html) {
 		final String result;
 		synchronized (Config.class) {
 			final boolean wasCloseEmptyTags = Config.closeEmptyTags;
@@ -546,7 +546,7 @@ public final class TfIdfKeywordVisualizationWriter {
 		return result;
 	}
 
-	private static ContainerTag createHtmlHeadTag() {
+	private static ContainerTag createHTMLHeadTag() {
 		return TagCreator.head(TagCreator.meta().attr("charset", "utf-8"),
 				TagCreator.meta().attr("http-equiv", "X-UA-Compatible").attr("content", "IE=edge"),
 				TagCreator.meta().attr("name", "viewport").attr("content", "width=device-width, initial-scale=1"),
@@ -751,8 +751,8 @@ public final class TfIdfKeywordVisualizationWriter {
 		final ContainerTag[] rows = rowArrayBuiler.build().toArray(ContainerTag[]::new);
 		final ContainerTag tbody = TagCreator.tbody(rows);
 		final ContainerTag table = TagCreator.table(thead, tbody);
-		final ContainerTag html = TagCreator.html(createHtmlHeadTag(), TagCreator.body(table));
-		final String docStr = createHtmlDocumentString(html);
+		final ContainerTag html = TagCreator.html(createHTMLHeadTag(), TagCreator.body(table));
+		final String docStr = createHTMLDocumentString(html);
 		writer.write(docStr);
 		return rows.length;
 	}
