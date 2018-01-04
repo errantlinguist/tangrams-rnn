@@ -594,6 +594,15 @@ public final class TfIdfKeywordVisualizationWriter {
 		return result;
 	}
 
+	private static Map<VisualizableReferent, UnescapedText> createRefSVGTagMap(final Collection<Session> sessions,
+			final Path imgResDir) {
+		final Function<VisualizableReferent, UnescapedText> factory = ref -> TagCreator
+				.rawHtml(createXMLString(createSVGDocument(ref, imgResDir)));
+		final Stream<VisualizableReferent> refs = sessions.stream().map(Session::getRounds).flatMap(List::stream)
+				.map(Round::getReferents).flatMap(List::stream).map(VisualizableReferent::new);
+		return refs.distinct().collect(Collectors.toMap(Function.identity(), factory));
+	}
+
 	private static Comparator<Weighted<? extends List<?>>> createScoredNgramComparator() {
 		final Comparator<Weighted<? extends List<?>>> ngramLengthAscending = Comparator
 				.comparingInt(scoredNgram -> scoredNgram.getWrapped().size());
@@ -731,15 +740,6 @@ public final class TfIdfKeywordVisualizationWriter {
 		final String docStr = createHtmlDocumentString(html);
 		writer.write(docStr);
 		return rows.length;
-	}
-
-	private Map<VisualizableReferent, UnescapedText> createRefSVGTagMap(final Collection<Session> sessions,
-			final Path imgResDir) {
-		final Function<VisualizableReferent, UnescapedText> factory = ref -> TagCreator
-				.rawHtml(createXMLString(createSVGDocument(ref, imgResDir)));
-		final Stream<VisualizableReferent> refs = sessions.stream().map(Session::getRounds).flatMap(List::stream)
-				.map(Round::getReferents).flatMap(List::stream).map(VisualizableReferent::new);
-		return refs.distinct().collect(Collectors.toMap(Function.identity(), factory));
 	}
 
 	private List<ContainerTag> createRows(final String dyadId,
