@@ -308,12 +308,12 @@ public final class TfIdfKeywordVisualizationWriter {
 				LOGGER.info("Will extract keywords from {} session(s).", sessions.size());
 				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
 				LOGGER.info("Only use instructor language? {}", onlyInstructor);
-				final NGramFactory ngramFactory = Parameter.createNgramFactory(cl);
+
 				final Table<Session, VisualizableReferent, Object2IntMap<List<String>>> sessionRefNgramCounts = createSessionReferentNgramCountTable(
-						sessions, ngramFactory);
-				// FIXME: Switch this logic with "sessionRefNgramCounts"
+						sessions, Parameter.createNgramFactory(cl));
 				final Map<Session, List<List<String>>> sessionNgrams = createSessionNgramMap(
-						new SessionSetReader(refTokenFilePath).apply(inpaths).getSessions(), ngramFactory);
+						new SessionSetReader(refTokenFilePath).apply(inpaths).getSessions(),
+						Parameter.createNgramFactory(cl));
 
 				LOGGER.info("Calculating TF-IDF scores.");
 				final long tfIdfCalculatorConstructionStart = System.currentTimeMillis();
