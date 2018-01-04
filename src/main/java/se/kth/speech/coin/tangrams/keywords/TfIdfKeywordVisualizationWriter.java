@@ -60,6 +60,7 @@ import org.w3c.dom.svg.SVGDocument;
 import org.w3c.dom.svg.SVGSVGElement;
 
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Table;
 
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
@@ -418,8 +419,7 @@ public final class TfIdfKeywordVisualizationWriter {
 
 	private static Map<Session, List<List<String>>> createSessionNgramMap(final Collection<Session> sessions,
 			final NGramFactory ngramFactory) {
-		final Map<Session, List<List<String>>> result = new HashMap<>(
-				Math.toIntExact(Math.round(Math.ceil(sessions.size() * 1.25))));
+		final Map<Session, List<List<String>>> result = Maps.newHashMapWithExpectedSize(sessions.size());
 		sessions.forEach(
 				session -> result.put(session, createNgrams(session, ngramFactory).collect(Collectors.toList())));
 		return result;
