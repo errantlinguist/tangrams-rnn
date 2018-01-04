@@ -50,18 +50,6 @@ public final class SVGFileToPNGConverter {
 	
 	/**
 	 * @see <a href= "http://stackoverflow.com/q/32721467/1391325">StackOverflow</a>
-	 * @param inputUri
-	 * @param outpath
-	 * @throws TranscoderException
-	 * @throws IOException
-	 */
-	public static void convertSVGToPNG(final URI inputUri, final Path outpath)
-			throws TranscoderException, IOException {
-		convertSVGToPNG(SVGDocuments.read(inputUri), outpath);
-	}
-
-	/**
-	 * @see <a href= "http://stackoverflow.com/q/32721467/1391325">StackOverflow</a>
 	 * @param doc
 	 * @param outpath
 	 * @throws TranscoderException
@@ -87,6 +75,18 @@ public final class SVGFileToPNGConverter {
 			// writer.flush();
 		}
 
+	}
+
+	/**
+	 * @see <a href= "http://stackoverflow.com/q/32721467/1391325">StackOverflow</a>
+	 * @param inputUri
+	 * @param outpath
+	 * @throws TranscoderException
+	 * @throws IOException
+	 */
+	public static void convertSVGToPNG(final URI inputUri, final Path outpath)
+			throws TranscoderException, IOException {
+		convertSVGToPNG(SVGDocuments.read(inputUri), outpath);
 	}
 
 	public static void main(final String[] args) throws TranscoderException, IOException, URISyntaxException {
