@@ -57,22 +57,6 @@ final class TranscodingWriter {
 		return () -> createNewFile(outfile);
 	}
 
-	private static String createOutputFileName(final Path infile) {
-		final Path infileName = infile.getFileName();
-		final String infileNameStr = infileName == null ? "" : infileName.toString();
-		return replaceGroup(SVG_EXT_PATTERN, infileNameStr, 1, "png");
-	}
-
-	private static Path createOutputFilePath(final Path infile) {
-		final String outpathStr = replaceGroup(SVG_EXT_PATTERN, infile.toString(), 1, "png");
-		return Paths.get(outpathStr);
-	}
-
-	private static Path createOutputFilePath(final Path infile, final Path outdir) {
-		final String outfileNameStr = createOutputFileName(infile);
-		return outdir.resolve(outfileNameStr);
-	}
-
 	/**
 	 * Checks if a given {@link Path} definitely does not point to a file
 	 * containing SVG content.
@@ -140,8 +124,11 @@ final class TranscodingWriter {
 
 	private final Supplier<? extends Transcoder> transcoderSupplier;
 
-	public TranscodingWriter(final Supplier<? extends Transcoder> transcoderSupplier) {
+	private final String outfileExt;
+
+	public TranscodingWriter(final Supplier<? extends Transcoder> transcoderSupplier, final String outfileExt) {
 		this.transcoderSupplier = transcoderSupplier;
+		this.outfileExt = outfileExt;
 	}
 
 	/**
@@ -230,6 +217,22 @@ final class TranscodingWriter {
 	public void write(final URI inputUri, final ThrowingSupplier<OutputStream, IOException> outputStreamSupplier)
 			throws TranscoderException, IOException {
 		write(SVGDocuments.read(inputUri), outputStreamSupplier);
+	}
+
+	private String createOutputFileName(final Path infile) {
+		final Path infileName = infile.getFileName();
+		final String infileNameStr = infileName == null ? "" : infileName.toString();
+		return replaceGroup(SVG_EXT_PATTERN, infileNameStr, 1, outfileExt);
+	}
+
+	private Path createOutputFilePath(final Path infile) {
+		final String outpathStr = replaceGroup(SVG_EXT_PATTERN, infile.toString(), 1, outfileExt);
+		return Paths.get(outpathStr);
+	}
+
+	private Path createOutputFilePath(final Path infile, final Path outdir) {
+		final String outfileNameStr = createOutputFileName(infile);
+		return outdir.resolve(outfileNameStr);
 	}
 
 	private void writeSingleFile(final Path infile, final Path outfile) throws TranscoderException, IOException {

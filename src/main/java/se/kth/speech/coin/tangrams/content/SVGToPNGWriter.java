@@ -180,7 +180,7 @@ public final class SVGToPNGWriter {
 				transcoderConfigurator.accept(transcoder);
 				return transcoder;
 			};
-			final TranscodingWriter writer = new TranscodingWriter(transcoderFactory);
+			final TranscodingWriter writer = new TranscodingWriter(transcoderFactory, "png");
 
 			switch (inpaths.length) {
 			case 0: {
