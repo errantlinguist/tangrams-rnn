@@ -432,6 +432,19 @@ public final class TfIdfKeywordVisualizationWriter {
 				return new ReferentNGramCounts(ngrams, refNgramCounts);
 			});
 
+	private static final Comparator<String> SESSION_NAME_COMPARATOR = new Comparator<String>() {
+
+		@Override
+		public int compare(final String o1, final String o2) {
+			// NOTE: This comparison only works for session names which
+			// represent integer values
+			final int i1 = Integer.parseInt(o1);
+			final int i2 = Integer.parseInt(o2);
+			return Integer.compare(i1, i2);
+		}
+
+	};
+
 	private static final String TOKEN_DELIMITER;
 
 	private static final Collector<CharSequence, ?, String> TOKEN_JOINER;
@@ -482,7 +495,8 @@ public final class TfIdfKeywordVisualizationWriter {
 
 				final long nbestRefs = 3;
 				final long nbestNgrams = 3;
-				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs, nbestNgrams);
+				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs,
+						nbestNgrams);
 				final TfIdfKeywordVisualizationWriter keywordWriter = new TfIdfKeywordVisualizationWriter(imgResDir,
 						sessionRefNgramCounts, tfIdfCalculator, nbestRefs, nbestNgrams);
 
@@ -638,13 +652,13 @@ public final class TfIdfKeywordVisualizationWriter {
 
 	private final Path imgResDir;
 
+	private final long nbestNgrams;
+
+	private final long nbestRefs;
+
 	private final Map<Session, ReferentNGramCounts> sessionRefNgramCounts;
 
 	private final TfIdfCalculator<List<String>> tfidfCalculator;
-
-	private final long nbestRefs;
-	
-	private final long nbestNgrams;
 
 	public TfIdfKeywordVisualizationWriter(final Path imgResDir,
 			final Map<Session, ReferentNGramCounts> sessionRefNgramCounts,
@@ -658,7 +672,7 @@ public final class TfIdfKeywordVisualizationWriter {
 
 	public int write(final Writer writer) throws IOException {
 		final Iterable<Entry<Session, ReferentNGramCounts>> sortedEntries = sessionRefNgramCounts.entrySet().stream()
-				.sorted(Comparator.comparing(entry -> entry.getKey().getName()))::iterator;
+				.sorted(Comparator.comparing(entry -> entry.getKey().getName(), SESSION_NAME_COMPARATOR))::iterator;
 		final Stream.Builder<ContainerTag> rowArrayBuiler = Stream.builder();
 		for (final Entry<Session, ReferentNGramCounts> entry : sortedEntries) {
 			final Session session = entry.getKey();
@@ -668,8 +682,7 @@ public final class TfIdfKeywordVisualizationWriter {
 			final ToDoubleFunction<Object2IntMap<List<String>>> ngramCountScorer = new WeightedNGramCountMapScorer(
 					ngramScorer);
 			final Comparator<Entry<VisualizableReferent, Object2IntMap<List<String>>>> bestScoringRefWeightedNgramCountComparator = Comparator
-					.comparing(Entry::getValue, Comparator
-							.comparingDouble(ngramCountScorer).reversed());
+					.comparing(Entry::getValue, Comparator.comparingDouble(ngramCountScorer).reversed());
 			final Iterable<Entry<VisualizableReferent, Object2IntMap<List<String>>>> refsSortedByNgramWeight = (Iterable<Entry<VisualizableReferent, Object2IntMap<List<String>>>>) refNgramCounts
 					.entrySet().stream().limit(nbestRefs).sorted(bestScoringRefWeightedNgramCountComparator)::iterator;
 
@@ -679,8 +692,8 @@ public final class TfIdfKeywordVisualizationWriter {
 			}
 		}
 
-		final ContainerTag thead = TagCreator.thead(TagCreator.tr(TagCreator.td("Dyad"), TagCreator.td("Image"), TagCreator.td("N-gram"),
-				TagCreator.td("Score"), TagCreator.td("Count")));
+		final ContainerTag thead = TagCreator.thead(TagCreator.tr(TagCreator.td("Dyad"), TagCreator.td("Image"),
+				TagCreator.td("N-gram"), TagCreator.td("Score"), TagCreator.td("Count")));
 		final ContainerTag[] rows = rowArrayBuiler.build().toArray(ContainerTag[]::new);
 		final ContainerTag tbody = TagCreator.tbody(rows);
 		final ContainerTag table = TagCreator.table(thead, tbody);
@@ -705,10 +718,10 @@ public final class TfIdfKeywordVisualizationWriter {
 		final Object2IntMap<List<String>> ngramCounts = refNgramCounts.getValue();
 		final Object2DoubleMap<Object2IntMap.Entry<List<String>>> ngramCountScores = createNgramCountScoreMap(
 				ngramCounts, ngramScorer);
-		final Comparator<Object2DoubleMap.Entry<it.unimi.dsi.fastutil.objects.Object2IntMap.Entry<List<String>>>> highestScoreFirstEntryComparator = Comparator.comparingDouble(entry -> -entry.getDoubleValue());
+		final Comparator<Object2DoubleMap.Entry<it.unimi.dsi.fastutil.objects.Object2IntMap.Entry<List<String>>>> highestScoreFirstEntryComparator = Comparator
+				.comparingDouble(entry -> -entry.getDoubleValue());
 		final Iterable<Object2DoubleMap.Entry<it.unimi.dsi.fastutil.objects.Object2IntMap.Entry<List<String>>>> sortedNgramCountScores = ngramCountScores
-				.object2DoubleEntrySet().stream().sorted(highestScoreFirstEntryComparator)
-				.limit(nbestNgrams)::iterator;
+				.object2DoubleEntrySet().stream().sorted(highestScoreFirstEntryComparator).limit(nbestNgrams)::iterator;
 
 		final List<ContainerTag> rows = new ArrayList<>(ngramCountScores.size());
 		for (final Object2DoubleMap.Entry<it.unimi.dsi.fastutil.objects.Object2IntMap.Entry<List<String>>> ngramCountScore : sortedNgramCountScores) {
