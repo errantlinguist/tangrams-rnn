@@ -26,8 +26,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NavigableMap;
-import java.util.TreeMap;
+import java.util.NavigableSet;
+import java.util.TreeSet;
 import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.Collector;
@@ -45,6 +45,8 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Maps;
 
 import se.kth.speech.coin.tangrams.CLIParameters;
 import se.kth.speech.coin.tangrams.wac.data.Round;
@@ -95,8 +97,8 @@ public final class TfIdfKeywordWriter {
 		OUTPATH("o") {
 			@Override
 			public Option get() {
-				return Option.builder(optName).longOpt("outpath")
-						.desc("The file to write the results to; If this option is not supplied, the standard output stream will be used.")
+				return Option.builder(optName).longOpt("outpath").desc(
+						"The file to write the results to; If this option is not supplied, the standard output stream will be used.")
 						.hasArg().argName("path").type(File.class).build();
 			}
 		},
@@ -190,6 +192,19 @@ public final class TfIdfKeywordWriter {
 
 	private static final Comparator<Weighted<? extends List<?>>> SCORED_NGRAM_COMPARATOR = createScoredNgramComparator();
 
+	private static final Comparator<String> SESSION_NAME_COMPARATOR = new Comparator<String>() {
+
+		@Override
+		public int compare(final String o1, final String o2) {
+			// NOTE: This comparison only works for session names which
+			// represent integer values
+			final int i1 = Integer.parseInt(o1);
+			final int i2 = Integer.parseInt(o2);
+			return Integer.compare(i1, i2);
+		}
+
+	};
+
 	private static final Collector<CharSequence, ?, String> TOKEN_JOINER = Collectors.joining(" ");
 
 	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD
@@ -211,8 +226,9 @@ public final class TfIdfKeywordWriter {
 				final Path refTokenFilePath = ((File) cl.getParsedOptionValue(Parameter.REFERRING_TOKENS.optName))
 						.toPath();
 
-				final NavigableMap<Session, List<List<String>>> sessionNgrams = createSessionNgramMap(
-						new SessionSetReader(refTokenFilePath).apply(inpaths).getSessions(), Parameter.createNgramFactory(cl));
+				final Map<Session, List<List<String>>> sessionNgrams = createSessionNgramMap(
+						new SessionSetReader(refTokenFilePath).apply(inpaths).getSessions(),
+						Parameter.createNgramFactory(cl));
 				LOGGER.info("Will extract keywords from {} session(s).", sessionNgrams.size());
 				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
 				LOGGER.info("Only use instructor language? {}", onlyInstructor);
@@ -270,9 +286,9 @@ public final class TfIdfKeywordWriter {
 		return normalizedWeightAscending.reversed().thenComparing(ngramLengthAscending.reversed());
 	}
 
-	private static NavigableMap<Session, List<List<String>>> createSessionNgramMap(final Iterable<Session> sessions,
+	private static Map<Session, List<List<String>>> createSessionNgramMap(final Collection<Session> sessions,
 			final NGramFactory ngramFactory) {
-		final NavigableMap<Session, List<List<String>>> result = new TreeMap<>(Comparator.comparing(Session::getName));
+		final Map<Session, List<List<String>>> result = Maps.newHashMapWithExpectedSize(sessions.size());
 		sessions.forEach(
 				session -> result.put(session, createNgrams(session, ngramFactory).collect(Collectors.toList())));
 		return result;
@@ -296,7 +312,10 @@ public final class TfIdfKeywordWriter {
 
 	public int write(final CSVPrinter printer) throws IOException {
 		int result = 0;
-		for (final Entry<Session, ? extends Collection<List<String>>> entry : sessionNgrams.entrySet()) {
+		final NavigableSet<Entry<Session, ? extends Collection<List<String>>>> sortedEntries = new TreeSet<>(
+				Comparator.comparing(entry -> entry.getKey().getName(), SESSION_NAME_COMPARATOR));
+		sortedEntries.addAll(sessionNgrams.entrySet());
+		for (final Entry<Session, ? extends Collection<List<String>>> entry : sortedEntries) {
 			final Session session = entry.getKey();
 			final Collection<List<String>> ngrams = entry.getValue();
 			final ToDoubleFunction<List<String>> ngramWeighter = word -> tfidfCalculator.applyAsDouble(word, session);
