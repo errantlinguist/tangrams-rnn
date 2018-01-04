@@ -167,50 +167,54 @@ public final class SVGToPNGWriter {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SVGToPNGWriter.class);
 
+	public static void main(final CommandLine cl)
+			throws TranscoderException, IOException, URISyntaxException, ParseException {
+		if (cl.hasOption(Parameter.HELP.optName)) {
+			Parameter.printHelp();
+		} else {
+			final Path[] inpaths = cl.getArgList().stream().map(Paths::get).toArray(Path[]::new);
+			final File outpath = (File) cl.getParsedOptionValue(Parameter.OUTPATH.optName);
+			final Consumer<SVGAbstractTranscoder> transcoderConfigurator = Parameter.createTranscoderConfigurator(cl);
+			final Supplier<PDFTranscoder> transcoderFactory = () -> {
+				final PDFTranscoder transcoder = new PDFTranscoder();
+				transcoderConfigurator.accept(transcoder);
+				return transcoder;
+			};
+			final TranscodingWriter writer = new TranscodingWriter(transcoderFactory);
+
+			switch (inpaths.length) {
+			case 0: {
+				throw new MissingOptionException("No input path(s) specified.");
+			}
+			case 1: {
+				final Path inpath = inpaths[0];
+				if (Files.isDirectory(inpath)) {
+					if (outpath == null) {
+						writer.write(inpath);
+					} else {
+						writer.write(inpath, outpath.toPath());
+					}
+
+				} else {
+					final ThrowingSupplier<OutputStream, IOException> singleFileOsSupplier = Parameter
+							.parseOutpath(outpath);
+					writer.write(inpath.toUri(), singleFileOsSupplier);
+				}
+				break;
+			}
+			default: {
+				writer.write(inpaths);
+				break;
+			}
+			}
+		}
+	}
+
 	public static void main(final String[] args) throws TranscoderException, IOException, URISyntaxException {
 		final CommandLineParser parser = new DefaultParser();
 		try {
 			final CommandLine cl = parser.parse(Parameter.OPTIONS, args);
-			if (cl.hasOption(Parameter.HELP.optName)) {
-				Parameter.printHelp();
-			} else {
-				final Path[] inpaths = cl.getArgList().stream().map(Paths::get).toArray(Path[]::new);
-				final File outpath = (File) cl.getParsedOptionValue(Parameter.OUTPATH.optName);
-				final Consumer<SVGAbstractTranscoder> transcoderConfigurator = Parameter
-						.createTranscoderConfigurator(cl);
-				final Supplier<PDFTranscoder> transcoderFactory = () -> {
-					final PDFTranscoder transcoder = new PDFTranscoder();
-					transcoderConfigurator.accept(transcoder);
-					return transcoder;
-				};
-				final TranscodingWriter writer = new TranscodingWriter(transcoderFactory);
-
-				switch (inpaths.length) {
-				case 0: {
-					throw new MissingOptionException("No input path(s) specified.");
-				}
-				case 1: {
-					final Path inpath = inpaths[0];
-					if (Files.isDirectory(inpath)) {
-						if (outpath == null) {
-							writer.write(inpath);
-						} else {
-							writer.write(inpath, outpath.toPath());
-						}
-
-					} else {
-						final ThrowingSupplier<OutputStream, IOException> singleFileOsSupplier = Parameter
-								.parseOutpath(outpath);
-						writer.write(inpath.toUri(), singleFileOsSupplier);
-					}
-					break;
-				}
-				default: {
-					writer.write(inpaths);
-					break;
-				}
-				}
-			}
+			main(cl);
 		} catch (final ParseException e) {
 			System.out.println(String.format("An error occured while parsing the command-line arguments: %s", e));
 			Parameter.printHelp();
