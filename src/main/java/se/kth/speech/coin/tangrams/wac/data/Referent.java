@@ -321,14 +321,6 @@ public final class Referent {
 	}
 
 	/**
-	 * @param blueInt
-	 *            the blueInt to set
-	 */
-	public void setBlueInt(final int blueInt) {
-		this.blueInt = blueInt;
-	}
-
-	/**
 	 * @param edgeCount
 	 *            the edgeCount to set
 	 */
@@ -353,14 +345,6 @@ public final class Referent {
 	public void setGreen(final int green) {
 		greenInt = green;
 		greenLinear = linearizeColorByteValue(green);
-	}
-
-	/**
-	 * @param greenInt
-	 *            the greenInt to set
-	 */
-	public void setGreenInt(final int greenInt) {
-		this.greenInt = greenInt;
 	}
 
 	/**
@@ -394,14 +378,6 @@ public final class Referent {
 	public void setRed(final int red) {
 		redInt = red;
 		redLinear = linearizeColorByteValue(red);
-	}
-
-	/**
-	 * @param redInt
-	 *            the redInt to set
-	 */
-	public void setRedInt(final int redInt) {
-		this.redInt = redInt;
 	}
 
 	/**
