@@ -540,7 +540,7 @@ public final class TfIdfKeywordVisualizationWriter {
 		synchronized (Config.class) {
 			final boolean wasCloseEmptyTags = Config.closeEmptyTags;
 			Config.closeEmptyTags = true;
-			result = TagCreator.document(html);
+			result = TagCreator.document().render() + "\n" + html.renderFormatted();
 			Config.closeEmptyTags = wasCloseEmptyTags;
 		}
 		return result;
