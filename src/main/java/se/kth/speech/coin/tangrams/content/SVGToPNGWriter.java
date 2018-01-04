@@ -49,7 +49,7 @@ public final class SVGToPNGWriter {
 			final Path infilePath = Paths.get(args[0]);
 			final Path outfilePath = Paths.get(args[1]);
 			System.out.print(infilePath + " > ");
-			writeSVGAsPNG(infilePath.toUri(), outfilePath);
+			write(infilePath.toUri(), outfilePath);
 			System.out.println(outfilePath);
 		}
 
@@ -63,7 +63,7 @@ public final class SVGToPNGWriter {
 	 * @throws TranscoderException
 	 * @throws IOException
 	 */
-	public static void writeSVGAsPNG(final Document doc, final Path outpath) throws TranscoderException, IOException {
+	public static void write(final Document doc, final Path outpath) throws TranscoderException, IOException {
 		final ByteArrayOutputStream resultByteStream = new ByteArrayOutputStream();
 		final TranscoderInput transcoderInput = new TranscoderInput(doc);
 		final TranscoderOutput transcoderOutput = new TranscoderOutput(resultByteStream);
@@ -91,8 +91,8 @@ public final class SVGToPNGWriter {
 	 * @throws TranscoderException
 	 * @throws IOException
 	 */
-	public static void writeSVGAsPNG(final URI inputUri, final Path outpath) throws TranscoderException, IOException {
-		writeSVGAsPNG(SVGDocuments.read(inputUri), outpath);
+	public static void write(final URI inputUri, final Path outpath) throws TranscoderException, IOException {
+		write(SVGDocuments.read(inputUri), outpath);
 	}
 
 //	/**
