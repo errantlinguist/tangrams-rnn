@@ -309,7 +309,7 @@ public final class TfIdfKeywordVisualizationWriter {
 				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
 				LOGGER.info("Only use instructor language? {}", onlyInstructor);
 
-				NGramFactory ngramFactory = Parameter.createNgramFactory(cl);
+				final NGramFactory ngramFactory = Parameter.createNgramFactory(cl);
 				final Table<Session, VisualizableReferent, Object2IntMap<List<String>>> sessionRefNgramCounts = createSessionReferentNgramCountTable(
 						sessions, ngramFactory);
 				final Map<Session, List<List<String>>> sessionNgrams = createSessionNgramMap(sessions, ngramFactory);
@@ -378,6 +378,23 @@ public final class TfIdfKeywordVisualizationWriter {
 				TagCreator.title("TF-IDF scores"));
 	}
 
+	/**
+	 * This method is a hack to avoid the inability to suppress array casting in its
+	 * caller method.
+	 *
+	 * @param round
+	 *            The {@link Round} to create <em>n</em>-grams for.
+	 * @param ngramFactory
+	 *            The {@link NGramFactory} to use for creating em>n</em>-grams.
+	 * @return An array of <em>n</em>-grams.
+	 */
+	private static List<String>[] createNgramArray(final Round round, final NGramFactory ngramFactory) {
+		final Stream<List<String>> ngrams = createNgrams(round, ngramFactory);
+		@SuppressWarnings("unchecked")
+		final List<String>[] result = ngrams.toArray(List[]::new);
+		return result;
+	}
+
 	private static Object2DoubleMap<Object2IntMap.Entry<List<String>>> createNgramCountScoreMap(
 			final Object2IntMap<List<String>> ngramCounts, final ToDoubleFunction<List<String>> ngramScorer) {
 		final Object2DoubleMap<Object2IntMap.Entry<List<String>>> result = new Object2DoubleOpenHashMap<>(
@@ -434,8 +451,7 @@ public final class TfIdfKeywordVisualizationWriter {
 		sessions.forEach(session -> {
 			final List<Round> rounds = session.getRounds();
 			rounds.forEach(round -> {
-				@SuppressWarnings("unchecked")
-				final List<String>[] roundNgrams = createNgrams(round, ngramFactory).toArray(List[]::new);
+				final List<String>[] roundNgrams = createNgramArray(round, ngramFactory);
 				getVisualizableTargetRefs(round).forEach(ref -> {
 					Object2IntMap<List<String>> ngramCounts = result.get(sessions, ref);
 					if (ngramCounts == null) {
