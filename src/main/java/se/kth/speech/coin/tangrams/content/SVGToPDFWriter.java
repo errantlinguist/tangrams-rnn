@@ -17,20 +17,38 @@ package se.kth.speech.coin.tangrams.content;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
+import org.apache.batik.transcoder.SVGAbstractTranscoder;
 import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
 import org.apache.batik.transcoder.TranscoderOutput;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.MissingOptionException;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.fop.svg.PDFTranscoder;
-import org.w3c.dom.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.svg.SVGDocument;
+import org.w3c.dom.svg.SVGSVGElement;
+
+import se.kth.speech.function.ThrowingSupplier;
 
 /**
  * @author <a href="mailto:errantlinguist+github@gmail.com>Todd Shore</a>
@@ -39,21 +57,199 @@ import org.w3c.dom.Document;
  */
 public final class SVGToPDFWriter {
 
-	// private static final Pattern LENGTH_MEASUREMENT_PATTERN =
-	// Pattern.compile("(\\d+(?:\\.\\d+)?)(\\S*)");
+	private enum Parameter implements Supplier<Option> {
+		HEIGHT("h") {
+			@Override
+			public Option get() {
+				return Option.builder(optName).longOpt("height").desc("The output image height.").hasArg()
+						.type(Number.class).argName("px").build();
+			}
+		},
+		HELP("?") {
+			@Override
+			public Option get() {
+				return Option.builder(optName).longOpt("help").desc("Prints this message.").build();
+			}
+		},
 
-	public static void main(final String[] args) throws TranscoderException, IOException, URISyntaxException {
-		if (args.length != 2) {
-			System.err.println(String.format("Usage: %s <infile> <outfile>", SVGToPDFWriter.class.getName()));
-			System.exit(64);
-		} else {
-			final Path infilePath = Paths.get(args[0]);
-			final Path outfilePath = Paths.get(args[1]);
-			System.out.print(infilePath + " > ");
-			write(infilePath.toUri(), outfilePath);
-			System.out.println(outfilePath);
+		OUTPATH("o") {
+			@Override
+			public Option get() {
+				return Option.builder(optName).longOpt("output")
+						.desc("If a single input file is specified; This is the path of the file to write the output to. If multiple files and/or directories are specified, this is the directory to which all output files will be written.")
+						.hasArg().type(File.class).argName("path").build();
+			}
+		},
+		WIDTH("w") {
+			@Override
+			public Option get() {
+				return Option.builder(optName).longOpt("width").desc("The output image width.").hasArg()
+						.type(Number.class).argName("px").build();
+			}
+		};
+
+		private static final Options OPTIONS = createOptions();
+
+		private static Options createOptions() {
+			final Options result = new Options();
+			Arrays.stream(Parameter.values()).map(Parameter::get).forEach(result::addOption);
+			return result;
 		}
 
+		private static Consumer<SVGAbstractTranscoder> createTranscoderConfigurator(final CommandLine cl)
+				throws ParseException {
+			final Consumer<SVGAbstractTranscoder> result;
+			final Optional<Consumer<SVGAbstractTranscoder>> optWidthConfigurator = parseTranscoderWidthConfigurator(cl);
+			final Optional<Consumer<SVGAbstractTranscoder>> optHeightConfigurator = parseTranscoderHeightConfigurator(
+					cl);
+			if (optWidthConfigurator.isPresent()) {
+				final Consumer<SVGAbstractTranscoder> widthConfigurator = optWidthConfigurator.get();
+				result = optHeightConfigurator.map(heightConfigurator -> widthConfigurator.andThen(heightConfigurator))
+						.orElse(widthConfigurator);
+			} else if (optHeightConfigurator.isPresent()) {
+				result = optHeightConfigurator.get();
+			} else {
+				result = transcoder -> {
+					// Do nothing
+				};
+			}
+			return result;
+		}
+
+		private static ThrowingSupplier<OutputStream, IOException> parseOutpath(final File outfile) throws IOException {
+			final ThrowingSupplier<OutputStream, IOException> result;
+			if (outfile == null) {
+				LOGGER.info("No output file path specified; Will write to standard output stream.");
+				result = () -> System.out;
+			} else {
+				LOGGER.info("Output file path is \"{}\".", outfile);
+				result = createNewFileSupplier(outfile.toPath());
+			}
+			return result;
+		}
+
+		private static Optional<Consumer<SVGAbstractTranscoder>> parseTranscoderHeightConfigurator(final CommandLine cl)
+				throws ParseException {
+			final Number optValue = (Number) cl.getParsedOptionValue(Parameter.HEIGHT.optName);
+			Optional<Consumer<SVGAbstractTranscoder>> result;
+			if (optValue == null) {
+				result = Optional.empty();
+			} else {
+				final Float value = Float.valueOf(optValue.floatValue());
+				LOGGER.info("Will set image height to {}.", value);
+				result = Optional
+						.of(transcoder -> transcoder.addTranscodingHint(SVGAbstractTranscoder.KEY_HEIGHT, value));
+			}
+			return result;
+		}
+
+		private static Optional<Consumer<SVGAbstractTranscoder>> parseTranscoderWidthConfigurator(final CommandLine cl)
+				throws ParseException {
+			final Number optValue = (Number) cl.getParsedOptionValue(Parameter.WIDTH.optName);
+			Optional<Consumer<SVGAbstractTranscoder>> result;
+			if (optValue == null) {
+				result = Optional.empty();
+			} else {
+				final Float value = Float.valueOf(optValue.floatValue());
+				LOGGER.info("Will set image width to {}.", value);
+				result = Optional
+						.of(transcoder -> transcoder.addTranscodingHint(SVGAbstractTranscoder.KEY_WIDTH, value));
+			}
+			return result;
+		}
+
+		private static void printHelp() {
+			final HelpFormatter formatter = new HelpFormatter();
+			formatter.printHelp(SVGToPDFWriter.class.getName() + " INPATHS...", OPTIONS);
+		}
+
+		protected final String optName;
+
+		private Parameter(final String optName) {
+			this.optName = optName;
+		}
+
+	}
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(SVGToPDFWriter.class);
+
+	public static void main(final CommandLine cl)
+			throws TranscoderException, IOException, URISyntaxException, ParseException {
+		if (cl.hasOption(Parameter.HELP.optName)) {
+			Parameter.printHelp();
+		} else {
+			final Path[] inpaths = cl.getArgList().stream().map(Paths::get).toArray(Path[]::new);
+			final File outpath = (File) cl.getParsedOptionValue(Parameter.OUTPATH.optName);
+			final Consumer<SVGAbstractTranscoder> transcoderConfigurator = Parameter.createTranscoderConfigurator(cl);
+			final Supplier<PDFTranscoder> transcoderFactory = () -> {
+				final PDFTranscoder transcoder = new PDFTranscoder();
+				transcoderConfigurator.accept(transcoder);
+				return transcoder;
+			};
+			final TranscodingWriter writer = new TranscodingWriter(transcoderFactory, "pdf");
+
+			switch (inpaths.length) {
+			case 0: {
+				throw new MissingOptionException("No input path(s) specified.");
+			}
+			case 1: {
+				final Path inpath = inpaths[0];
+				if (Files.isDirectory(inpath)) {
+					if (outpath == null) {
+						writer.write(inpath);
+					} else {
+						writer.write(inpath, outpath.toPath());
+					}
+
+				} else {
+					final ThrowingSupplier<OutputStream, IOException> singleFileOsSupplier = Parameter
+							.parseOutpath(outpath);
+					writer.write(inpath.toUri(), singleFileOsSupplier);
+				}
+				break;
+			}
+			default: {
+				writer.write(inpaths);
+				break;
+			}
+			}
+		}
+	}
+
+	public static void main(final String[] args) throws TranscoderException, IOException, URISyntaxException {
+		final CommandLineParser parser = new DefaultParser();
+		try {
+			final CommandLine cl = parser.parse(Parameter.OPTIONS, args);
+			main(cl);
+		} catch (final ParseException e) {
+			System.out.println(String.format("An error occured while parsing the command-line arguments: %s", e));
+			Parameter.printHelp();
+		}
+	}
+
+	private static OutputStream createNewFile(final Path outfile) throws IOException {
+		return Files.newOutputStream(outfile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+	}
+
+	private static ThrowingSupplier<OutputStream, IOException> createNewFileSupplier(final Path outfile) {
+		return () -> createNewFile(outfile);
+	}
+	
+	private static void setSize(final SVGDocument doc, final float width, final float height, final String unit) {
+		final SVGSVGElement rootElem = doc.getRootElement();
+		setSize(rootElem, width + unit, height + unit);
+	}
+
+	private static void setSize(final SVGSVGElement elem, final String width, final String height) {
+		// This has been tested; The property changes are in fact persisted
+		final String tag = elem.getTagName();
+		LOGGER.info("Original dimensions of element \"{}\" are {} * {}.", tag,
+				elem.getWidth().getBaseVal().getValueAsString(), elem.getHeight().getBaseVal().getValueAsString());
+		// https://xmlgraphics.apache.org/batik/faq.html#changes-are-not-rendered
+		elem.setAttributeNS(null, "width", width);
+		elem.setAttributeNS(null, "height", height);
+		LOGGER.info("New dimensions of element \"{}\" are {} * {}.", tag,
+				elem.getWidth().getBaseVal().getValueAsString(), elem.getHeight().getBaseVal().getValueAsString());
 	}
 
 	/**
@@ -64,7 +260,8 @@ public final class SVGToPDFWriter {
 	 * @throws TranscoderException
 	 * @throws IOException
 	 */
-	public static void write(final Document doc, final Path outpath) throws TranscoderException, IOException {
+	public static void write(final SVGDocument doc, final Path outpath) throws TranscoderException, IOException {
+		setSize(doc, 50f, 50f, "px");
 		final ByteArrayOutputStream resultByteStream = new ByteArrayOutputStream();
 		final TranscoderInput transcoderInput = new TranscoderInput(doc);
 		final TranscoderOutput transcoderOutput = new TranscoderOutput(resultByteStream);
@@ -72,6 +269,9 @@ public final class SVGToPDFWriter {
 		final PDFTranscoder transcoder = new PDFTranscoder();
 		// final UserAgent userAgent = pngTranscoder.getUserAgent();
 		// final float[] maxDimensions = findMaxDimensions(doc, userAgent);
+		// KEY_WIDTH and KEY_HEIGHT determine the size of the PDF itself but not the size of the image therein
+//		transcoder.addTranscodingHint(SVGAbstractTranscoder.KEY_WIDTH, Float.valueOf(20f));
+//		transcoder.addTranscodingHint(SVGAbstractTranscoder.KEY_HEIGHT, Float.valueOf(500f));
 		// pngTranscoder.addTranscodingHint(SVGAbstractTranscoder.KEY_WIDTH,
 		// Float.valueOf(maxDimensions[0]));
 		// pngTranscoder.addTranscodingHint(SVGAbstractTranscoder.KEY_HEIGHT,
@@ -84,18 +284,6 @@ public final class SVGToPDFWriter {
 			// writer.flush();
 		}
 
-	}
-
-	/**
-	 * @see <a href=
-	 *      "http://stackoverflow.com/q/32721467/1391325">StackOverflow</a>
-	 * @param inputUri
-	 * @param outpath
-	 * @throws TranscoderException
-	 * @throws IOException
-	 */
-	public static void write(final URI inputUri, final Path outpath) throws TranscoderException, IOException {
-		write(SVGDocuments.read(inputUri), outpath);
 	}
 
 	// /**
