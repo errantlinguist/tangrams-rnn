@@ -25,16 +25,17 @@ import java.util.function.ToDoubleBiFunction;
 import java.util.stream.DoubleStream;
 
 import se.kth.speech.HashedCollections;
-import se.kth.speech.coin.tangrams.wac.data.Session;
 
 /**
- * @param <T>
+ * @param <D>
+ *            The class representing a document in which observations are found.
+ * @param <O>
  *            The type of observations to calculate TF-IDF scores for.
  * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
  * @since Dec 1, 2017
  *
  */
-public final class TfIdfCalculator<T> implements ToDoubleBiFunction<T, Session> {
+public final class TfIdfCalculator<D, O> implements ToDoubleBiFunction<O, D> {
 
 	/**
 	 * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
@@ -46,8 +47,8 @@ public final class TfIdfCalculator<T> implements ToDoubleBiFunction<T, Session> 
 	 */
 	public enum TermFrequencyVariant {
 		/**
-		 * <em>tf(t,d)</em> = 0.5 + 0.5 &sdot; (<em>f</em><sub>t,d</sub>
-		 * &divide; max<sub><em>t&prime;</em> &isin; <em>d</em></sub>
+		 * <em>tf(t,d)</em> = 0.5 + 0.5 &sdot; (<em>f</em><sub>t,d</sub> &divide;
+		 * max<sub><em>t&prime;</em> &isin; <em>d</em></sub>
 		 * <em>f</em><sub><em>t&prime;,d</em></sub>)
 		 *
 		 */
@@ -61,51 +62,49 @@ public final class TfIdfCalculator<T> implements ToDoubleBiFunction<T, Session> 
 
 	private static final int DEFAULT_INITIAL_WORD_MAP_CAPACITY = HashedCollections.capacity(1000);
 
-	public static <T> TfIdfCalculator<T> create(final Map<Session, ? extends Iterable<T>> sessionObservations,
+	public static <D, T> TfIdfCalculator<D, T> create(final Map<D, ? extends Iterable<T>> docObservations,
 			final boolean onlyInstructor) {
-		return create(sessionObservations, onlyInstructor, TermFrequencyVariant.NATURAL);
+		return create(docObservations, onlyInstructor, TermFrequencyVariant.NATURAL);
 	}
 
-	public static <T> TfIdfCalculator<T> create(final Map<Session, ? extends Iterable<T>> sessionObservations,
+	public static <D, T> TfIdfCalculator<D, T> create(final Map<D, ? extends Iterable<T>> docObservations,
 			final boolean onlyInstructor, final TermFrequencyVariant tfVariant) {
-		final int initialMapCapcity = HashedCollections.capacity(sessionObservations.size());
-		final Map<Session, Map<T, Double>> observationCountsPerSession = new IdentityHashMap<>(initialMapCapcity);
-		final Map<T, Set<Session>> observationSessions = new HashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY);
-		for (final Entry<Session, ? extends Iterable<T>> entry : sessionObservations.entrySet()) {
-			final Session session = entry.getKey();
-			final Map<T, Double> sessionTokenCounts = observationCountsPerSession.computeIfAbsent(session,
+		final int initialMapCapcity = HashedCollections.capacity(docObservations.size());
+		final Map<D, Map<T, Double>> observationCountsPerDoc = new IdentityHashMap<>(initialMapCapcity);
+		final Map<T, Set<D>> observationDocs = new HashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY);
+		for (final Entry<D, ? extends Iterable<T>> entry : docObservations.entrySet()) {
+			final D doc = entry.getKey();
+			final Map<T, Double> docTokenCounts = observationCountsPerDoc.computeIfAbsent(doc,
 					key -> new HashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY));
 			final Iterable<T> observations = entry.getValue();
 			observations.forEach(observation -> {
-				sessionTokenCounts.compute(observation, (key, oldValue) -> oldValue == null ? 1 : oldValue + 1);
-				observationSessions.computeIfAbsent(observation, key -> new HashSet<>(initialMapCapcity)).add(session);
+				docTokenCounts.compute(observation, (key, oldValue) -> oldValue == null ? 1 : oldValue + 1);
+				observationDocs.computeIfAbsent(observation, key -> new HashSet<>(initialMapCapcity)).add(doc);
 			});
 		}
 
-		return new TfIdfCalculator<>(observationCountsPerSession, observationSessions, sessionObservations.size(),
-				tfVariant);
+		return new TfIdfCalculator<>(observationCountsPerDoc, observationDocs, docObservations.size(), tfVariant);
 	}
 
-	private final Map<Session, Map<T, Double>> observationCountsPerSession;
+	private final Map<D, Map<O, Double>> observationCountsPerDoc;
 
-	private final Map<T, Set<Session>> observationSessions;
+	private final Map<O, Set<D>> observationDocs;
 
-	private final ToDoubleBiFunction<T, Session> tfCalculator;
+	private final ToDoubleBiFunction<O, D> tfCalculator;
 
-	private final double totalSessionCount;
+	private final double totalDocCount;
 
-	private TfIdfCalculator(final Map<Session, Map<T, Double>> observationCountsPerSession,
-			final Map<T, Set<Session>> observationSessions, final int totalSessionCount,
-			final TermFrequencyVariant tfVariant) {
-		this.observationCountsPerSession = observationCountsPerSession;
-		this.observationSessions = observationSessions;
-		this.totalSessionCount = totalSessionCount;
+	private TfIdfCalculator(final Map<D, Map<O, Double>> observationCountsPerDoc, final Map<O, Set<D>> observationDocs,
+			final int totalDocCount, final TermFrequencyVariant tfVariant) {
+		this.observationCountsPerDoc = observationCountsPerDoc;
+		this.observationDocs = observationDocs;
+		this.totalDocCount = totalDocCount;
 		this.tfCalculator = getTermFrequencyCalculator(tfVariant);
 	}
 
 	@Override
-	public double applyAsDouble(final T observation, final Session session) {
-		final double tf = tfCalculator.applyAsDouble(observation, session);
+	public double applyAsDouble(final O observation, final D doc) {
+		final double tf = tfCalculator.applyAsDouble(observation, doc);
 		final double idf = idf(observation);
 		return tf * idf;
 	}
@@ -117,33 +116,32 @@ public final class TfIdfCalculator<T> implements ToDoubleBiFunction<T, Session> 
 	 *
 	 * @param observation
 	 *            The observation to calculate the term frequency of.
-	 * @param session
-	 *            The {@link Session} during which the given observation
-	 *            occurred.
+	 * @param doc
+	 *            The document in which the given observation was found.
 	 * @return The augmented term frequency for the given observation during the
-	 *         given session.
+	 *         given document.
 	 */
-	private double augmentedTf(final T observation, final Session session) {
-		final Map<T, Double> sessionWordCounts = observationCountsPerSession.get(session);
-		assert sessionWordCounts != null;
-		final Double naturalTf = sessionWordCounts.get(observation);
-		assert naturalTf != null : String.format("Term frequency for \"%s\" is null for session \"%s\".", observation,
-				session.getName());
-		final DoubleStream sessionTfs = sessionWordCounts.values().stream().mapToDouble(Double::doubleValue);
-		final double maxSessionTf = sessionTfs.max().getAsDouble();
-		return 0.5 + 0.5 * (naturalTf / maxSessionTf);
+	private double augmentedTf(final O observation, final D doc) {
+		final Map<O, Double> docWordCounts = observationCountsPerDoc.get(doc);
+		assert docWordCounts != null;
+		final Double naturalTf = docWordCounts.get(observation);
+		assert naturalTf != null : String.format("Term frequency for \"%s\" is null for document %s.", observation,
+				doc);
+		final DoubleStream docTfs = docWordCounts.values().stream().mapToDouble(Double::doubleValue);
+		final double maxDocTf = docTfs.max().getAsDouble();
+		return 0.5 + 0.5 * (naturalTf / maxDocTf);
 	}
 
-	private double df(final T observation) {
-		final Set<Session> sessions = observationSessions.get(observation);
-		assert sessions != null : String.format("Session set for \"%s\" is null.", observation);
-		final int result = sessions.size();
-		assert result > 0 : String.format("Session set for \"%s\" is of size %d.", observation, result);
+	private double df(final O observation) {
+		final Set<D> docs = observationDocs.get(observation);
+		assert docs != null : String.format("Document set for \"%s\" is null.", observation);
+		final int result = docs.size();
+		assert result > 0 : String.format("Document set for \"%s\" is of size %d.", observation, result);
 		return result;
 	}
 
-	private ToDoubleBiFunction<T, Session> getTermFrequencyCalculator(final TermFrequencyVariant variant) {
-		final ToDoubleBiFunction<T, Session> result;
+	private ToDoubleBiFunction<O, D> getTermFrequencyCalculator(final TermFrequencyVariant variant) {
+		final ToDoubleBiFunction<O, D> result;
 		switch (variant) {
 		case AUGMENTED: {
 			result = this::augmentedTf;
@@ -160,34 +158,32 @@ public final class TfIdfCalculator<T> implements ToDoubleBiFunction<T, Session> 
 		return result;
 	}
 
-	private double idf(final T observation) {
+	private double idf(final O observation) {
 		final double df = df(observation);
-		final double result = Math.log(totalSessionCount / df);
+		final double result = Math.log(totalDocCount / df);
 		assert Double.isFinite(result) : String.format("IDF score for \"%s\" is not finite.", observation);
 		return result;
 	}
 
 	/**
-	 * Calculates the term frequency for a given observation in a given
-	 * {@link Session} as the raw counts of a given term <em>t</em> in a given
-	 * document <em>d</em> <em>tf(t,d)</em> = <em>f</em><sub><em>t,d</em></sub>.
+	 * Calculates the term frequency for a given observation <em>t</em> in a given
+	 * document <em>d</em> as the raw counts <em>tf(t,d)</em> =
+	 * <em>f</em><sub><em>t,d</em></sub>.
 	 *
 	 * @param observation
 	 *            The observation to calculate the term frequency of.
-	 * @param session
-	 *            The {@link Session} during which the given observation
-	 *            occurred.
-	 * @return The natural term frequency for the given observation during the
-	 *         given session.
+	 * @param doc
+	 *            The document in which the given observation was found.
+	 * @return The natural term frequency for the given observation during the given
+	 *         document.
 	 */
-	private double naturalTf(final T observation, final Session session) {
-		final Map<T, Double> sessionWordCounts = observationCountsPerSession.get(session);
-		assert sessionWordCounts != null;
-		final Double result = sessionWordCounts.get(observation);
-		assert result != null : String.format("Term frequency for \"%s\" is null for session \"%s\".", observation,
-				session.getName());
-		assert Double.isFinite(result) : String.format("Term frequency for \"%s\" is not finite for session \"%s\".",
-				observation, session.getName());
+	private double naturalTf(final O observation, final D doc) {
+		final Map<O, Double> docWordCounts = observationCountsPerDoc.get(doc);
+		assert docWordCounts != null;
+		final Double result = docWordCounts.get(observation);
+		assert result != null : String.format("Term frequency for \"%s\" is null for document %s.", observation, doc);
+		assert Double.isFinite(result) : String.format("Term frequency for \"%s\" is not finite for document %s.",
+				observation, doc);
 		return result;
 	}
 }
