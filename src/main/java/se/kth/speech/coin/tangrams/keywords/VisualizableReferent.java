@@ -1,13 +1,13 @@
 package se.kth.speech.coin.tangrams.keywords;
 
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 
 final class VisualizableReferent {
 
-	private static final Map<Referent, VisualizableReferent> INSTANCES = new ConcurrentHashMap<>();
+	private static final ConcurrentMap<Referent, VisualizableReferent> INSTANCES = new ConcurrentHashMap<>();
 
 	static VisualizableReferent fetch(final Referent ref) {
 		return INSTANCES.computeIfAbsent(ref, VisualizableReferent::new);
