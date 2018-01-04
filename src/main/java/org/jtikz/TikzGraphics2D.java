@@ -228,11 +228,11 @@ public class TikzGraphics2D extends AbstractGraphicsInterface {
                     for(int i=0; i<indent; i++)
                         out.print("  ");
                     out.print(handlePathInternal(c.getClip().getPathIterator(transform), Action.CLIP));
-                    lastClip = c.getClip();
+                    lastClip = c.clip;
                 }
                 for(int i=0; i<indent; i++)
                     out.print("  ");
-                out.println(c.getCommand());
+                out.println(c.command);
             }
             while(indent > 1) {
                 indent--;
