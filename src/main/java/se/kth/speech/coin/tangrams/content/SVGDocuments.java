@@ -16,6 +16,8 @@
 package se.kth.speech.coin.tangrams.content;
 
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Path;
 
 import org.apache.batik.anim.dom.SAXSVGDocumentFactory;
 import org.apache.batik.util.XMLResourceDescriptor;
@@ -49,6 +51,19 @@ final class SVGDocuments {
 	/**
 	 * Uses a {@link SAXSVGDocumentFactory} to parse the given URI into a DOM.
 	 *
+	 * @param infile
+	 *            A {@link Path} identifying the SVG file to read.
+	 * @return A {@link SVGDocument} instance that represents the SVG file.
+	 * @throws IOException
+	 *             if an error occurred while reading the document.
+	 */
+	static SVGDocument read(final Path infile) throws IOException {
+		return read(infile.toUri());
+	}
+
+	/**
+	 * Uses a {@link SAXSVGDocumentFactory} to parse the given URI into a DOM.
+	 *
 	 * @param uri
 	 *            A URI identifying the SVG file to read.
 	 * @return A {@link SVGDocument} instance that represents the SVG file.
@@ -58,6 +73,19 @@ final class SVGDocuments {
 	static SVGDocument read(final String uri) throws IOException {
 		final SAXSVGDocumentFactory factory = SVG_DOC_FACTORY.get();
 		return factory.createSVGDocument(uri);
+	}
+
+	/**
+	 * Uses a {@link SAXSVGDocumentFactory} to parse the given URI into a DOM.
+	 *
+	 * @param uri
+	 *            A {@link URI} identifying the SVG file to read.
+	 * @return A {@link SVGDocument} instance that represents the SVG file.
+	 * @throws IOException
+	 *             if an error occurred while reading the document.
+	 */
+	static SVGDocument read(final URI uri) throws IOException {
+		return read(uri.toString());
 	}
 
 	private SVGDocuments() {
