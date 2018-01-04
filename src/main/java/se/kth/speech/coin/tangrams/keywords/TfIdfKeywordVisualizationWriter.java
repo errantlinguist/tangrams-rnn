@@ -309,11 +309,10 @@ public final class TfIdfKeywordVisualizationWriter {
 				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
 				LOGGER.info("Only use instructor language? {}", onlyInstructor);
 
+				NGramFactory ngramFactory = Parameter.createNgramFactory(cl);
 				final Table<Session, VisualizableReferent, Object2IntMap<List<String>>> sessionRefNgramCounts = createSessionReferentNgramCountTable(
-						sessions, Parameter.createNgramFactory(cl));
-				final Map<Session, List<List<String>>> sessionNgrams = createSessionNgramMap(
-						new SessionSetReader(refTokenFilePath).apply(inpaths).getSessions(),
-						Parameter.createNgramFactory(cl));
+						sessions, ngramFactory);
+				final Map<Session, List<List<String>>> sessionNgrams = createSessionNgramMap(sessions, ngramFactory);
 
 				LOGGER.info("Calculating TF-IDF scores.");
 				final long tfIdfCalculatorConstructionStart = System.currentTimeMillis();
