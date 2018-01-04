@@ -210,10 +210,9 @@ public final class TfIdfKeywordWriter {
 						.parseOutpath((File) cl.getParsedOptionValue(Parameter.OUTPATH.optName));
 				final Path refTokenFilePath = ((File) cl.getParsedOptionValue(Parameter.REFERRING_TOKENS.optName))
 						.toPath();
-				final NGramFactory ngramFactory = Parameter.createNgramFactory(cl);
 
 				final NavigableMap<Session, List<List<String>>> sessionNgrams = createSessionNgramMap(
-						new SessionSetReader(refTokenFilePath).apply(inpaths).getSessions(), ngramFactory);
+						new SessionSetReader(refTokenFilePath).apply(inpaths).getSessions(), Parameter.createNgramFactory(cl));
 				LOGGER.info("Will extract keywords from {} session(s).", sessionNgrams.size());
 				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
 				LOGGER.info("Only use instructor language? {}", onlyInstructor);
