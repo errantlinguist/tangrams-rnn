@@ -26,11 +26,6 @@ import javax.swing.JFrame;
 import javax.swing.WindowConstants;
 
 import org.apache.batik.swing.JSVGCanvas;
-import org.w3c.dom.Document;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.w3c.dom.css.CSSStyleDeclaration;
 import org.w3c.dom.svg.SVGDocument;
 
 /**
@@ -43,8 +38,6 @@ public final class SVGImageViewingTest {
 	// private static final Logger LOGGER =
 	// LoggerFactory.getLogger(SVGImageViewingTest.class);
 
-	private static final StyleDeclarationParser STYLE_DECLARATION_PARSER = new StyleDeclarationParser();
-
 	public static void main(final String[] args) throws IOException {
 		if (args.length != 1) {
 			System.err.println(String.format("Usage: %s <infile>", SVGImageViewingTest.class.getName()));
@@ -53,7 +46,7 @@ public final class SVGImageViewingTest {
 			final Path infilePath = Paths.get(args[0]);
 			final SVGDocument doc = SVGDocuments.read(infilePath.toUri().toString());
 			// Change the properties of the SVG document before rendering
-			setPathStyles(doc, "fill", "purple");
+			SVGDocuments.setPathStyles(doc, "fill", "purple");
 			final JFrame frame = new JFrame("Image viewer");
 			final JSVGCanvas canvas = new JSVGCanvas();
 			// canvas.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC);
@@ -73,42 +66,6 @@ public final class SVGImageViewingTest {
 				frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 				frame.setVisible(true);
 			});
-		}
-	}
-
-	/**
-	 *
-	 * @param doc
-	 *            The {@link Document} containing the paths to which the given
-	 *            property is to be set.
-	 * @param propertyName
-	 *            The name of the CSS property. See the CSS property index.
-	 * @param value
-	 *            The new value of the property.
-	 */
-	private static void setPathStyles(final Document doc, final String propertyName, final String value) {
-		setPathStyles(doc, propertyName, value, "");
-	}
-
-	/**
-	 *
-	 * @param doc
-	 *            The {@link Document} containing the paths to which the given
-	 *            property is to be set.
-	 * @param propertyName
-	 *            The name of the CSS property. See the CSS property index.
-	 * @param value
-	 *            The new value of the property.
-	 * @param priority
-	 *            The new priority of the property (e.g. "important") or the
-	 *            empty string if none.
-	 */
-	private static void setPathStyles(final Document doc, final String propertyName, final String value,
-			final String priority) {
-		final NodeList pathNodes = doc.getElementsByTagName("path");
-		for (int pathNodeIdx = 0; pathNodeIdx < pathNodes.getLength(); ++pathNodeIdx) {
-			final Node pathNode = pathNodes.item(pathNodeIdx);
-			setStyle(pathNode, propertyName, value, priority);
 		}
 	}
 
@@ -132,30 +89,5 @@ public final class SVGImageViewingTest {
 	// elem.getWidth().getBaseVal().getValueAsString(),
 	// elem.getHeight().getBaseVal().getValueAsString());
 	// }
-
-	/**
-	 *
-	 * @param node
-	 *            The {@link Node} to set the property for.
-	 * @param propertyName
-	 *            The name of the CSS property. See the CSS property index.
-	 * @param value
-	 *            The new value of the property.
-	 * @param priority
-	 *            The new priority of the property (e.g. "important") or the
-	 *            empty string if none.
-	 */
-	private static void setStyle(final Node node, final String propertyName, final String value,
-			final String priority) {
-		// final CSSStyleDeclaration style = pathNode.getStyle();
-		// NOTE: For whatever reason "SVGOMPathElement.getStyle()" throws a
-		// NullPointerException
-		final NamedNodeMap pathNodeAttrs = node.getAttributes();
-		final Node styleAttrNode = pathNodeAttrs.getNamedItem("style");
-		final String styleStr = styleAttrNode.getTextContent();
-		final CSSStyleDeclaration styleDeclaration = STYLE_DECLARATION_PARSER.apply(styleStr);
-		styleDeclaration.setProperty(propertyName, value, priority);
-		styleAttrNode.setTextContent(styleDeclaration.getCssText());
-	}
 
 }

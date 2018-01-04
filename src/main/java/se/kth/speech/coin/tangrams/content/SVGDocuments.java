@@ -21,6 +21,11 @@ import java.nio.file.Path;
 
 import org.apache.batik.anim.dom.SAXSVGDocumentFactory;
 import org.apache.batik.util.XMLResourceDescriptor;
+import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.css.CSSStyleDeclaration;
 import org.w3c.dom.svg.SVGDocument;
 
 /**
@@ -31,6 +36,8 @@ import org.w3c.dom.svg.SVGDocument;
  *
  */
 public final class SVGDocuments {
+
+	private static final StyleDeclarationParser STYLE_DECLARATION_PARSER = new StyleDeclarationParser();
 
 	private static final ThreadLocal<SAXSVGDocumentFactory> SVG_DOC_FACTORY = new ThreadLocal<SAXSVGDocumentFactory>() {
 
@@ -86,6 +93,66 @@ public final class SVGDocuments {
 	 */
 	public static SVGDocument read(final URI uri) throws IOException {
 		return read(uri.toString());
+	}
+
+	/**
+	 *
+	 * @param doc
+	 *            The {@link Document} containing the paths to which the given
+	 *            property is to be set.
+	 * @param propertyName
+	 *            The name of the CSS property. See the CSS property index.
+	 * @param value
+	 *            The new value of the property.
+	 */
+	public static void setPathStyles(final Document doc, final String propertyName, final String value) {
+		setPathStyles(doc, propertyName, value, "");
+	}
+
+	/**
+	 *
+	 * @param doc
+	 *            The {@link Document} containing the paths to which the given
+	 *            property is to be set.
+	 * @param propertyName
+	 *            The name of the CSS property. See the CSS property index.
+	 * @param value
+	 *            The new value of the property.
+	 * @param priority
+	 *            The new priority of the property (e.g. "important") or the
+	 *            empty string if none.
+	 */
+	public static void setPathStyles(final Document doc, final String propertyName, final String value,
+			final String priority) {
+		final NodeList pathNodes = doc.getElementsByTagName("path");
+		for (int pathNodeIdx = 0; pathNodeIdx < pathNodes.getLength(); ++pathNodeIdx) {
+			final Node pathNode = pathNodes.item(pathNodeIdx);
+			setStyle(pathNode, propertyName, value, priority);
+		}
+	}
+
+	/**
+	 *
+	 * @param node
+	 *            The {@link Node} to set the property for.
+	 * @param propertyName
+	 *            The name of the CSS property. See the CSS property index.
+	 * @param value
+	 *            The new value of the property.
+	 * @param priority
+	 *            The new priority of the property (e.g. "important") or the
+	 *            empty string if none.
+	 */
+	public static void setStyle(final Node node, final String propertyName, final String value, final String priority) {
+		// final CSSStyleDeclaration style = pathNode.getStyle();
+		// NOTE: For whatever reason "SVGOMPathElement.getStyle()" throws a
+		// NullPointerException
+		final NamedNodeMap pathNodeAttrs = node.getAttributes();
+		final Node styleAttrNode = pathNodeAttrs.getNamedItem("style");
+		final String styleStr = styleAttrNode.getTextContent();
+		final CSSStyleDeclaration styleDeclaration = STYLE_DECLARATION_PARSER.apply(styleStr);
+		styleDeclaration.setProperty(propertyName, value, priority);
+		styleAttrNode.setTextContent(styleDeclaration.getCssText());
 	}
 
 	private SVGDocuments() {
