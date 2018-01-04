@@ -17,7 +17,6 @@ package se.kth.speech.coin.tangrams.keywords;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -66,11 +65,11 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 			final boolean onlyInstructor) {
 		return create(docObservations, onlyInstructor, TermFrequencyVariant.NATURAL);
 	}
-
+	
 	public static <O, D> TfIdfCalculator<O, D> create(final Map<D, ? extends Iterable<O>> docObservations,
 			final boolean onlyInstructor, final TermFrequencyVariant tfVariant) {
 		final int initialMapCapcity = HashedCollections.capacity(docObservations.size());
-		final Map<D, Map<O, Double>> observationCountsPerDoc = new IdentityHashMap<>(initialMapCapcity);
+		final Map<D, Map<O, Double>> observationCountsPerDoc = new HashMap<>(initialMapCapcity);
 		final Map<O, Set<D>> observationDocs = new HashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY);
 		for (final Entry<D, ? extends Iterable<O>> entry : docObservations.entrySet()) {
 			final D doc = entry.getKey();
