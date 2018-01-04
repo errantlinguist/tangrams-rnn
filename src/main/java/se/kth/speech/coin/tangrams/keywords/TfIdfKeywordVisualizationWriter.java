@@ -62,7 +62,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
-import org.jtikz.TikzGraphics2D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.NamedNodeMap;
@@ -707,10 +706,10 @@ public final class TfIdfKeywordVisualizationWriter {
 		// f.setLocationByPlatform(true);
 		frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 		frame.setVisible(true);
-		final TikzGraphics2D t = new TikzGraphics2D();
-		LOGGER.info("Painting component.");
-		t.paintComponent(frame);
-		LOGGER.info("Finished painting component.");
+//		final TikzGraphics2D t = new TikzGraphics2D();
+//		LOGGER.info("Painting component.");
+//		t.paintComponent(frame);
+//		LOGGER.info("Finished painting component.");
 		frame.dispose();
 	}
 
