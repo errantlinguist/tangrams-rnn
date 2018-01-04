@@ -17,7 +17,7 @@ final class GraphicsCommand {
 
 	private final Object command;
 
-	GraphicsCommand(final Object command, final AbstractGraphicsInterface creator) {
+	public GraphicsCommand(final Object command, final AbstractGraphicsInterface creator) {
 		this.command = command;
 		clip = findClip(creator);
 	}
