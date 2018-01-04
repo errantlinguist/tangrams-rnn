@@ -63,17 +63,23 @@ final class NGramFactory implements Function<List<String>, List<List<String>>> {
 
 	private final Map<List<String>, List<List<String>>> cache;
 
-	public NGramFactory() {
-		this(new HashMap<>(1000));
+	private final int minLength;
+
+	private final int maxLength;
+
+	public NGramFactory(final int minLength, final int maxLength) {
+		this(minLength, maxLength, new HashMap<>(1000));
 	}
 
-	private NGramFactory(final Map<List<String>, List<List<String>>> cache) {
+	private NGramFactory(final int minLength, final int maxLength, final Map<List<String>, List<List<String>>> cache) {
+		this.minLength = minLength;
+		this.maxLength = maxLength;
 		this.cache = cache;
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.util.function.Function#apply(java.lang.Object)
 	 */
 	@Override

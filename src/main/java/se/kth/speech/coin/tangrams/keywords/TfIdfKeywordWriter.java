@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.TreeMap;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.Collector;
@@ -69,6 +68,22 @@ public final class TfIdfKeywordWriter {
 				return Option.builder(optName).longOpt("help").desc("Prints this message.").build();
 			}
 		},
+		MAX_NGRAM_LENGTH("max") {
+			@Override
+			public Option get() {
+				return Option.builder(optName).longOpt("max-length")
+						.desc("The maximum length of n-grams to calculate scores for..").hasArg().argName("length")
+						.type(Number.class).build();
+			}
+		},
+		MIN_NGRAM_LENGTH("min") {
+			@Override
+			public Option get() {
+				return Option.builder(optName).longOpt("min-length")
+						.desc("The minimum length of n-grams to calculate scores for..").hasArg().argName("length")
+						.type(Number.class).build();
+			}
+		},
 		ONLY_INSTRUCTOR("i") {
 			@Override
 			public Option get() {
@@ -106,9 +121,43 @@ public final class TfIdfKeywordWriter {
 			}
 		};
 
+		private static final int DEFAULT_MAX_LENGTH = 4;
+
+		private static final int DEFAULT_MIN_LENGTH = 2;
+
 		private static final TfIdfCalculator.TermFrequencyVariant DEFAULT_TF_VARIANT = TfIdfCalculator.TermFrequencyVariant.NATURAL;
 
 		private static final Options OPTIONS = createOptions();
+
+		private static NGramFactory createNgramFactory(final CommandLine cl) throws ParseException {
+			final int minLengthValue;
+			final int maxLengthValue;
+
+			final Number minLength = (Number) cl.getParsedOptionValue(Parameter.MIN_NGRAM_LENGTH.optName);
+			final Number maxLength = (Number) cl.getParsedOptionValue(Parameter.MIN_NGRAM_LENGTH.optName);
+			if (minLength == null) {
+				if (maxLength == null) {
+					minLengthValue = DEFAULT_MIN_LENGTH;
+					maxLengthValue = DEFAULT_MAX_LENGTH;
+				} else {
+					maxLengthValue = maxLength.intValue();
+					minLengthValue = maxLengthValue < DEFAULT_MIN_LENGTH ? maxLengthValue : DEFAULT_MIN_LENGTH;
+				}
+			} else {
+				minLengthValue = minLength.intValue();
+				if (maxLength == null) {
+					maxLengthValue = minLengthValue > DEFAULT_MAX_LENGTH ? minLengthValue : DEFAULT_MAX_LENGTH;
+				} else {
+					maxLengthValue = maxLength.intValue();
+					if (maxLengthValue > minLengthValue) {
+						throw new ParseException("Maximum n-gram length is less than the minimum.");
+					}
+				}
+			}
+
+			LOGGER.info("Will create n-grams from length {} to {} (inclusive).", minLengthValue, maxLengthValue);
+			return new NGramFactory(minLengthValue, maxLengthValue);
+		}
 
 		private static Options createOptions() {
 			final Options result = new Options();
@@ -141,9 +190,7 @@ public final class TfIdfKeywordWriter {
 
 	private static final Comparator<Weighted<? extends List<?>>> SCORED_NGRAM_COMPARATOR = createScoredNgramComparator();
 
-	private static final Collector<CharSequence, ?, String> TOKEN_JOINER = Collectors.joining(" ");;
-
-	private static final Function<List<String>, List<List<String>>> NGRAM_FACTORY = new NGramFactory();
+	private static final Collector<CharSequence, ?, String> TOKEN_JOINER = Collectors.joining(" ");
 
 	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD
 																						// (use
@@ -163,8 +210,10 @@ public final class TfIdfKeywordWriter {
 						.parseOutpath((File) cl.getParsedOptionValue(Parameter.OUTPATH.optName));
 				final Path refTokenFilePath = ((File) cl.getParsedOptionValue(Parameter.REFERRING_TOKENS.optName))
 						.toPath();
+				final NGramFactory ngramFactory = Parameter.createNgramFactory(cl);
+
 				final NavigableMap<Session, List<List<String>>> sessionNgrams = createSessionNgramMap(
-						new SessionSetReader(refTokenFilePath).apply(inpaths).getSessions());
+						new SessionSetReader(refTokenFilePath).apply(inpaths).getSessions(), ngramFactory);
 				LOGGER.info("Will extract keywords from {} session(s).", sessionNgrams.size());
 				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
 				LOGGER.info("Only use instructor language? {}", onlyInstructor);
@@ -200,10 +249,10 @@ public final class TfIdfKeywordWriter {
 		}
 	}
 
-	private static Stream<List<String>> createNgrams(final Session session) {
+	private static Stream<List<String>> createNgrams(final Session session, final NGramFactory ngramFactory) {
 		final Stream<List<String>> uttTokenSeqs = session.getRounds().stream().map(Round::getUtts).flatMap(List::stream)
 				.map(Utterance::getReferringTokens);
-		return uttTokenSeqs.map(NGRAM_FACTORY).flatMap(List::stream);
+		return uttTokenSeqs.map(ngramFactory).flatMap(List::stream);
 	}
 
 	private static Stream<String> createRow(final String sessionName, final Weighted<List<String>> scoredNgram) {
@@ -222,9 +271,11 @@ public final class TfIdfKeywordWriter {
 		return normalizedWeightAscending.reversed().thenComparing(ngramLengthAscending.reversed());
 	}
 
-	private static NavigableMap<Session, List<List<String>>> createSessionNgramMap(final Iterable<Session> sessions) {
+	private static NavigableMap<Session, List<List<String>>> createSessionNgramMap(final Iterable<Session> sessions,
+			final NGramFactory ngramFactory) {
 		final NavigableMap<Session, List<List<String>>> result = new TreeMap<>(Comparator.comparing(Session::getName));
-		sessions.forEach(session -> result.put(session, createNgrams(session).collect(Collectors.toList())));
+		sessions.forEach(
+				session -> result.put(session, createNgrams(session, ngramFactory).collect(Collectors.toList())));
 		return result;
 	}
 
