@@ -420,8 +420,11 @@ public final class TfIdfKeywordVisualizationWriter {
 	private static Map<Session, List<List<String>>> createSessionNgramMap(final Collection<Session> sessions,
 			final NGramFactory ngramFactory) {
 		final Map<Session, List<List<String>>> result = Maps.newHashMapWithExpectedSize(sessions.size());
-		sessions.forEach(
-				session -> result.put(session, createNgrams(session, ngramFactory).collect(Collectors.toList())));
+		sessions.forEach(session -> {
+			@SuppressWarnings("unchecked")
+			final List<List<String>> ngrams = Arrays.asList(createNgrams(session, ngramFactory).toArray(List[]::new));
+			result.put(session, ngrams);
+		});
 		return result;
 	}
 
