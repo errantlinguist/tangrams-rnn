@@ -19,6 +19,7 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,7 +47,7 @@ import org.w3c.dom.NodeList;
 public final class SVGFileToPNGConverter {
 
 	private static final Pattern LENGTH_MEASUREMENT_PATTERN = Pattern.compile("(\\d+(?:\\.\\d+)?)(\\S*)");
-
+	
 	/**
 	 * @see <a href= "http://stackoverflow.com/q/32721467/1391325">StackOverflow</a>
 	 * @param inputUri
@@ -54,9 +55,20 @@ public final class SVGFileToPNGConverter {
 	 * @throws TranscoderException
 	 * @throws IOException
 	 */
-	public static void convertSVGToPNG(final String inputUri, final Path outpath)
+	public static void convertSVGToPNG(final URI inputUri, final Path outpath)
 			throws TranscoderException, IOException {
-		final Document doc = SVGDocuments.read(inputUri);
+		convertSVGToPNG(SVGDocuments.read(inputUri), outpath);
+	}
+
+	/**
+	 * @see <a href= "http://stackoverflow.com/q/32721467/1391325">StackOverflow</a>
+	 * @param doc
+	 * @param outpath
+	 * @throws TranscoderException
+	 * @throws IOException
+	 */
+	public static void convertSVGToPNG(final Document doc, final Path outpath)
+			throws TranscoderException, IOException {
 		final ByteArrayOutputStream resultByteStream = new ByteArrayOutputStream();
 		final TranscoderInput transcoderInput = new TranscoderInput(doc);
 		final TranscoderOutput transcoderOutput = new TranscoderOutput(resultByteStream);
@@ -86,7 +98,7 @@ public final class SVGFileToPNGConverter {
 			final Path infilePath = Paths.get(args[0]);
 			final Path outfilePath = Paths.get(args[1]);
 			System.out.print(infilePath + " > ");
-			convertSVGToPNG(infilePath.toString(), outfilePath);
+			convertSVGToPNG(infilePath.toUri(), outfilePath);
 			System.out.println(outfilePath);
 		}
 
