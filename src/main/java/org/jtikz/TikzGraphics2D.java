@@ -1,18 +1,13 @@
 package org.jtikz;
 
-import java.awt.Color;
-import java.awt.Image;
-import java.awt.Shape;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.PathIterator;
-import java.awt.image.ColorModel;
-import java.awt.image.ImageObserver;
-import java.awt.image.PixelGrabber;
-import java.awt.image.Raster;
-import java.awt.image.RenderedImage;
-import java.awt.image.renderable.RenderableImage;
-import java.io.OutputStream;
-import java.util.Hashtable;
+import java.text.*;
+import java.awt.*;
+import java.awt.image.*;
+import java.awt.image.renderable.*;
+import java.awt.font.*;
+import java.awt.geom.*;
+import java.io.*;
+import java.util.*;
 
 /**
  * A Graphics2D replacement for outputting in TikZ/PGF.
