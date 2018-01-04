@@ -21,12 +21,15 @@ import java.nio.file.Path;
 
 import org.apache.batik.anim.dom.SAXSVGDocumentFactory;
 import org.apache.batik.util.XMLResourceDescriptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.css.CSSStyleDeclaration;
 import org.w3c.dom.svg.SVGDocument;
+import org.w3c.dom.svg.SVGSVGElement;
 
 /**
  * This class is thread-safe.
@@ -36,6 +39,8 @@ import org.w3c.dom.svg.SVGDocument;
  *
  */
 public final class SVGDocuments {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(SVGDocuments.class);
 
 	private static final StyleDeclarationParser STYLE_DECLARATION_PARSER = new StyleDeclarationParser();
 
@@ -129,6 +134,23 @@ public final class SVGDocuments {
 			final Node pathNode = pathNodes.item(pathNodeIdx);
 			setStyle(pathNode, propertyName, value, priority);
 		}
+	}
+
+	public static void setSize(final SVGDocument doc, final String width, final String height) {
+		final SVGSVGElement rootElem = doc.getRootElement();
+		setSize(rootElem, width, height);
+	}
+
+	public static void setSize(final SVGSVGElement elem, final String width, final String height) {
+		// This has been tested; The property changes are in fact persisted
+		final String tag = elem.getTagName();
+		LOGGER.debug("Original dimensions of element \"{}\" are {} * {}.", tag,
+				elem.getWidth().getBaseVal().getValueAsString(), elem.getHeight().getBaseVal().getValueAsString());
+		// https://xmlgraphics.apache.org/batik/faq.html#changes-are-not-rendered
+		elem.setAttributeNS(null, "width", width);
+		elem.setAttributeNS(null, "height", height);
+		LOGGER.debug("New dimensions of element \"{}\" are {} * {}.", tag,
+				elem.getWidth().getBaseVal().getValueAsString(), elem.getHeight().getBaseVal().getValueAsString());
 	}
 
 	/**
