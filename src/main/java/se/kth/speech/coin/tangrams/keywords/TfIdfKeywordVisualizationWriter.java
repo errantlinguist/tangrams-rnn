@@ -71,6 +71,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import j2html.TagCreator;
 import j2html.tags.ContainerTag;
+import j2html.tags.UnescapedText;
 import se.kth.speech.coin.tangrams.CLIParameters;
 import se.kth.speech.coin.tangrams.content.SVGDocuments;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
@@ -625,7 +626,7 @@ public final class TfIdfKeywordVisualizationWriter {
 		return result;
 	}
 
-	private static String createXmlString(final Node node) {
+	private static String createXMLString(final Node node) {
 		// https://stackoverflow.com/a/10356325/1391325
 		final DOMSource domSource = new DOMSource(node);
 		final StringWriter writer = new StringWriter();
@@ -683,7 +684,7 @@ public final class TfIdfKeywordVisualizationWriter {
 
 	private final long nbestRefs;
 
-	private final Map<VisualizableReferent, String> refSvgXmlStrings;
+	private final Map<VisualizableReferent, UnescapedText> refSvgTags;
 
 	private final Map<Session, ReferentNGramCounts> sessionRefNgramCounts;
 
@@ -693,7 +694,7 @@ public final class TfIdfKeywordVisualizationWriter {
 			final Map<Session, ReferentNGramCounts> sessionRefNgramCounts,
 			final TfIdfCalculator<List<String>> tfidfCalculator, final long nbestRefs, final long nbestNgrams) {
 		this.sessionRefNgramCounts = sessionRefNgramCounts;
-		refSvgXmlStrings = createRefSvgXmlStringMap(sessionRefNgramCounts.keySet(), imgResDir);
+		refSvgTags = createRefSVGTagMap(sessionRefNgramCounts.keySet(), imgResDir);
 		this.tfidfCalculator = tfidfCalculator;
 		this.nbestRefs = nbestRefs;
 		this.nbestNgrams = nbestNgrams;
@@ -732,10 +733,10 @@ public final class TfIdfKeywordVisualizationWriter {
 		return rows.length;
 	}
 
-	private Map<VisualizableReferent, String> createRefSvgXmlStringMap(final Collection<Session> sessions,
+	private Map<VisualizableReferent, UnescapedText> createRefSVGTagMap(final Collection<Session> sessions,
 			final Path imgResDir) {
-		final Function<VisualizableReferent, String> factory = ref -> createXmlString(
-				createSVGDocument(ref, imgResDir));
+		final Function<VisualizableReferent, UnescapedText> factory = ref -> TagCreator
+				.rawHtml(createXMLString(createSVGDocument(ref, imgResDir)));
 		final Stream<VisualizableReferent> refs = sessions.stream().map(Session::getRounds).flatMap(List::stream)
 				.map(Round::getReferents).flatMap(List::stream).map(VisualizableReferent::new);
 		return refs.distinct().collect(Collectors.toMap(Function.identity(), factory));
@@ -745,8 +746,8 @@ public final class TfIdfKeywordVisualizationWriter {
 			final Entry<VisualizableReferent, Object2IntMap<List<String>>> refNgramCounts,
 			final ToDoubleFunction<List<String>> ngramScorer) throws IOException {
 		final VisualizableReferent ref = refNgramCounts.getKey();
-		final String xmlString = refSvgXmlStrings.get(ref);
-		final ContainerTag svgCell = TagCreator.td(TagCreator.rawHtml(xmlString));
+		final UnescapedText svgTag = refSvgTags.get(ref);
+		final ContainerTag svgCell = TagCreator.td(svgTag);
 
 		final Object2IntMap<List<String>> ngramCounts = refNgramCounts.getValue();
 		final Object2DoubleMap<Object2IntMap.Entry<List<String>>> ngramCountScores = createNgramCountScoreMap(
