@@ -76,7 +76,7 @@ public final class SVGToPNGWriter {
 		pngTranscoder.transcode(transcoderInput, transcoderOutput);
 
 		try (OutputStream os = new BufferedOutputStream(
-				Files.newOutputStream(outpath, StandardOpenOption.CREATE, StandardOpenOption.APPEND))) {
+				Files.newOutputStream(outpath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))) {
 			resultByteStream.writeTo(os);
 			// writer.flush();
 		}
