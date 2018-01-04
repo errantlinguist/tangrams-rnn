@@ -385,7 +385,7 @@ public final class TfIdfKeywordVisualizationWriter {
 	 * @param round
 	 *            The {@link Round} to create <em>n</em>-grams for.
 	 * @param ngramFactory
-	 *            The {@link NGramFactory} to use for creating em>n</em>-grams.
+	 *            The {@link NGramFactory} to use for creating <em>n</em>-grams.
 	 * @return An array of <em>n</em>-grams.
 	 */
 	private static List<String>[] createNgramArray(final Round round, final NGramFactory ngramFactory) {
