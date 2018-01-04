@@ -1080,14 +1080,14 @@ public final class LogisticModel { // NO_UCD (use default)
 			@Override
 			protected void setValue(final Instance instance, final Referent ref,
 					final Map<ReferentFeature, Attribute> attrMap) {
-				instance.setValue(getAttr(attrMap), ref.getBlue());
+				instance.setValue(getAttr(attrMap), ref.getBlueLinear());
 			}
 		},
 		GREEN {
 			@Override
 			protected void setValue(final Instance instance, final Referent ref,
 					final Map<ReferentFeature, Attribute> attrMap) {
-				instance.setValue(getAttr(attrMap), ref.getGreen());
+				instance.setValue(getAttr(attrMap), ref.getGreenLinear());
 			}
 		},
 		MID_X {
@@ -1123,7 +1123,7 @@ public final class LogisticModel { // NO_UCD (use default)
 			@Override
 			protected void setValue(final Instance instance, final Referent ref,
 					final Map<ReferentFeature, Attribute> attrMap) {
-				instance.setValue(getAttr(attrMap), ref.getRed());
+				instance.setValue(getAttr(attrMap), ref.getRedLinear());
 			}
 		},
 		SHAPE {

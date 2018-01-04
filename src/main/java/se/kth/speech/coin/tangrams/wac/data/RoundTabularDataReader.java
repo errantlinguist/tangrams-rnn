@@ -131,9 +131,9 @@ public final class RoundTabularDataReader { // NO_UCD (use default)
 				entity.setShape(record.get(Header.SHAPE).intern());
 				entity.setEdgeCount(Integer.parseInt(record.get(Header.EDGE_COUNT)));
 				entity.setSize(Float.parseFloat(record.get(Header.SIZE)));
-				entity.setRed(linearizeColorByteValue(Integer.parseInt(record.get(Header.RED))));
-				entity.setGreen(linearizeColorByteValue(Integer.parseInt(record.get(Header.GREEN))));
-				entity.setBlue(linearizeColorByteValue(Integer.parseInt(record.get(Header.BLUE))));
+				entity.setRed(Integer.parseInt(record.get(Header.RED)));
+				entity.setGreen(Integer.parseInt(record.get(Header.GREEN)));
+				entity.setBlue(Integer.parseInt(record.get(Header.BLUE)));
 				entity.setHue(Float.parseFloat(record.get(Header.HUE)));
 				entity.setPosition(Float.parseFloat(record.get(Header.POSITION_X)),
 						Float.parseFloat(record.get(Header.POSITION_Y)));
@@ -142,10 +142,6 @@ public final class RoundTabularDataReader { // NO_UCD (use default)
 		}
 		LOGGER.debug("Parsed utterances for rounds up to ID {}.", result.size());
 		return result;
-	}
-
-	private static float linearizeColorByteValue(final int value) {
-		return value / 255f;
 	}
 
 }

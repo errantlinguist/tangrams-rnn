@@ -48,10 +48,14 @@ public final class Referent {
 		return SHAPES;
 	}
 
+	private static int delinearizeColorByteValue(final float value) {
+		return Math.round(value * 255f);
+	}
+
 	/**
 	 * Calculates the distance from the extrema for a value in the range of
 	 * <code>0.0</code> to <code>1.0</code>.
-	 * 
+	 *
 	 * @param value
 	 *            A value between <code>0.0</code> and <code>1.0</code>
 	 *            (inclusive).
@@ -66,11 +70,19 @@ public final class Referent {
 		return result;
 	}
 
-	private float blue = 0f;
+	private static float linearizeColorByteValue(final int value) {
+		return value / 255f;
+	}
+
+	private int blueInt = 0;
+
+	private float blueLinear = 0f;
 
 	private int edgeCount = 0;
 
-	private float green = 0f;
+	private int greenInt = 0;
+
+	private float greenLinear = 0f;
 
 	private float hue = 0f;
 
@@ -82,7 +94,9 @@ public final class Referent {
 
 	private double positionY = 0.0;
 
-	private float red = 0f;
+	private int redInt = 0;
+
+	private float redLinear = 0f;
 
 	private String shape = "wedge";
 
@@ -110,13 +124,13 @@ public final class Referent {
 			return false;
 		}
 		final Referent other = (Referent) obj;
-		if (Float.floatToIntBits(blue) != Float.floatToIntBits(other.blue)) {
+		if (Float.floatToIntBits(blueLinear) != Float.floatToIntBits(other.blueLinear)) {
 			return false;
 		}
 		if (edgeCount != other.edgeCount) {
 			return false;
 		}
-		if (Float.floatToIntBits(green) != Float.floatToIntBits(other.green)) {
+		if (Float.floatToIntBits(greenLinear) != Float.floatToIntBits(other.greenLinear)) {
 			return false;
 		}
 		if (Float.floatToIntBits(hue) != Float.floatToIntBits(other.hue)) {
@@ -134,7 +148,7 @@ public final class Referent {
 		if (Double.doubleToLongBits(positionY) != Double.doubleToLongBits(other.positionY)) {
 			return false;
 		}
-		if (Float.floatToIntBits(red) != Float.floatToIntBits(other.red)) {
+		if (Float.floatToIntBits(redLinear) != Float.floatToIntBits(other.redLinear)) {
 			return false;
 		}
 		if (shape == null) {
@@ -154,10 +168,17 @@ public final class Referent {
 	}
 
 	/**
-	 * @return the blue
+	 * @return the blueInt
 	 */
-	public float getBlue() {
-		return blue;
+	public int getBlueInt() {
+		return blueInt;
+	}
+
+	/**
+	 * @return the blueLinear
+	 */
+	public float getBlueLinear() {
+		return blueLinear;
 	}
 
 	/**
@@ -168,10 +189,17 @@ public final class Referent {
 	}
 
 	/**
-	 * @return the green
+	 * @return the greenInt
 	 */
-	public float getGreen() {
-		return green;
+	public int getGreenInt() {
+		return greenInt;
+	}
+
+	/**
+	 * @return the greenLinear
+	 */
+	public float getGreenLinear() {
+		return greenLinear;
 	}
 
 	/**
@@ -210,10 +238,17 @@ public final class Referent {
 	}
 
 	/**
-	 * @return the red
+	 * @return the redInt
 	 */
-	public float getRed() {
-		return red;
+	public int getRedInt() {
+		return redInt;
+	}
+
+	/**
+	 * @return the redLinear
+	 */
+	public float getRedLinear() {
+		return redLinear;
 	}
 
 	/**
@@ -239,9 +274,9 @@ public final class Referent {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + Float.floatToIntBits(blue);
+		result = prime * result + Float.floatToIntBits(blueLinear);
 		result = prime * result + edgeCount;
-		result = prime * result + Float.floatToIntBits(green);
+		result = prime * result + Float.floatToIntBits(greenLinear);
 		result = prime * result + Float.floatToIntBits(hue);
 		long temp;
 		temp = Double.doubleToLongBits(midX);
@@ -252,7 +287,7 @@ public final class Referent {
 		result = prime * result + (int) (temp ^ temp >>> 32);
 		temp = Double.doubleToLongBits(positionY);
 		result = prime * result + (int) (temp ^ temp >>> 32);
-		result = prime * result + Float.floatToIntBits(red);
+		result = prime * result + Float.floatToIntBits(redLinear);
 		result = prime * result + (shape == null ? 0 : shape.hashCode());
 		temp = Double.doubleToLongBits(size);
 		result = prime * result + (int) (temp ^ temp >>> 32);
@@ -268,11 +303,29 @@ public final class Referent {
 	}
 
 	/**
-	 * @param blue
-	 *            the blue to set
+	 * @param blueLinear
+	 *            the blueLinear to set
 	 */
 	public void setBlue(final float blue) {
-		this.blue = blue;
+		blueLinear = blue;
+		blueInt = delinearizeColorByteValue(blue);
+	}
+
+	/**
+	 * @param blueLinear
+	 *            the blueLinear to set
+	 */
+	public void setBlue(final int blue) {
+		blueInt = blue;
+		blueLinear = linearizeColorByteValue(blue);
+	}
+
+	/**
+	 * @param blueInt
+	 *            the blueInt to set
+	 */
+	public void setBlueInt(final int blueInt) {
+		this.blueInt = blueInt;
 	}
 
 	/**
@@ -285,11 +338,29 @@ public final class Referent {
 	}
 
 	/**
-	 * @param green
-	 *            the green to set
+	 * @param greenLinear
+	 *            the greenLinear to set
 	 */
 	public void setGreen(final float green) {
-		this.green = green;
+		greenLinear = green;
+		greenInt = delinearizeColorByteValue(green);
+	}
+
+	/**
+	 * @param greenLinear
+	 *            the greenLinear to set
+	 */
+	public void setGreen(final int green) {
+		greenInt = green;
+		greenLinear = linearizeColorByteValue(green);
+	}
+
+	/**
+	 * @param greenInt
+	 *            the greenInt to set
+	 */
+	public void setGreenInt(final int greenInt) {
+		this.greenInt = greenInt;
 	}
 
 	/**
@@ -308,11 +379,29 @@ public final class Referent {
 	}
 
 	/**
-	 * @param red
-	 *            the red to set
+	 * @param redLinear
+	 *            the redLinear to set
 	 */
 	public void setRed(final float red) {
-		this.red = red;
+		redLinear = red;
+		redInt = delinearizeColorByteValue(red);
+	}
+
+	/**
+	 * @param redLinear
+	 *            the redLinear to set
+	 */
+	public void setRed(final int red) {
+		redInt = red;
+		redLinear = linearizeColorByteValue(red);
+	}
+
+	/**
+	 * @param redInt
+	 *            the redInt to set
+	 */
+	public void setRedInt(final int redInt) {
+		this.redInt = redInt;
 	}
 
 	/**
@@ -350,10 +439,10 @@ public final class Referent {
 		final StringBuilder builder = new StringBuilder(256);
 		builder.append("Referent [edgeCount=");
 		builder.append(edgeCount);
-		builder.append(", blue=");
-		builder.append(blue);
-		builder.append(", green=");
-		builder.append(green);
+		builder.append(", blueLinear=");
+		builder.append(blueLinear);
+		builder.append(", greenLinear=");
+		builder.append(greenLinear);
 		builder.append(", hue=");
 		builder.append(hue);
 		builder.append(", midX=");
@@ -364,8 +453,8 @@ public final class Referent {
 		builder.append(positionX);
 		builder.append(", positionY=");
 		builder.append(positionY);
-		builder.append(", red=");
-		builder.append(red);
+		builder.append(", redLinear=");
+		builder.append(redLinear);
 		builder.append(", shape=");
 		builder.append(shape);
 		builder.append(", size=");

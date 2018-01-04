@@ -128,7 +128,7 @@ enum RoundReferentFeatureDescription implements Function<RoundReferentFeatureDes
 
 		@Override
 		public String apply(final Input input) {
-			return Float.toString(input.ref.getRed());
+			return Float.toString(input.ref.getRedLinear());
 		}
 
 	},
@@ -136,7 +136,7 @@ enum RoundReferentFeatureDescription implements Function<RoundReferentFeatureDes
 
 		@Override
 		public String apply(final Input input) {
-			return Float.toString(input.ref.getGreen());
+			return Float.toString(input.ref.getGreenLinear());
 		}
 
 	},
@@ -144,7 +144,7 @@ enum RoundReferentFeatureDescription implements Function<RoundReferentFeatureDes
 
 		@Override
 		public String apply(final Input input) {
-			return Float.toString(input.ref.getBlue());
+			return Float.toString(input.ref.getBlueLinear());
 		}
 
 	},

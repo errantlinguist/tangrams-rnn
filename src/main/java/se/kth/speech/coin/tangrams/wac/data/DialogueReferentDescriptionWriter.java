@@ -120,7 +120,7 @@ public final class DialogueReferentDescriptionWriter { // NO_UCD (use default)
 
 			@Override
 			public Object apply(final Referent ref) {
-				return ref.getRed();
+				return ref.getRedLinear();
 			}
 
 		},
@@ -128,7 +128,7 @@ public final class DialogueReferentDescriptionWriter { // NO_UCD (use default)
 
 			@Override
 			public Object apply(final Referent ref) {
-				return ref.getGreen();
+				return ref.getGreenLinear();
 			}
 
 		},
@@ -136,7 +136,7 @@ public final class DialogueReferentDescriptionWriter { // NO_UCD (use default)
 
 			@Override
 			public Object apply(final Referent ref) {
-				return ref.getBlue();
+				return ref.getBlueLinear();
 			}
 
 		},

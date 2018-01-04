@@ -153,7 +153,7 @@ public enum WordProbabilityScoreDatum implements BiFunction<CrossValidator.Resul
 
 		@Override
 		public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-			return Float.toString(refWordScore.getRef().getRed());
+			return Float.toString(refWordScore.getRef().getRedLinear());
 		}
 
 	},
@@ -161,7 +161,7 @@ public enum WordProbabilityScoreDatum implements BiFunction<CrossValidator.Resul
 
 		@Override
 		public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-			return Float.toString(refWordScore.getRef().getGreen());
+			return Float.toString(refWordScore.getRef().getGreenLinear());
 		}
 
 	},
@@ -169,7 +169,7 @@ public enum WordProbabilityScoreDatum implements BiFunction<CrossValidator.Resul
 
 		@Override
 		public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-			return Float.toString(refWordScore.getRef().getBlue());
+			return Float.toString(refWordScore.getRef().getBlueLinear());
 		}
 
 	},

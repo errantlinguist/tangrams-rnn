@@ -261,7 +261,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 				final List<Referent> refs = round.getReferents();
 				assert refs.stream().filter(Referent::isTarget).count() == 1L;
 				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
-				return Float.toString(targetRef.getRed());
+				return Float.toString(targetRef.getRedLinear());
 			}
 
 		},
@@ -274,7 +274,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 				final List<Referent> refs = round.getReferents();
 				assert refs.stream().filter(Referent::isTarget).count() == 1L;
 				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
-				return Float.toString(targetRef.getGreen());
+				return Float.toString(targetRef.getGreenLinear());
 			}
 
 		},
@@ -287,7 +287,7 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 				final List<Referent> refs = round.getReferents();
 				assert refs.stream().filter(Referent::isTarget).count() == 1L;
 				final Referent targetRef = refs.stream().filter(Referent::isTarget).findAny().get();
-				return Float.toString(targetRef.getBlue());
+				return Float.toString(targetRef.getBlueLinear());
 			}
 
 		},
