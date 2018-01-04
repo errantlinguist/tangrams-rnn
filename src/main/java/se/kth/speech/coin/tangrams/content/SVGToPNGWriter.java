@@ -30,6 +30,7 @@ import java.util.function.Supplier;
 
 import org.apache.batik.transcoder.SVGAbstractTranscoder;
 import org.apache.batik.transcoder.TranscoderException;
+import org.apache.batik.transcoder.image.PNGTranscoder;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -38,7 +39,6 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.fop.svg.PDFTranscoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -175,8 +175,8 @@ public final class SVGToPNGWriter {
 			final Path[] inpaths = cl.getArgList().stream().map(Paths::get).toArray(Path[]::new);
 			final File outpath = (File) cl.getParsedOptionValue(Parameter.OUTPATH.optName);
 			final Consumer<SVGAbstractTranscoder> transcoderConfigurator = Parameter.createTranscoderConfigurator(cl);
-			final Supplier<PDFTranscoder> transcoderFactory = () -> {
-				final PDFTranscoder transcoder = new PDFTranscoder();
+			final Supplier<PNGTranscoder> transcoderFactory = () -> {
+				final PNGTranscoder transcoder = new PNGTranscoder();
 				transcoderConfigurator.accept(transcoder);
 				return transcoder;
 			};
