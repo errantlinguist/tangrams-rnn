@@ -611,8 +611,6 @@ public final class TfIdfKeywordVisualizationWriter {
 		for (final VisualizableReferent ref : uniqueRefs) {
 			final SVGDocument doc = createSVGDocument(ref, imgResDir);
 			final SVGSVGElement rootElem = doc.getRootElement();
-			final String contentScriptType = rootElem.getAttribute("contentScriptType");
-			LOGGER.info("Content script type: {}", contentScriptType);
 			// rootElem.setId("svg-" + Integer.toString(nextDocId++));
 			result.put(ref, rootElem);
 		}
