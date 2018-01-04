@@ -491,7 +491,7 @@ public final class TfIdfKeywordVisualizationWriter {
 
 				LOGGER.info("Calculating TF-IDF scores.");
 				final long tfIdfCalculatorConstructionStart = System.currentTimeMillis();
-				final TfIdfCalculator<Session, List<String>> tfIdfCalculator = TfIdfCalculator.create(sessionNgrams,
+				final TfIdfCalculator<List<String>, Session> tfIdfCalculator = TfIdfCalculator.create(sessionNgrams,
 						onlyInstructor, tfVariant);
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfCalculatorConstructionStart) / 1000.0);
@@ -711,11 +711,11 @@ public final class TfIdfKeywordVisualizationWriter {
 
 	private final Map<Session, ReferentNGramCounts> sessionRefNgramCounts;
 
-	private final TfIdfCalculator<Session, List<String>> tfidfCalculator;
+	private final TfIdfCalculator<List<String>, Session> tfidfCalculator;
 
 	public TfIdfKeywordVisualizationWriter(final Path imgResDir,
 			final Map<Session, ReferentNGramCounts> sessionRefNgramCounts,
-			final TfIdfCalculator<Session, List<String>> tfidfCalculator, final long nbestRefs, final long nbestNgrams) {
+			final TfIdfCalculator<List<String>, Session> tfidfCalculator, final long nbestRefs, final long nbestNgrams) {
 		this.sessionRefNgramCounts = sessionRefNgramCounts;
 		refSvgRootElems = createRefSVGRootElementMap(sessionRefNgramCounts.keySet(), imgResDir);
 		this.tfidfCalculator = tfidfCalculator;

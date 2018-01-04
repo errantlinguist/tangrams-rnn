@@ -220,7 +220,7 @@ public final class TfIdfKeywordWriter {
 
 				LOGGER.info("Calculating TF-IDF scores.");
 				final long tfIdfCalculatorConstructionStart = System.currentTimeMillis();
-				final TfIdfCalculator<Session, List<String>> tfIdfCalculator = TfIdfCalculator.create(sessionNgrams,
+				final TfIdfCalculator<List<String>, Session> tfIdfCalculator = TfIdfCalculator.create(sessionNgrams,
 						onlyInstructor, tfVariant);
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfCalculatorConstructionStart) / 1000.0);
@@ -287,10 +287,10 @@ public final class TfIdfKeywordWriter {
 
 	private final Map<Session, ? extends Collection<List<String>>> sessionNgrams;
 
-	private final TfIdfCalculator<Session, List<String>> tfidfCalculator;
+	private final TfIdfCalculator<List<String>, Session> tfidfCalculator;
 
 	public TfIdfKeywordWriter(final Map<Session, ? extends Collection<List<String>>> sessionNgrams,
-			final TfIdfCalculator<Session, List<String>> tfidfCalculator) {
+			final TfIdfCalculator<List<String>, Session> tfidfCalculator) {
 		this.sessionNgrams = sessionNgrams;
 		this.tfidfCalculator = tfidfCalculator;
 	}

@@ -35,7 +35,7 @@ import se.kth.speech.HashedCollections;
  * @since Dec 1, 2017
  *
  */
-public final class TfIdfCalculator<D, O> implements ToDoubleBiFunction<O, D> {
+public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 
 	/**
 	 * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
@@ -62,21 +62,21 @@ public final class TfIdfCalculator<D, O> implements ToDoubleBiFunction<O, D> {
 
 	private static final int DEFAULT_INITIAL_WORD_MAP_CAPACITY = HashedCollections.capacity(1000);
 
-	public static <D, T> TfIdfCalculator<D, T> create(final Map<D, ? extends Iterable<T>> docObservations,
+	public static <O, D> TfIdfCalculator<O, D> create(final Map<D, ? extends Iterable<O>> docObservations,
 			final boolean onlyInstructor) {
 		return create(docObservations, onlyInstructor, TermFrequencyVariant.NATURAL);
 	}
 
-	public static <D, T> TfIdfCalculator<D, T> create(final Map<D, ? extends Iterable<T>> docObservations,
+	public static <O, D> TfIdfCalculator<O, D> create(final Map<D, ? extends Iterable<O>> docObservations,
 			final boolean onlyInstructor, final TermFrequencyVariant tfVariant) {
 		final int initialMapCapcity = HashedCollections.capacity(docObservations.size());
-		final Map<D, Map<T, Double>> observationCountsPerDoc = new IdentityHashMap<>(initialMapCapcity);
-		final Map<T, Set<D>> observationDocs = new HashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY);
-		for (final Entry<D, ? extends Iterable<T>> entry : docObservations.entrySet()) {
+		final Map<D, Map<O, Double>> observationCountsPerDoc = new IdentityHashMap<>(initialMapCapcity);
+		final Map<O, Set<D>> observationDocs = new HashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY);
+		for (final Entry<D, ? extends Iterable<O>> entry : docObservations.entrySet()) {
 			final D doc = entry.getKey();
-			final Map<T, Double> docTokenCounts = observationCountsPerDoc.computeIfAbsent(doc,
+			final Map<O, Double> docTokenCounts = observationCountsPerDoc.computeIfAbsent(doc,
 					key -> new HashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY));
-			final Iterable<T> observations = entry.getValue();
+			final Iterable<O> observations = entry.getValue();
 			observations.forEach(observation -> {
 				docTokenCounts.compute(observation, (key, oldValue) -> oldValue == null ? 1 : oldValue + 1);
 				observationDocs.computeIfAbsent(observation, key -> new HashSet<>(initialMapCapcity)).add(doc);
