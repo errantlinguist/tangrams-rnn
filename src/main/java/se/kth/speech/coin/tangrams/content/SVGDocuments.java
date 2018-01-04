@@ -30,7 +30,7 @@ import org.w3c.dom.svg.SVGDocument;
  * @since 3 Jan 2018
  *
  */
-final class SVGDocuments {
+public final class SVGDocuments {
 
 	private static final ThreadLocal<SAXSVGDocumentFactory> SVG_DOC_FACTORY = new ThreadLocal<SAXSVGDocumentFactory>() {
 
@@ -57,7 +57,7 @@ final class SVGDocuments {
 	 * @throws IOException
 	 *             if an error occurred while reading the document.
 	 */
-	static SVGDocument read(final Path infile) throws IOException {
+	public static SVGDocument read(final Path infile) throws IOException {
 		return read(infile.toUri());
 	}
 
@@ -70,7 +70,7 @@ final class SVGDocuments {
 	 * @throws IOException
 	 *             if an error occurred while reading the document.
 	 */
-	static SVGDocument read(final String uri) throws IOException {
+	public static SVGDocument read(final String uri) throws IOException {
 		final SAXSVGDocumentFactory factory = SVG_DOC_FACTORY.get();
 		return factory.createSVGDocument(uri);
 	}
@@ -84,7 +84,7 @@ final class SVGDocuments {
 	 * @throws IOException
 	 *             if an error occurred while reading the document.
 	 */
-	static SVGDocument read(final URI uri) throws IOException {
+	public static SVGDocument read(final URI uri) throws IOException {
 		return read(uri.toString());
 	}
 
