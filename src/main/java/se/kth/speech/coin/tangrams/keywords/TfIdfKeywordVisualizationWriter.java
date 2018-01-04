@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.StringWriter;
+import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -36,6 +37,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.Collector;
@@ -49,7 +51,6 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import org.apache.batik.swing.JSVGCanvas;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -129,8 +130,8 @@ public final class TfIdfKeywordVisualizationWriter {
 		OUTPATH("o") {
 			@Override
 			public Option get() {
-				return Option.builder(optName).longOpt("outpath")
-						.desc("The file to write the results to; If this option is not supplied, the standard output stream will be used.")
+				return Option.builder(optName).longOpt("outpath").desc(
+						"The file to write the results to; If this option is not supplied, the standard output stream will be used.")
 						.hasArg().argName("path").type(File.class).build();
 			}
 		},
@@ -396,8 +397,7 @@ public final class TfIdfKeywordVisualizationWriter {
 		/*
 		 * (non-Javadoc)
 		 *
-		 * @see
-		 * java.util.function.ToDoubleFunction#applyAsDouble(java.lang.Object)
+		 * @see java.util.function.ToDoubleFunction#applyAsDouble(java.lang.Object)
 		 */
 		@Override
 		public double applyAsDouble(final Object2IntMap<List<String>> ngramCounts) {
@@ -532,6 +532,20 @@ public final class TfIdfKeywordVisualizationWriter {
 		return createColorHexCode(ref.getRed(), ref.getGreen(), ref.getBlue());
 	}
 
+	private static String createHtmlDocumentString(final ContainerTag html) {
+		return TagCreator.document(html);
+		// return TagCreator.rawHtml(
+		// "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML+RDFa 1.0//EN\"
+		// \"http://www.w3.org/MarkUp/DTD/xhtml-rdfa-1.dtd\">") + html.render();
+	}
+
+	private static ContainerTag createHtmlHeadTag() {
+		return TagCreator.head(TagCreator.meta().attr("charset", "utf-8"),
+				TagCreator.meta().attr("http-equiv", "X-UA-Compatible").attr("content", "IE=edge"),
+				TagCreator.meta().attr("name", "viewport").attr("content", "width=device-width, initial-scale=1"),
+				TagCreator.title("TF-IDF scores"));
+	}
+
 	private static Object2DoubleMap<Object2IntMap.Entry<List<String>>> createNgramCountScoreMap(
 			final Object2IntMap<List<String>> ngramCounts, final ToDoubleFunction<List<String>> ngramScorer) {
 		final Object2DoubleMap<Object2IntMap.Entry<List<String>>> result = new Object2DoubleOpenHashMap<>(
@@ -596,6 +610,21 @@ public final class TfIdfKeywordVisualizationWriter {
 		return result;
 	}
 
+	private static SVGDocument createSVGDocument(final VisualizableReferent ref, final Path imgResDir)
+			throws UncheckedIOException {
+		final Path imgFilePath = imgResDir.resolve(ref.getShape() + ".svg");
+		LOGGER.debug("Loading image from \"{}\".", imgFilePath);
+		final SVGDocument result;
+		try {
+			result = SVGDocuments.read(imgFilePath);
+		} catch (final IOException e) {
+			throw new UncheckedIOException(e);
+		}
+		SVGDocuments.setPathStyles(result, "fill", createColorHexCode(ref));
+		SVGDocuments.setSize(result, "100%", "100px");
+		return result;
+	}
+
 	private static String createXmlString(final Node node) {
 		// https://stackoverflow.com/a/10356325/1391325
 		final DOMSource domSource = new DOMSource(node);
@@ -650,11 +679,11 @@ public final class TfIdfKeywordVisualizationWriter {
 		return weight / wrapped.size();
 	}
 
-	private final Path imgResDir;
-
 	private final long nbestNgrams;
 
 	private final long nbestRefs;
+
+	private final Map<VisualizableReferent, String> refSvgXmlStrings;
 
 	private final Map<Session, ReferentNGramCounts> sessionRefNgramCounts;
 
@@ -663,8 +692,8 @@ public final class TfIdfKeywordVisualizationWriter {
 	public TfIdfKeywordVisualizationWriter(final Path imgResDir,
 			final Map<Session, ReferentNGramCounts> sessionRefNgramCounts,
 			final TfIdfCalculator<List<String>> tfidfCalculator, final long nbestRefs, final long nbestNgrams) {
-		this.imgResDir = imgResDir;
 		this.sessionRefNgramCounts = sessionRefNgramCounts;
+		refSvgXmlStrings = createRefSvgXmlStringMap(sessionRefNgramCounts.keySet(), imgResDir);
 		this.tfidfCalculator = tfidfCalculator;
 		this.nbestRefs = nbestRefs;
 		this.nbestNgrams = nbestNgrams;
@@ -697,22 +726,26 @@ public final class TfIdfKeywordVisualizationWriter {
 		final ContainerTag[] rows = rowArrayBuiler.build().toArray(ContainerTag[]::new);
 		final ContainerTag tbody = TagCreator.tbody(rows);
 		final ContainerTag table = TagCreator.table(thead, tbody);
-		final ContainerTag html = TagCreator.html(
-				TagCreator.head(TagCreator.meta().attr("charset", "utf-8"), TagCreator.title("TF-IDF scores")),
-				TagCreator.body(table));
-		final String docStr = TagCreator.document(html);
+		final ContainerTag html = TagCreator.html(createHtmlHeadTag(), TagCreator.body(table));
+		final String docStr = createHtmlDocumentString(html);
 		writer.write(docStr);
 		return rows.length;
+	}
+
+	private Map<VisualizableReferent, String> createRefSvgXmlStringMap(final Collection<Session> sessions,
+			final Path imgResDir) {
+		final Function<VisualizableReferent, String> factory = ref -> createXmlString(
+				createSVGDocument(ref, imgResDir));
+		final Stream<VisualizableReferent> refs = sessions.stream().map(Session::getRounds).flatMap(List::stream)
+				.map(Round::getReferents).flatMap(List::stream).map(VisualizableReferent::new);
+		return refs.distinct().collect(Collectors.toMap(Function.identity(), factory));
 	}
 
 	private List<ContainerTag> createRows(final String dyadId,
 			final Entry<VisualizableReferent, Object2IntMap<List<String>>> refNgramCounts,
 			final ToDoubleFunction<List<String>> ngramScorer) throws IOException {
-		final JSVGCanvas svgCanvas = new JSVGCanvas();
 		final VisualizableReferent ref = refNgramCounts.getKey();
-		final SVGDocument doc = createSVGDocument(ref);
-		svgCanvas.setSVGDocument(doc);
-		final String xmlString = createXmlString(doc.getRootElement());
+		final String xmlString = refSvgXmlStrings.get(ref);
 		final ContainerTag svgCell = TagCreator.td(TagCreator.rawHtml(xmlString));
 
 		final Object2IntMap<List<String>> ngramCounts = refNgramCounts.getValue();
@@ -736,15 +769,6 @@ public final class TfIdfKeywordVisualizationWriter {
 		}
 
 		return rows;
-	}
-
-	private SVGDocument createSVGDocument(final VisualizableReferent ref) throws IOException {
-		final Path imgFilePath = imgResDir.resolve(ref.getShape() + ".svg");
-		LOGGER.debug("Loading image from \"{}\".", imgFilePath);
-		final SVGDocument result = SVGDocuments.read(imgFilePath);
-		SVGDocuments.setPathStyles(result, "fill", createColorHexCode(ref));
-		SVGDocuments.setSize(result, "100%", "100px");
-		return result;
 	}
 
 }
