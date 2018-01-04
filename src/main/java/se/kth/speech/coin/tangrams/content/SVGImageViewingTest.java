@@ -35,9 +35,6 @@ import org.w3c.dom.svg.SVGDocument;
  */
 public final class SVGImageViewingTest {
 
-	// private static final Logger LOGGER =
-	// LoggerFactory.getLogger(SVGImageViewingTest.class);
-
 	public static void main(final String[] args) throws IOException {
 		if (args.length != 1) {
 			System.err.println(String.format("Usage: %s <infile>", SVGImageViewingTest.class.getName()));
@@ -68,26 +65,5 @@ public final class SVGImageViewingTest {
 			});
 		}
 	}
-
-	// private static void setSize(final SVGDocument doc, final float width,
-	// final float height, final String unit) {
-	// final SVGSVGElement rootElem = doc.getRootElement();
-	// setSize(rootElem, width + unit, height + unit);
-	// }
-	//
-	// private static void setSize(final SVGSVGElement elem, final String width,
-	// final String height) {
-	// // This has been tested; The property changes are in fact persisted
-	// final String tag = elem.getTagName();
-	// LOGGER.info("Original dimensions of element \"{}\" are {} * {}.", tag,
-	// elem.getWidth().getBaseVal().getValueAsString(),
-	// elem.getHeight().getBaseVal().getValueAsString());
-	// // https://xmlgraphics.apache.org/batik/faq.html#changes-are-not-rendered
-	// elem.setAttributeNS(null, "width", width);
-	// elem.setAttributeNS(null, "height", height);
-	// LOGGER.info("New dimensions of element \"{}\" are {} * {}.", tag,
-	// elem.getWidth().getBaseVal().getValueAsString(),
-	// elem.getHeight().getBaseVal().getValueAsString());
-	// }
 
 }
