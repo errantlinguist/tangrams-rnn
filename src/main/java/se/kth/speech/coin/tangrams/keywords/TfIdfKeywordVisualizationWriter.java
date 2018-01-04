@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.Collector;
@@ -62,6 +61,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 import org.w3c.dom.svg.SVGDocument;
+import org.w3c.dom.svg.SVGSVGElement;
 
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
@@ -69,9 +69,11 @@ import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import j2html.Config;
 import j2html.TagCreator;
 import j2html.tags.ContainerTag;
 import j2html.tags.UnescapedText;
+import se.kth.speech.HashedCollections;
 import se.kth.speech.coin.tangrams.CLIParameters;
 import se.kth.speech.coin.tangrams.content.SVGDocuments;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
@@ -534,10 +536,14 @@ public final class TfIdfKeywordVisualizationWriter {
 	}
 
 	private static String createHtmlDocumentString(final ContainerTag html) {
-		return TagCreator.document(html);
-		// return TagCreator.rawHtml(
-		// "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML+RDFa 1.0//EN\"
-		// \"http://www.w3.org/MarkUp/DTD/xhtml-rdfa-1.dtd\">") + html.render();
+		final String result;
+		synchronized (Config.class) {
+			final boolean wasCloseEmptyTags = Config.closeEmptyTags;
+			Config.closeEmptyTags = true;
+			result = TagCreator.document(html);
+			Config.closeEmptyTags = wasCloseEmptyTags;
+		}
+		return result;
 	}
 
 	private static ContainerTag createHtmlHeadTag() {
@@ -594,13 +600,23 @@ public final class TfIdfKeywordVisualizationWriter {
 		return result;
 	}
 
-	private static Map<VisualizableReferent, UnescapedText> createRefSVGTagMap(final Collection<Session> sessions,
-			final Path imgResDir) {
-		final Function<VisualizableReferent, UnescapedText> factory = ref -> TagCreator
-				.rawHtml(createXMLString(createSVGDocument(ref, imgResDir)));
-		final Stream<VisualizableReferent> refs = sessions.stream().map(Session::getRounds).flatMap(List::stream)
-				.map(Round::getReferents).flatMap(List::stream).map(VisualizableReferent::new);
-		return refs.distinct().collect(Collectors.toMap(Function.identity(), factory));
+	private static Map<VisualizableReferent, SVGSVGElement> createRefSVGRootElementMap(
+			final Collection<Session> sessions, final Path imgResDir) {
+		final Iterable<VisualizableReferent> uniqueRefs = sessions.stream().map(Session::getRounds)
+				.flatMap(List::stream).map(Round::getReferents).flatMap(List::stream).map(VisualizableReferent::new)
+				.distinct()::iterator;
+		final Map<VisualizableReferent, SVGSVGElement> result = new HashMap<>(
+				HashedCollections.capacity(sessions.size()));
+		// int nextDocId = 1;
+		for (final VisualizableReferent ref : uniqueRefs) {
+			final SVGDocument doc = createSVGDocument(ref, imgResDir);
+			final SVGSVGElement rootElem = doc.getRootElement();
+			final String contentScriptType = rootElem.getAttribute("contentScriptType");
+			LOGGER.info("Content script type: {}", contentScriptType);
+			// rootElem.setId("svg-" + Integer.toString(nextDocId++));
+			result.put(ref, rootElem);
+		}
+		return result;
 	}
 
 	private static Comparator<Weighted<? extends List<?>>> createScoredNgramComparator() {
@@ -693,7 +709,7 @@ public final class TfIdfKeywordVisualizationWriter {
 
 	private final long nbestRefs;
 
-	private final Map<VisualizableReferent, UnescapedText> refSvgTags;
+	private final Map<VisualizableReferent, SVGSVGElement> refSvgRootElems;
 
 	private final Map<Session, ReferentNGramCounts> sessionRefNgramCounts;
 
@@ -703,7 +719,7 @@ public final class TfIdfKeywordVisualizationWriter {
 			final Map<Session, ReferentNGramCounts> sessionRefNgramCounts,
 			final TfIdfCalculator<List<String>> tfidfCalculator, final long nbestRefs, final long nbestNgrams) {
 		this.sessionRefNgramCounts = sessionRefNgramCounts;
-		refSvgTags = createRefSVGTagMap(sessionRefNgramCounts.keySet(), imgResDir);
+		refSvgRootElems = createRefSVGRootElementMap(sessionRefNgramCounts.keySet(), imgResDir);
 		this.tfidfCalculator = tfidfCalculator;
 		this.nbestRefs = nbestRefs;
 		this.nbestNgrams = nbestNgrams;
@@ -726,6 +742,7 @@ public final class TfIdfKeywordVisualizationWriter {
 					.entrySet().stream().limit(nbestRefs).sorted(bestScoringRefWeightedNgramCountComparator)::iterator;
 
 			final String dyadId = session.getName();
+
 			for (final Entry<VisualizableReferent, Object2IntMap<List<String>>> weightedRef : refsSortedByNgramWeight) {
 				createRows(dyadId, weightedRef, ngramScorer).forEach(rowArrayBuiler);
 			}
@@ -746,8 +763,8 @@ public final class TfIdfKeywordVisualizationWriter {
 			final Entry<VisualizableReferent, Object2IntMap<List<String>>> refNgramCounts,
 			final ToDoubleFunction<List<String>> ngramScorer) throws IOException {
 		final VisualizableReferent ref = refNgramCounts.getKey();
-		final UnescapedText svgTag = refSvgTags.get(ref);
-		final ContainerTag svgCell = TagCreator.td(svgTag);
+		final SVGSVGElement refSvgRootElem = refSvgRootElems.get(ref);
+		final UnescapedText svgTag = TagCreator.rawHtml(createXMLString(refSvgRootElem));
 
 		final Object2IntMap<List<String>> ngramCounts = refNgramCounts.getValue();
 		final Object2DoubleMap<Object2IntMap.Entry<List<String>>> ngramCountScores = createNgramCountScoreMap(
@@ -759,6 +776,8 @@ public final class TfIdfKeywordVisualizationWriter {
 
 		final List<ContainerTag> rows = new ArrayList<>(ngramCountScores.size());
 		for (final Object2DoubleMap.Entry<it.unimi.dsi.fastutil.objects.Object2IntMap.Entry<List<String>>> ngramCountScore : sortedNgramCountScores) {
+			final ContainerTag svgCell = TagCreator.td(svgTag);
+
 			final Object2IntMap.Entry<List<String>> ngramCount = ngramCountScore.getKey();
 			final List<String> ngram = ngramCount.getKey();
 			final int count = ngramCount.getIntValue();
