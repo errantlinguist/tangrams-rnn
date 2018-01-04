@@ -68,12 +68,12 @@ public final class SVGToPNGWriter {
 		final TranscoderInput transcoderInput = new TranscoderInput(doc);
 		final TranscoderOutput transcoderOutput = new TranscoderOutput(resultByteStream);
 
-		final PNGTranscoder pngTranscoder = new PNGTranscoder();
+		final PNGTranscoder transcoder = new PNGTranscoder();
 //		final UserAgent userAgent = pngTranscoder.getUserAgent();
 //		final float[] maxDimensions = findMaxDimensions(doc, userAgent);
 //		pngTranscoder.addTranscodingHint(SVGAbstractTranscoder.KEY_WIDTH, Float.valueOf(maxDimensions[0]));
 //		pngTranscoder.addTranscodingHint(SVGAbstractTranscoder.KEY_HEIGHT, Float.valueOf(maxDimensions[1]));
-		pngTranscoder.transcode(transcoderInput, transcoderOutput);
+		transcoder.transcode(transcoderInput, transcoderOutput);
 
 		try (OutputStream os = new BufferedOutputStream(
 				Files.newOutputStream(outpath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))) {
