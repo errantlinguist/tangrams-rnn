@@ -5,4 +5,4 @@ Machine learning for classifying referent entities during the game [*tangrams-re
 * **Since:** 2017-11-20
 * **Author:** Todd Shore
 * **Website:**  https://github.com/errantlinguist/tangrams-wac
-* **Licensing:** Copyright &copy; 2017 Todd Shore. Contains code Licensed for distribution under the GNU General Public License 3.0: See the files `AUTHORS` and `COPYING`. Original code is otherwise licensed for distribution under the Apache License 2.0: See the files `NOTICE` and `LICENSE`.
+* **Licensing:** Copyright &copy; 2017 Todd Shore. Licensed for distribution under the Apache License 2.0: See the files `NOTICE` and `LICENSE`.
