@@ -144,7 +144,7 @@ public final class RoundTabularDataReader { // NO_UCD (use default)
 		return result;
 	}
 
-	private float linearizeColorByteValue(final int value) {
+	private static float linearizeColorByteValue(final int value) {
 		return value / 255f;
 	}
 
