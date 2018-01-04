@@ -168,15 +168,23 @@ public final class TfIdfKeywordWriter {
 				LOGGER.info("Will extract keywords from {} session(s).", sessionNgrams.size());
 				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
 				LOGGER.info("Only use instructor language? {}", onlyInstructor);
+
+				LOGGER.info("Calculating TF-IDF scores.");
+				final long tfIdfCalculatorConstructionStart = System.currentTimeMillis();
 				final TfIdfCalculator<List<String>> tfIdfCalculator = TfIdfCalculator.create(sessionNgrams,
 						onlyInstructor, tfVariant);
+				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
+						(System.currentTimeMillis() - tfIdfCalculatorConstructionStart) / 1000.0);
 				final TfIdfKeywordWriter keywordWriter = new TfIdfKeywordWriter(sessionNgrams, tfIdfCalculator);
 
+				LOGGER.info("Writing rows.");
+				final long writeStart = System.currentTimeMillis();
 				int rowsWritten = 0;
 				try (CSVPrinter printer = CSVFormat.TDF.withHeader(COL_HEADERS).print(outStreamGetter.get())) {
 					rowsWritten = keywordWriter.write(printer);
 				}
-				LOGGER.info("Wrote {} row(s).", rowsWritten);
+				LOGGER.info("Wrote {} row(s) in {} seconds.", rowsWritten,
+						(System.currentTimeMillis() - writeStart) / 1000.0);
 			}
 		}
 	}
