@@ -83,7 +83,7 @@ import se.kth.speech.function.ThrowingSupplier;
  * @since Dec 1, 2017
  *
  */
-public final class TfIdfKeywordVisualizationWriter {
+public final class TfIdfKeywordVisualizationHTMLWriter {
 
 	private class DocumentTfIdfCalculator implements ToDoubleFunction<List<String>> {
 
@@ -221,7 +221,7 @@ public final class TfIdfKeywordVisualizationWriter {
 
 		private static void printHelp() {
 			final HelpFormatter formatter = new HelpFormatter();
-			formatter.printHelp(TfIdfKeywordVisualizationWriter.class.getName() + " INPATHS...", OPTIONS);
+			formatter.printHelp(TfIdfKeywordVisualizationHTMLWriter.class.getName() + " INPATHS...", OPTIONS);
 		}
 
 		protected final String optName;
@@ -286,7 +286,7 @@ public final class TfIdfKeywordVisualizationWriter {
 		}
 	}
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(TfIdfKeywordVisualizationWriter.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TfIdfKeywordVisualizationHTMLWriter.class);
 
 	private static final Comparator<String> SESSION_NAME_COMPARATOR = new Comparator<String>() {
 
@@ -355,7 +355,7 @@ public final class TfIdfKeywordVisualizationWriter {
 				final long nbestNgrams = 3;
 				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs,
 						nbestNgrams);
-				final TfIdfKeywordVisualizationWriter keywordWriter = new TfIdfKeywordVisualizationWriter(imgResDir,
+				final TfIdfKeywordVisualizationHTMLWriter keywordWriter = new TfIdfKeywordVisualizationHTMLWriter(imgResDir,
 						sessionRefNgramCounts, tfIdfCalculator, nbestRefs, nbestNgrams);
 
 				int rowsWritten = 0;
@@ -457,7 +457,7 @@ public final class TfIdfKeywordVisualizationWriter {
 	private static Map<Referent, VisualizableReferent> createVisualizableReferentMap(
 			final Collection<Session> sessions) {
 		final Stream<Referent> refs = sessions.stream().map(Session::getRounds).flatMap(List::stream)
-				.flatMap(TfIdfKeywordVisualizationWriter::getTargetRefs);
+				.flatMap(TfIdfKeywordVisualizationHTMLWriter::getTargetRefs);
 		return refs.distinct().collect(Collectors.toMap(Function.identity(), VisualizableReferent::fetch));
 	}
 
@@ -499,7 +499,7 @@ public final class TfIdfKeywordVisualizationWriter {
 
 	private final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfidfCalculator;
 
-	public TfIdfKeywordVisualizationWriter(final Path imgResDir, final SessionReferentNgramCountData sessionNgramCounts,
+	public TfIdfKeywordVisualizationHTMLWriter(final Path imgResDir, final SessionReferentNgramCountData sessionNgramCounts,
 			final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfidfCalculator,
 			final long nbestRefs, final long nbestNgrams) {
 		this.sessionNgramCounts = sessionNgramCounts;
