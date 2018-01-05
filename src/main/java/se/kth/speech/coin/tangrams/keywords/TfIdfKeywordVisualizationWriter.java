@@ -409,31 +409,12 @@ public final class TfIdfKeywordVisualizationWriter {
 
 	private static Object2IntMap<List<String>> createNgramCountMap(final Session session,
 			final NGramFactory ngramFactory, final boolean onlyInstructor) {
-		final List<List<String>> ngrams = createNgramList(session, ngramFactory, onlyInstructor);
+		@SuppressWarnings("unchecked")
+		final List<List<String>> ngrams = Arrays.asList(createNgrams(session, ngramFactory, onlyInstructor).toArray(List[]::new));
 		final Object2IntOpenHashMap<List<String>> result = new Object2IntOpenHashMap<List<String>>(ngrams.size());
 		ngrams.forEach(ngram -> incrementCount(ngram, result));
 		result.trim();
 		return result;
-	}
-
-	/**
-	 * This method is a hack to avoid the inability to suppress generic type
-	 * casting in its caller method.
-	 *
-	 * @param session
-	 *            The {@link Session} to create <em>n</em>-grams for.
-	 * @param ngramFactory
-	 *            The {@link NGramFactory} to use for creating <em>n</em>-grams.
-	 * @param onlyInstructor
-	 *            If only instructor utterances should be used.
-	 * @return A {@link List} of <em>n</em>-grams.
-	 */
-	private static List<List<String>> createNgramList(final Session session, final NGramFactory ngramFactory,
-			final boolean onlyInstructor) {
-		final Stream<List<String>> ngrams = createNgrams(session, ngramFactory, onlyInstructor);
-		@SuppressWarnings("unchecked")
-		final List<String>[] arr = ngrams.toArray(List[]::new);
-		return Arrays.asList(arr);
 	}
 
 	private static Stream<List<String>> createNgrams(final Round round, final NGramFactory ngramFactory,
