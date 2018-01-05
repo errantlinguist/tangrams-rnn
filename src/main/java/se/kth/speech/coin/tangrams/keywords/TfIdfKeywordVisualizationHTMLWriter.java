@@ -439,6 +439,14 @@ public final class TfIdfKeywordVisualizationHTMLWriter {
 		return result;
 	}
 
+	private static ContainerTag createRow(final String dyadId, final DomContent svgTag, final List<String> ngram,
+			final int count, final double score) {
+		final String ngramRepr = ngram.stream().collect(TOKEN_JOINER);
+		final ContainerTag svgCell = TagCreator.td(svgTag);
+		return TagCreator.tr(TagCreator.td(dyadId), svgCell, TagCreator.td(ngramRepr),
+				TagCreator.td(Double.toString(score)), TagCreator.td(Integer.toString(count)));
+	}
+
 	private static SVGDocument createSVGDocument(final VisualizableReferent ref, final Path imgResDir)
 			throws UncheckedIOException {
 		final Path imgFilePath = imgResDir.resolve(ref.getShape() + ".svg");
@@ -529,14 +537,6 @@ public final class TfIdfKeywordVisualizationHTMLWriter {
 		return ngrams.stream().mapToDouble(ngram -> {
 			return sessionNgramScorer.applyAsDouble(ngram);
 		});
-	}
-
-	private ContainerTag createRow(final String dyadId, final DomContent svgTag, final List<String> ngram,
-			final int count, final double score) {
-		final String ngramRepr = ngram.stream().collect(TOKEN_JOINER);
-		final ContainerTag svgCell = TagCreator.td(svgTag);
-		return TagCreator.tr(TagCreator.td(dyadId), svgCell, TagCreator.td(ngramRepr),
-				TagCreator.td(Double.toString(score)), TagCreator.td(Integer.toString(count)));
 	}
 
 	private Stream<ContainerTag> createRows() {
