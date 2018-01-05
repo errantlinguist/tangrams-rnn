@@ -26,16 +26,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
@@ -51,26 +48,21 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 import org.w3c.dom.svg.SVGDocument;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import j2html.Config;
 import j2html.TagCreator;
 import j2html.tags.ContainerTag;
 import j2html.tags.UnescapedText;
-import se.kth.speech.HashedCollections;
 import se.kth.speech.coin.tangrams.CLIParameters;
 import se.kth.speech.coin.tangrams.svg.SVGDocuments;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
-import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
-import se.kth.speech.coin.tangrams.wac.data.Utterance;
 import se.kth.speech.function.ThrowingSupplier;
 
 /**
@@ -210,8 +202,6 @@ public final class TfIdfKeywordVisualizationHTMLWriter {
 
 	}
 
-	private static final int EST_UNIQUE_REFS_PER_SESSION = 50;
-
 	private static final Logger LOGGER = LoggerFactory.getLogger(TfIdfKeywordVisualizationHTMLWriter.class);
 
 	private static final String TOKEN_DELIMITER;
@@ -254,11 +244,12 @@ public final class TfIdfKeywordVisualizationHTMLWriter {
 
 				final NGramFactory ngramFactory = Parameter.createNgramFactory(cl);
 
-				final Map<Referent, VisualizableReferent> vizRefs = createVisualizableReferentMap(sessions);
-				final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts = createSessionReferentNgramCountMap(
-						sessions, vizRefs, ngramFactory, onlyInstructor);
-				final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> pairNgramCounts = createSessionReferentPairNgramCountMap(
-						sessionRefNgramCounts);
+				final Map<Referent, VisualizableReferent> vizRefs = SessionReferentNgrams
+						.createVisualizableReferentMap(sessions);
+				final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts = SessionReferentNgrams
+						.createSessionReferentNgramCountMap(sessions, vizRefs, ngramFactory, onlyInstructor);
+				final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> pairNgramCounts = SessionReferentNgrams
+						.createSessionReferentPairNgramCountMap(sessionRefNgramCounts);
 				LOGGER.info("Calculating TF-IDF scores for {} session-referent pairs.", pairNgramCounts.size());
 				final long tfIdfCalculatorConstructionStart = System.currentTimeMillis();
 				final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator = TfIdfCalculator
@@ -314,25 +305,6 @@ public final class TfIdfKeywordVisualizationHTMLWriter {
 				TagCreator.title("TF-IDF scores"));
 	}
 
-	private static Object2IntMap<List<String>> createNgramCountMap(final Round round, final NGramFactory ngramFactory,
-			final boolean onlyInstructor) {
-		@SuppressWarnings("unchecked")
-		final List<List<String>> ngrams = Arrays
-				.asList(createNgrams(round, ngramFactory, onlyInstructor).toArray(List[]::new));
-		final Object2IntOpenHashMap<List<String>> result = new Object2IntOpenHashMap<List<String>>(ngrams.size());
-		ngrams.forEach(ngram -> incrementCount(ngram, result));
-		result.trim();
-		return result;
-	}
-
-	private static Stream<List<String>> createNgrams(final Round round, final NGramFactory ngramFactory,
-			final boolean onlyInstructor) {
-		final Stream<Utterance> utts = round.getUtts().stream();
-		final Stream<Utterance> instructorUtts = utts.filter(Utterance::isInstructor);
-		final Stream<List<String>> uttTokenSeqs = instructorUtts.map(Utterance::getReferringTokens);
-		return uttTokenSeqs.map(ngramFactory).flatMap(List::stream);
-	}
-
 	private static ContainerTag createRow(final String dyadId, final Node refSvgRootElem, final List<String> ngram,
 			final int count, final double score) {
 		final UnescapedText svgTag = TagCreator.rawHtml(createXMLString(refSvgRootElem));
@@ -342,55 +314,10 @@ public final class TfIdfKeywordVisualizationHTMLWriter {
 				TagCreator.td(Double.toString(score)), TagCreator.td(Integer.toString(count)));
 	}
 
-	private static Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> createSessionReferentNgramCountMap(
-			final Collection<Session> sessions, final Map<Referent, VisualizableReferent> vizRefs,
-			final NGramFactory ngramFactory, final boolean onlyInstructor) {
-		final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> result = new HashMap<>(
-				sessions.size());
-		sessions.forEach(session -> {
-			final String sessionName = session.getName();
-			final Map<VisualizableReferent, Object2IntMap<List<String>>> refNgramCounts = result.computeIfAbsent(
-					sessionName, key -> new HashMap<>(HashedCollections.capacity(EST_UNIQUE_REFS_PER_SESSION)));
-
-			session.getRounds().forEach(round -> {
-				// Use the same n-gram list for each referent
-				final Object2IntMap<List<String>> ngramCounts = createNgramCountMap(round, ngramFactory,
-						onlyInstructor);
-
-				getTargetRefs(round).map(vizRefs::get).forEach(vizRef -> {
-					final Object2IntMap<List<String>> oldTableValue = refNgramCounts.put(vizRef, ngramCounts);
-					assert oldTableValue == null;
-				});
-			});
-		});
-		return result;
-	}
-
-	private static Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> createSessionReferentPairNgramCountMap(
-			final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts) {
-		final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> result = new HashMap<>(
-				HashedCollections.capacity(sessionRefNgramCounts.size() * EST_UNIQUE_REFS_PER_SESSION));
-		sessionRefNgramCounts.forEach((sessionName, refNgramCounts) -> {
-			refNgramCounts.forEach((ref, ngramCounts) -> {
-				final Entry<String, VisualizableReferent> pair = Pair.of(sessionName, ref);
-				result.put(pair, ngramCounts);
-			});
-		});
-		assert result.size() >= sessionRefNgramCounts.size();
-		return result;
-	}
-
 	private static List<BiConsumer<VisualizableReferent, SVGDocument>> createSVGDocPostProcessors() {
 		final BiConsumer<VisualizableReferent, SVGDocument> resizer = (ref, svgDoc) -> SVGDocuments.setSize(svgDoc,
 				"100%", "100px");
 		return Arrays.asList(resizer);
-	}
-
-	private static Map<Referent, VisualizableReferent> createVisualizableReferentMap(
-			final Collection<Session> sessions) {
-		final Stream<Referent> refs = sessions.stream().map(Session::getRounds).flatMap(List::stream)
-				.flatMap(TfIdfKeywordVisualizationHTMLWriter::getTargetRefs);
-		return refs.distinct().collect(Collectors.toMap(Function.identity(), VisualizableReferent::fetch));
 	}
 
 	private static String createXMLString(final Node node) {
@@ -409,16 +336,6 @@ public final class TfIdfKeywordVisualizationHTMLWriter {
 		} catch (final TransformerException e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	private static Stream<Referent> getTargetRefs(final Round round) {
-		return round.getReferents().stream().filter(Referent::isTarget);
-	}
-
-	private static <K> void incrementCount(final K key, final Object2IntMap<? super K> counts) {
-		final int oldValue = counts.getInt(key);
-		final int oldValue2 = counts.put(key, oldValue + 1);
-		assert oldValue == oldValue2;
 	}
 
 	private final TfIdfKeywordVisualizationRowFactory<ContainerTag> rowFactory;
