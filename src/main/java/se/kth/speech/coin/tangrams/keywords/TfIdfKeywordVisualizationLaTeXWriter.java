@@ -344,7 +344,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 	}
 
 	private static List<String> createReferentNGramRows(
-			final ReferentNGramRowGouping<String, Stream<String>> refNgramRowGrouping) {
+			final ReferentNGramRowGrouping<String, Stream<String>> refNgramRowGrouping) {
 		@SuppressWarnings("unchecked")
 		final List<Stream<String>> ngramRowCells = Arrays
 				.asList(refNgramRowGrouping.getNgramRows().toArray(Stream[]::new));
@@ -392,7 +392,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 	public int write(final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts)
 			throws IOException {
-		final Stream<ReferentNGramRowGouping<String, Stream<String>>> refNgramRows = rowFactory
+		final Stream<ReferentNGramRowGrouping<String, Stream<String>>> refNgramRows = rowFactory
 				.apply(sessionRefNgramCounts);
 		final String[] rows = refNgramRows.map(TfIdfKeywordVisualizationLaTeXWriter::createReferentNGramRows)
 				.flatMap(List::stream).toArray(String[]::new);

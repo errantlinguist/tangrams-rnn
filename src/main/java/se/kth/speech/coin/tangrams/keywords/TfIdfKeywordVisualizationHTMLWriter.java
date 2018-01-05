@@ -375,7 +375,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 	}
 
 	private static List<ContainerTag> createReferentNGramRows(
-			final ReferentNGramRowGouping<UnescapedText, Stream<ContainerTag>> refNgramRowGrouping) {
+			final ReferentNGramRowGrouping<UnescapedText, Stream<ContainerTag>> refNgramRowGrouping) {
 		@SuppressWarnings("unchecked")
 		final List<Stream<ContainerTag>> ngramRowCells = Arrays
 				.asList(refNgramRowGrouping.getNgramRows().toArray(Stream[]::new));
@@ -437,7 +437,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 
 	public int write(final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts)
 			throws IOException {
-		final Stream<ReferentNGramRowGouping<UnescapedText, Stream<ContainerTag>>> refNgramRows = refNgramRowFactory
+		final Stream<ReferentNGramRowGrouping<UnescapedText, Stream<ContainerTag>>> refNgramRows = refNgramRowFactory
 				.apply(sessionRefNgramCounts);
 		final ContainerTag[] rows = refNgramRows.map(TfIdfKeywordVisualizationHTMLWriter::createReferentNGramRows)
 				.flatMap(List::stream).toArray(ContainerTag[]::new);

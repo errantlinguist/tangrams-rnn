@@ -36,7 +36,7 @@ import se.kth.speech.coin.tangrams.wac.data.Session;
  *
  */
 public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
-		Function<Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>>, Stream<ReferentNGramRowGouping<V, R>>> {
+		Function<Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>>, Stream<ReferentNGramRowGrouping<V, R>>> {
 
 	public interface NGramRowFactory<R> {
 		R apply(final List<String> ngram, final int count, final double score);
@@ -82,7 +82,7 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 	}
 
 	@Override
-	public Stream<ReferentNGramRowGouping<V, R>> apply(
+	public Stream<ReferentNGramRowGrouping<V, R>> apply(
 			final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionNgramCounts) {
 		final Stream<Entry<String, Map<VisualizableReferent, Object2IntMap<List<String>>>>> sortedSessionRefNgramCounts = sessionNgramCounts
 				.entrySet().stream().sorted(Comparator.comparing(entry -> entry.getKey(), Session.getNameComparator()));
@@ -111,7 +111,7 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 		});
 	}
 
-	private ReferentNGramRowGouping<V, R> createRows(final String sessionName,
+	private ReferentNGramRowGrouping<V, R> createRows(final String sessionName,
 			final Entry<VisualizableReferent, Object2IntMap<List<String>>> entry) {
 		final VisualizableReferent ref = entry.getKey();
 		final V refViz = refVisualizationFactory.apply(ref);
@@ -128,7 +128,7 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 			final int count = ngramCount.getIntValue();
 			return rowFactory.apply(ngram, count, ngramScorer.applyAsDouble(ngram));
 		});
-		return new ReferentNGramRowGouping<>(sessionName, refViz, rows);
+		return new ReferentNGramRowGrouping<>(sessionName, refViz, rows);
 	}
 
 }

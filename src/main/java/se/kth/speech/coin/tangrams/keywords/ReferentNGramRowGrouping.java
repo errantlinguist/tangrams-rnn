@@ -2,7 +2,7 @@ package se.kth.speech.coin.tangrams.keywords;
 
 import java.util.stream.Stream;
 
-final class ReferentNGramRowGouping<V, R> {
+final class ReferentNGramRowGrouping<V, R> {
 
 	private final Stream<R> ngramRows;
 
@@ -10,7 +10,7 @@ final class ReferentNGramRowGouping<V, R> {
 
 	private final String sessionName;
 
-	ReferentNGramRowGouping(final String sessionName, final V refVizElem, final Stream<R> ngramRows) {
+	ReferentNGramRowGrouping(final String sessionName, final V refVizElem, final Stream<R> ngramRows) {
 		this.sessionName = sessionName;
 		this.refVizElem = refVizElem;
 		this.ngramRows = ngramRows;
@@ -29,10 +29,10 @@ final class ReferentNGramRowGouping<V, R> {
 		if (obj == null) {
 			return false;
 		}
-		if (!(obj instanceof ReferentNGramRowGouping)) {
+		if (!(obj instanceof ReferentNGramRowGrouping)) {
 			return false;
 		}
-		final ReferentNGramRowGouping<?, ?> other = (ReferentNGramRowGouping<?, ?>) obj;
+		final ReferentNGramRowGrouping<?, ?> other = (ReferentNGramRowGrouping<?, ?>) obj;
 		if (ngramRows == null) {
 			if (other.ngramRows != null) {
 				return false;
