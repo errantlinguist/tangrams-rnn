@@ -15,7 +15,6 @@
  */
 package se.kth.speech.coin.tangrams.keywords;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -27,6 +26,7 @@ import it.unimi.dsi.fastutil.doubles.DoubleIterable;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import se.kth.speech.HashedCollections;
 
 /**
@@ -63,7 +63,7 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 		NATURAL
 	}
 
-	private static final int DEFAULT_INITIAL_WORD_MAP_CAPACITY = HashedCollections.capacity(1000);
+	private static final int DEFAULT_INITIAL_WORD_MAP_CAPACITY = 1000;
 
 	public static <O, D> TfIdfCalculator<O, D> create(final Map<D, ? extends Object2IntMap<O>> docObservationCounts) {
 		return create(docObservationCounts, TermFrequencyVariant.NATURAL);
@@ -71,9 +71,10 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 
 	public static <O, D> TfIdfCalculator<O, D> create(final Map<D, ? extends Object2IntMap<O>> docObservationCounts,
 			final TermFrequencyVariant tfVariant) {
-		final int initialMapCapcity = HashedCollections.capacity(docObservationCounts.size());
-		final Map<D, Object2DoubleOpenHashMap<O>> observationCountsPerDoc = new HashMap<>(initialMapCapcity);
-		final Map<O, Set<D>> observationDocs = new HashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY);
+		final int docCount = docObservationCounts.size();
+		final int initialDocSetCapcity = HashedCollections.capacity(docCount);
+		final Object2ObjectOpenHashMap<D, Object2DoubleOpenHashMap<O>> observationCountsPerDoc = new Object2ObjectOpenHashMap<>(docObservationCounts.size());
+		final Object2ObjectOpenHashMap<O, Set<D>> observationDocs = new Object2ObjectOpenHashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY);
 		for (final Entry<D, ? extends Object2IntMap<O>> entry : docObservationCounts.entrySet()) {
 			final D doc = entry.getKey();
 			final Object2DoubleMap<O> docTokenCounts = observationCountsPerDoc.computeIfAbsent(doc, key -> {
@@ -87,11 +88,13 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 				final O observation = observationCount.getKey();
 				final int count = observationCount.getIntValue();
 				incrementCount(observation, count, docTokenCounts);
-				observationDocs.computeIfAbsent(observation, key -> new HashSet<>(initialMapCapcity)).add(doc);
+				observationDocs.computeIfAbsent(observation, key -> new HashSet<>(initialDocSetCapcity)).add(doc);
 			});
 		}
 
+		observationCountsPerDoc.trim();
 		observationCountsPerDoc.values().forEach(Object2DoubleOpenHashMap::trim);
+		observationDocs.trim();
 		return new TfIdfCalculator<>(observationCountsPerDoc, observationDocs, docObservationCounts.size(), tfVariant);
 	}
 
