@@ -15,7 +15,9 @@
  */
 package se.kth.speech.coin.tangrams.keywords;
 
+import java.io.Closeable;
 import java.io.File;
+import java.io.Flushable;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -57,7 +59,7 @@ import se.kth.speech.function.ThrowingSupplier;
  * @since Dec 1, 2017
  *
  */
-public final class TfIdfKeywordWriter {
+public final class TfIdfKeywordWriter implements Closeable, Flushable {
 
 	private enum Parameter implements Supplier<Option> {
 		HELP("?") {
@@ -237,13 +239,13 @@ public final class TfIdfKeywordWriter {
 						tfVariant);
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfCalculatorConstructionStart) / 1000.0);
-				final TfIdfKeywordWriter keywordWriter = new TfIdfKeywordWriter(sessionNgramCounts, tfIdfCalculator);
 
 				LOGGER.info("Writing rows.");
 				final long writeStart = System.currentTimeMillis();
 				int rowsWritten = 0;
-				try (CSVPrinter printer = CSVFormat.TDF.withHeader(COL_HEADERS).print(outStreamGetter.get())) {
-					rowsWritten = keywordWriter.write(printer);
+				try (final TfIdfKeywordWriter keywordWriter = new TfIdfKeywordWriter(
+						CSVFormat.TDF.withHeader(COL_HEADERS).print(outStreamGetter.get()), tfIdfCalculator)) {
+					rowsWritten = keywordWriter.write(sessionNgramCounts);
 				}
 				LOGGER.info("Wrote {} row(s) in {} seconds.", rowsWritten,
 						(System.currentTimeMillis() - writeStart) / 1000.0);
@@ -284,17 +286,26 @@ public final class TfIdfKeywordWriter {
 		return weight / wrapped.size();
 	}
 
-	private final Map<String, Object2IntMap<List<String>>> sessionNgramCounts;
+	private final CSVPrinter printer;
 
 	private final TfIdfCalculator<List<String>, String> tfidfCalculator;
 
-	public TfIdfKeywordWriter(final Map<String, Object2IntMap<List<String>>> sessionNgramCounts,
-			final TfIdfCalculator<List<String>, String> tfidfCalculator) {
-		this.sessionNgramCounts = sessionNgramCounts;
+	public TfIdfKeywordWriter(final CSVPrinter printer, final TfIdfCalculator<List<String>, String> tfidfCalculator) {
+		this.printer = printer;
 		this.tfidfCalculator = tfidfCalculator;
 	}
 
-	public int write(final CSVPrinter printer) throws IOException {
+	@Override
+	public void close() throws IOException {
+		printer.close();
+	}
+
+	@Override
+	public void flush() throws IOException {
+		printer.flush();
+	}
+
+	public int write(final Map<String, Object2IntMap<List<String>>> sessionNgramCounts) throws IOException {
 		int result = 0;
 
 		final List<Entry<String, ? extends Object2IntMap<List<String>>>> sortedEntries = new ArrayList<>(
