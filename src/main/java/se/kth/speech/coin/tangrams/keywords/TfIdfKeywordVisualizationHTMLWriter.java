@@ -16,7 +16,9 @@
 package se.kth.speech.coin.tangrams.keywords;
 
 import java.io.BufferedWriter;
+import java.io.Closeable;
 import java.io.File;
+import java.io.Flushable;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
@@ -70,7 +72,7 @@ import se.kth.speech.function.ThrowingSupplier;
  * @since Dec 1, 2017
  *
  */
-public final class TfIdfKeywordVisualizationHTMLWriter {
+public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flushable {
 
 	private enum Parameter implements Supplier<Option> {
 		HELP("?") {
@@ -206,6 +208,8 @@ public final class TfIdfKeywordVisualizationHTMLWriter {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(TfIdfKeywordVisualizationHTMLWriter.class);
 
+	private static final List<BiConsumer<VisualizableReferent, SVGDocument>> SVG_DOC_POSTPROCESSORS = createSVGDocPostProcessors();
+
 	private static final String TOKEN_DELIMITER;
 
 	private static final Collector<CharSequence, ?, String> TOKEN_JOINER;
@@ -214,8 +218,6 @@ public final class TfIdfKeywordVisualizationHTMLWriter {
 		TOKEN_DELIMITER = " ";
 		TOKEN_JOINER = Collectors.joining(TOKEN_DELIMITER);
 	}
-
-	private static final List<BiConsumer<VisualizableReferent, SVGDocument>> SVG_DOC_POSTPROCESSORS = createSVGDocPostProcessors();
 
 	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD
 																						// (use
@@ -263,14 +265,14 @@ public final class TfIdfKeywordVisualizationHTMLWriter {
 				final long nbestNgrams = 3;
 				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs,
 						nbestNgrams);
-				final TfIdfKeywordVisualizationHTMLWriter keywordWriter = new TfIdfKeywordVisualizationHTMLWriter(
-						imgResDir, sessionRefNgramCounts, tfIdfCalculator, nbestRefs, nbestNgrams);
 
 				int rowsWritten = 0;
 				LOGGER.info("Writing rows.");
 				final long writeStart = System.currentTimeMillis();
-				try (BufferedWriter outputWriter = new BufferedWriter(new OutputStreamWriter(outStreamGetter.get()))) {
-					rowsWritten = keywordWriter.write(outputWriter);
+				try (final TfIdfKeywordVisualizationHTMLWriter keywordWriter = new TfIdfKeywordVisualizationHTMLWriter(
+						new BufferedWriter(new OutputStreamWriter(outStreamGetter.get())), imgResDir, tfIdfCalculator,
+						nbestRefs, nbestNgrams)) {
+					rowsWritten = keywordWriter.write(sessionRefNgramCounts);
 				}
 				LOGGER.info("Wrote {} row(s) in {} seconds.", rowsWritten,
 						(System.currentTimeMillis() - writeStart) / 1000.0);
@@ -342,22 +344,41 @@ public final class TfIdfKeywordVisualizationHTMLWriter {
 
 	private final TfIdfKeywordVisualizationRowFactory<ContainerTag> rowFactory;
 
-	private final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionNgramCounts;
+	private final Writer writer;
 
-	public TfIdfKeywordVisualizationHTMLWriter(final Path imgResDir,
-			final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionNgramCounts,
+	public TfIdfKeywordVisualizationHTMLWriter(final Writer writer, final Path imgResDir,
 			final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator,
 			final long nbestRefs, final long nbestNgrams) {
-		this.sessionNgramCounts = sessionNgramCounts;
-
+		this.writer = writer;
 		final SVGDocumentFactory svgDocFactory = new SVGDocumentFactory(imgResDir, SVG_DOC_POSTPROCESSORS);
 		final TfIdfKeywordVisualizationRowFactory.RowFactory<ContainerTag> htmlTableRowFactory = TfIdfKeywordVisualizationHTMLWriter::createRow;
 		rowFactory = new TfIdfKeywordVisualizationRowFactory<>(svgDocFactory, tfIdfCalculator, nbestRefs, nbestNgrams,
 				htmlTableRowFactory);
 	}
 
-	public int write(final Writer writer) throws IOException {
-		final ContainerTag[] rows = rowFactory.apply(sessionNgramCounts).toArray(ContainerTag[]::new);
+	/*
+	 * (non-Javadoc)
+	 *
+	 * @see java.io.Closeable#close()
+	 */
+	@Override
+	public void close() throws IOException {
+		writer.close();
+	}
+
+	/*
+	 * (non-Javadoc)
+	 *
+	 * @see java.io.Flushable#flush()
+	 */
+	@Override
+	public void flush() throws IOException {
+		writer.flush();
+	}
+
+	public int write(final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts)
+			throws IOException {
+		final ContainerTag[] rows = rowFactory.apply(sessionRefNgramCounts).toArray(ContainerTag[]::new);
 
 		final ContainerTag thead = TagCreator.thead(TagCreator.tr(TagCreator.td("Dyad"), TagCreator.td("Image"),
 				TagCreator.td("N-gram"), TagCreator.td("Score"), TagCreator.td("Count")));

@@ -15,14 +15,12 @@
  */
 package se.kth.speech.coin.tangrams.keywords;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintStream;
-import java.io.Writer;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -47,12 +45,10 @@ import org.w3c.dom.Node;
 import org.w3c.dom.svg.SVGDocument;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import se.kth.speech.coin.tangrams.CLIParameters;
 import se.kth.speech.coin.tangrams.svg.SVGDocuments;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
-import se.kth.speech.function.ThrowingSupplier;
 
 /**
  * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
@@ -102,12 +98,11 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 						.build();
 			}
 		},
-		OUTPATH("o") {
+		OUTDIR("o") {
 			@Override
 			public Option get() {
-				return Option.builder(optName).longOpt("outpath")
-						.desc("The file to write the results to; If this option is not supplied, the standard output stream will be used.")
-						.hasArg().argName("path").type(File.class).build();
+				return Option.builder(optName).longOpt("outdir").desc("The directory to write the results to.").hasArg()
+						.argName("path").type(File.class).required().build();
 			}
 		},
 		REFERRING_TOKENS("t") {
@@ -242,8 +237,9 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				final TfIdfCalculator.TermFrequencyVariant tfVariant = Parameter.parseTermFrequencyVariant(cl);
 				LOGGER.info("Will use term-frequency variant {}.", tfVariant);
 
-				final ThrowingSupplier<PrintStream, IOException> outStreamGetter = CLIParameters
-						.parseOutpath((File) cl.getParsedOptionValue(Parameter.OUTPATH.optName));
+				final Path outdir = ((File) cl.getParsedOptionValue(Parameter.OUTDIR.optName)).toPath();
+				LOGGER.info("Will write results to \"{}\".", outdir);
+
 				final Path refTokenFilePath = ((File) cl.getParsedOptionValue(Parameter.REFERRING_TOKENS.optName))
 						.toPath();
 				final Collection<Session> sessions = new SessionSetReader(refTokenFilePath).apply(inpaths)
@@ -272,14 +268,11 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs,
 						nbestNgrams);
 				final TfIdfKeywordVisualizationLaTeXWriter keywordWriter = new TfIdfKeywordVisualizationLaTeXWriter(
-						imgResDir, sessionRefNgramCounts, tfIdfCalculator, nbestRefs, nbestNgrams);
+						imgResDir, tfIdfCalculator, nbestRefs, nbestNgrams, outdir);
 
-				int rowsWritten = 0;
 				LOGGER.info("Writing rows.");
 				final long writeStart = System.currentTimeMillis();
-				try (BufferedWriter outputWriter = new BufferedWriter(new OutputStreamWriter(outStreamGetter.get()))) {
-					rowsWritten = keywordWriter.write(outputWriter);
-				}
+				final int rowsWritten = keywordWriter.write(sessionRefNgramCounts);
 				LOGGER.info("Wrote {} row(s) in {} seconds.", rowsWritten,
 						(System.currentTimeMillis() - writeStart) / 1000.0);
 			}
@@ -322,15 +315,14 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		return Arrays.asList(resizer);
 	}
 
+	private final Path outdir;
+
 	private final TfIdfKeywordVisualizationRowFactory<String> rowFactory;
 
-	private final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionNgramCounts;
-
 	public TfIdfKeywordVisualizationLaTeXWriter(final Path imgResDir,
-			final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionNgramCounts,
 			final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator,
-			final long nbestRefs, final long nbestNgrams) {
-		this.sessionNgramCounts = sessionNgramCounts;
+			final long nbestRefs, final long nbestNgrams, final Path outdir) {
+		this.outdir = outdir;
 
 		final SVGDocumentFactory svgDocFactory = new SVGDocumentFactory(imgResDir, SVG_DOC_POSTPROCESSORS);
 		final TfIdfKeywordVisualizationRowFactory.RowFactory<String> latexTableRowFactory = TfIdfKeywordVisualizationLaTeXWriter::createRow;
@@ -338,13 +330,21 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				latexTableRowFactory);
 	}
 
-	public int write(final Writer writer) throws IOException {
-		final String[] rows = rowFactory.apply(sessionNgramCounts).toArray(String[]::new);
-		writer.write(HEADER);
-		for (final String row : rows) {
-			writer.write(row);
-		}
-		writer.write(FOOTER);
+	public int write(final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts)
+			throws IOException {
+		final String[] rows = rowFactory.apply(sessionRefNgramCounts).toArray(String[]::new);
+		// TODO: Write individual PDFS for each referent to file
+
+		final Path outdir = Files.createDirectories(this.outdir);
+		final Path latexFilePath = outdir.resolve("tf-idf.tex");
+
+		final Stream.Builder<String> fileLineStreamBuilder = Stream.builder();
+		fileLineStreamBuilder.accept(HEADER);
+		Arrays.stream(rows).forEach(fileLineStreamBuilder);
+		fileLineStreamBuilder.accept(FOOTER);
+		final Stream<String> fileLines = fileLineStreamBuilder.build();
+		Files.write(latexFilePath, (Iterable<String>) fileLines::iterator, StandardOpenOption.CREATE,
+				StandardOpenOption.TRUNCATE_EXISTING);
 		return rows.length;
 	}
 
