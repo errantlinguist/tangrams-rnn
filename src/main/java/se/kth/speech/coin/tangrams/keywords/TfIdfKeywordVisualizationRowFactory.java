@@ -70,18 +70,18 @@ public final class TfIdfKeywordVisualizationRowFactory<R>
 		public int compare(final String o1, final String o2) {
 			int result = 0;
 			try {
-				final int i1 = Integer.parseInt(o1);
+				final double n1 = Double.parseDouble(o1);
 				try {
-					final int i2 = Integer.parseInt(o2);
-					// Both strings are numeric; Compare as ints
-					result = Integer.compare(i1, i2);
+					final double n2 = Double.parseDouble(o2);
+					// Both strings are numeric; Compare as doubles
+					result = Double.compare(n1, n2);
 				} catch (final NumberFormatException e2) {
 					// The first string is numeric but the second isn't
 					result = -1;
 				}
 			} catch (final NumberFormatException e1) {
 				try {
-					Integer.parseInt(o2);
+					Double.parseDouble(o2);
 					// The second string is numeric but the first isn't
 					result = 1;
 				} catch (final NumberFormatException e2) {
