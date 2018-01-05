@@ -21,8 +21,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.ToDoubleBiFunction;
-import java.util.stream.DoubleStream;
 
+import it.unimi.dsi.fastutil.doubles.DoubleCollection;
+import it.unimi.dsi.fastutil.doubles.DoubleIterable;
+import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
+import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import se.kth.speech.HashedCollections;
 
 /**
@@ -46,8 +49,8 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 	 */
 	public enum TermFrequencyVariant {
 		/**
-		 * <em>tf(t,d)</em> = 0.5 + 0.5 &sdot; (<em>f</em><sub>t,d</sub> &divide;
-		 * max<sub><em>t&prime;</em> &isin; <em>d</em></sub>
+		 * <em>tf(t,d)</em> = 0.5 + 0.5 &sdot; (<em>f</em><sub>t,d</sub>
+		 * &divide; max<sub><em>t&prime;</em> &isin; <em>d</em></sub>
 		 * <em>f</em><sub><em>t&prime;,d</em></sub>)
 		 *
 		 */
@@ -65,19 +68,22 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 			final boolean onlyInstructor) {
 		return create(docObservations, onlyInstructor, TermFrequencyVariant.NATURAL);
 	}
-	
+
 	public static <O, D> TfIdfCalculator<O, D> create(final Map<D, ? extends Iterable<O>> docObservations,
 			final boolean onlyInstructor, final TermFrequencyVariant tfVariant) {
 		final int initialMapCapcity = HashedCollections.capacity(docObservations.size());
-		final Map<D, Map<O, Double>> observationCountsPerDoc = new HashMap<>(initialMapCapcity);
+		final Map<D, Object2DoubleMap<O>> observationCountsPerDoc = new HashMap<>(initialMapCapcity);
 		final Map<O, Set<D>> observationDocs = new HashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY);
 		for (final Entry<D, ? extends Iterable<O>> entry : docObservations.entrySet()) {
 			final D doc = entry.getKey();
-			final Map<O, Double> docTokenCounts = observationCountsPerDoc.computeIfAbsent(doc,
-					key -> new HashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY));
+			final Object2DoubleMap<O> docTokenCounts = observationCountsPerDoc.computeIfAbsent(doc, key -> {
+				final Object2DoubleMap<O> counts = new Object2DoubleOpenHashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY);
+				counts.defaultReturnValue(0.0);
+				return counts;
+			});
 			final Iterable<O> observations = entry.getValue();
 			observations.forEach(observation -> {
-				docTokenCounts.compute(observation, (key, oldValue) -> oldValue == null ? 1 : oldValue + 1);
+				incrementCount(observation, docTokenCounts);
 				observationDocs.computeIfAbsent(observation, key -> new HashSet<>(initialMapCapcity)).add(doc);
 			});
 		}
@@ -85,7 +91,21 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 		return new TfIdfCalculator<>(observationCountsPerDoc, observationDocs, docObservations.size(), tfVariant);
 	}
 
-	private final Map<D, Map<O, Double>> observationCountsPerDoc;
+	private static <K> void incrementCount(final K key, final Object2DoubleMap<? super K> counts) {
+		final double oldValue = counts.getDouble(key);
+		final double oldValue2 = counts.put(key, oldValue + 1.0);
+		assert oldValue == oldValue2;
+	}
+
+	private static double max(final DoubleIterable values) {
+		double result = Double.NEGATIVE_INFINITY;
+		for (final double value : values) {
+			result = Math.max(result, value);
+		}
+		return result;
+	}
+
+	private final Map<D, Object2DoubleMap<O>> observationCountsPerDoc;
 
 	private final Map<O, Set<D>> observationDocs;
 
@@ -93,8 +113,8 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 
 	private final double totalDocCount;
 
-	private TfIdfCalculator(final Map<D, Map<O, Double>> observationCountsPerDoc, final Map<O, Set<D>> observationDocs,
-			final int totalDocCount, final TermFrequencyVariant tfVariant) {
+	private TfIdfCalculator(final Map<D, Object2DoubleMap<O>> observationCountsPerDoc,
+			final Map<O, Set<D>> observationDocs, final int totalDocCount, final TermFrequencyVariant tfVariant) {
 		this.observationCountsPerDoc = observationCountsPerDoc;
 		this.observationDocs = observationDocs;
 		this.totalDocCount = totalDocCount;
@@ -121,13 +141,13 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 	 *         given document.
 	 */
 	private double augmentedTf(final O observation, final D doc) {
-		final Map<O, Double> docWordCounts = observationCountsPerDoc.get(doc);
+		final Object2DoubleMap<O> docWordCounts = observationCountsPerDoc.get(doc);
 		assert docWordCounts != null;
-		final Double naturalTf = docWordCounts.get(observation);
-		assert naturalTf != null : String.format("Term frequency for \"%s\" is null for document %s.", observation,
-				doc);
-		final DoubleStream docTfs = docWordCounts.values().stream().mapToDouble(Double::doubleValue);
-		final double maxDocTf = docTfs.max().getAsDouble();
+		final double naturalTf = docWordCounts.getDouble(observation);
+		assert naturalTf != docWordCounts.defaultReturnValue() : String
+				.format("Term frequency for \"%s\" is null for document %s.", observation, doc);
+		final DoubleCollection docTfs = docWordCounts.values();
+		final double maxDocTf = max(docTfs);
 		return 0.5 + 0.5 * (naturalTf / maxDocTf);
 	}
 
@@ -165,16 +185,16 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 	}
 
 	/**
-	 * Calculates the term frequency for a given observation <em>t</em> in a given
-	 * document <em>d</em> as the raw counts <em>tf(t,d)</em> =
+	 * Calculates the term frequency for a given observation <em>t</em> in a
+	 * given document <em>d</em> as the raw counts <em>tf(t,d)</em> =
 	 * <em>f</em><sub><em>t,d</em></sub>.
 	 *
 	 * @param observation
 	 *            The observation to calculate the term frequency of.
 	 * @param doc
 	 *            The document in which the given observation was found.
-	 * @return The natural term frequency for the given observation during the given
-	 *         document.
+	 * @return The natural term frequency for the given observation during the
+	 *         given document.
 	 */
 	private double naturalTf(final O observation, final D doc) {
 		final Map<O, Double> docWordCounts = observationCountsPerDoc.get(doc);
