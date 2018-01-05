@@ -340,10 +340,10 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 	private static ContainerTag createFirstReferentNGramRow(final Entry<String, UnescapedText> sessionRefVizElem,
 			final Stream<ContainerTag> ngramRowCells, final int rowspan) {
 		final String sessionName = sessionRefVizElem.getKey();
-		final ContainerTag headerCell = TagCreator.th(sessionName).attr("rowspan", rowspan);
+		final ContainerTag dyadCell = TagCreator.td(sessionName).attr("rowspan", rowspan);
 		final UnescapedText refVizElem = sessionRefVizElem.getValue();
 		final ContainerTag refCell = TagCreator.td(refVizElem).attr("rowspan", rowspan);
-		final Stream<ContainerTag> prefixCells = Stream.of(headerCell, refCell);
+		final Stream<ContainerTag> prefixCells = Stream.of(dyadCell, refCell);
 		return TagCreator.tr(Stream.concat(prefixCells, ngramRowCells).toArray(ContainerTag[]::new));
 	}
 
@@ -444,8 +444,8 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		final ContainerTag[] rows = refNgramRows.map(TfIdfKeywordVisualizationHTMLWriter::createReferentNGramRows)
 				.flatMap(List::stream).toArray(ContainerTag[]::new);
 
-		final ContainerTag thead = TagCreator.thead(TagCreator.tr(TagCreator.th("Dyad"), TagCreator.td("Image"),
-				TagCreator.td("N-gram"), TagCreator.td("Score"), TagCreator.td("Count")));
+		final ContainerTag thead = TagCreator.thead(TagCreator.tr(TagCreator.th("Dyad"), TagCreator.th("Image"),
+				TagCreator.th("N-gram"), TagCreator.th("Score"), TagCreator.th("Count")));
 		final ContainerTag tbody = TagCreator.tbody(rows);
 		final ContainerTag table = TagCreator.table(thead, tbody);
 		final ContainerTag html = TagCreator.html(createHTMLHeadTag(), TagCreator.body(table));
