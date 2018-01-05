@@ -118,8 +118,8 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		OUTPATH("o") {
 			@Override
 			public Option get() {
-				return Option.builder(optName).longOpt("outpath")
-						.desc("The file to write the results to; If this option is not supplied, the standard output stream will be used.")
+				return Option.builder(optName).longOpt("outpath").desc(
+						"The file to write the results to; If this option is not supplied, the standard output stream will be used.")
 						.hasArg().argName("path").type(File.class).build();
 			}
 		},
@@ -248,11 +248,11 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 
 				final NGramFactory ngramFactory = Parameter.createNgramFactory(cl);
 
-				final Map<Referent, VisualizableReferent> vizRefs = SessionReferentNgrams
+				final Map<Referent, VisualizableReferent> vizRefs = SessionReferentNgramDataManager
 						.createVisualizableReferentMap(sessions);
-				final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts = SessionReferentNgrams
-						.createSessionReferentNgramCountMap(sessions, vizRefs, ngramFactory, onlyInstructor);
-				final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> pairNgramCounts = SessionReferentNgrams
+				final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts = new SessionReferentNgramDataManager(
+						ngramFactory, onlyInstructor).createSessionReferentNgramCountMap(sessions, vizRefs);
+				final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> pairNgramCounts = SessionReferentNgramDataManager
 						.createSessionReferentPairNgramCountMap(sessionRefNgramCounts);
 				LOGGER.info("Calculating TF-IDF scores for {} session-referent pairs.", pairNgramCounts.size());
 				final long tfIdfCalculatorConstructionStart = System.currentTimeMillis();

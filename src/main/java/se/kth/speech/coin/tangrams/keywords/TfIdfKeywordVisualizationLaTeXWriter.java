@@ -250,11 +250,11 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 				final NGramFactory ngramFactory = Parameter.createNgramFactory(cl);
 
-				final Map<Referent, VisualizableReferent> vizRefs = SessionReferentNgrams
+				final Map<Referent, VisualizableReferent> vizRefs = SessionReferentNgramDataManager
 						.createVisualizableReferentMap(sessions);
-				final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts = SessionReferentNgrams
-						.createSessionReferentNgramCountMap(sessions, vizRefs, ngramFactory, onlyInstructor);
-				final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> pairNgramCounts = SessionReferentNgrams
+				final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts = new SessionReferentNgramDataManager(
+						ngramFactory, onlyInstructor).createSessionReferentNgramCountMap(sessions, vizRefs);
+				final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> pairNgramCounts = SessionReferentNgramDataManager
 						.createSessionReferentPairNgramCountMap(sessionRefNgramCounts);
 				LOGGER.info("Calculating TF-IDF scores for {} session-referent pairs.", pairNgramCounts.size());
 				final long tfIdfCalculatorConstructionStart = System.currentTimeMillis();

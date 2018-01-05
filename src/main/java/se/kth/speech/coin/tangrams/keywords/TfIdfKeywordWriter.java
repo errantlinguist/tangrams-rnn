@@ -228,8 +228,8 @@ public final class TfIdfKeywordWriter {
 				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
 				LOGGER.info("Only use instructor language? {}", onlyInstructor);
 
-				final Map<Session, Object2IntMap<List<String>>> sessionNgramCounts = SessionReferentNgrams
-						.createSessionNgramCountMap(sessions, Parameter.createNgramFactory(cl), onlyInstructor);
+				final Map<Session, Object2IntMap<List<String>>> sessionNgramCounts = new SessionReferentNgramDataManager(
+						Parameter.createNgramFactory(cl), onlyInstructor).createSessionNgramCountMap(sessions);
 
 				LOGGER.info("Calculating TF-IDF scores.");
 				final long tfIdfCalculatorConstructionStart = System.currentTimeMillis();
