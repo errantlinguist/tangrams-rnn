@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -47,13 +46,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import se.kth.speech.HashedCollections;
 import se.kth.speech.coin.tangrams.CLIParameters;
-import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
-import se.kth.speech.coin.tangrams.wac.data.Utterance;
 import se.kth.speech.coin.tangrams.wac.logistic.Weighted;
 import se.kth.speech.function.ThrowingSupplier;
 
@@ -98,8 +93,8 @@ public final class TfIdfKeywordWriter {
 		OUTPATH("o") {
 			@Override
 			public Option get() {
-				return Option.builder(optName).longOpt("outpath")
-						.desc("The file to write the results to; If this option is not supplied, the standard output stream will be used.")
+				return Option.builder(optName).longOpt("outpath").desc(
+						"The file to write the results to; If this option is not supplied, the standard output stream will be used.")
 						.hasArg().argName("path").type(File.class).build();
 			}
 		},
@@ -233,8 +228,8 @@ public final class TfIdfKeywordWriter {
 				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
 				LOGGER.info("Only use instructor language? {}", onlyInstructor);
 
-				final Map<Session, Object2IntMap<List<String>>> sessionNgramCounts = createSessionNgramCountMap(
-						sessions, Parameter.createNgramFactory(cl), onlyInstructor);
+				final Map<Session, Object2IntMap<List<String>>> sessionNgramCounts = SessionReferentNgrams
+						.createSessionNgramCountMap(sessions, Parameter.createNgramFactory(cl), onlyInstructor);
 
 				LOGGER.info("Calculating TF-IDF scores.");
 				final long tfIdfCalculatorConstructionStart = System.currentTimeMillis();
@@ -267,19 +262,6 @@ public final class TfIdfKeywordWriter {
 		}
 	}
 
-	private static Stream<List<String>> createNgrams(final Round round, final NGramFactory ngramFactory,
-			final boolean onlyInstructor) {
-		final Stream<Utterance> utts = round.getUtts().stream();
-		final Stream<Utterance> instructorUtts = utts.filter(Utterance::isInstructor);
-		final Stream<List<String>> uttTokenSeqs = instructorUtts.map(Utterance::getReferringTokens);
-		return uttTokenSeqs.map(ngramFactory).flatMap(List::stream);
-	}
-
-	private static Stream<List<String>> createNgrams(final Session session, final NGramFactory ngramFactory,
-			final boolean onlyInstructor) {
-		return session.getRounds().stream().flatMap(round -> createNgrams(round, ngramFactory, onlyInstructor));
-	}
-
 	private static Stream<String> createRow(final String sessionName, final Weighted<List<String>> scoredNgram) {
 		final List<String> ngram = scoredNgram.getWrapped();
 		final double weight = scoredNgram.getWeight();
@@ -294,24 +276,6 @@ public final class TfIdfKeywordWriter {
 		final Comparator<Weighted<? extends List<?>>> normalizedWeightAscending = Comparator
 				.comparingDouble(TfIdfKeywordWriter::normalizeWeight);
 		return normalizedWeightAscending.reversed().thenComparing(ngramLengthAscending.reversed());
-	}
-
-	private static Map<Session, Object2IntMap<List<String>>> createSessionNgramCountMap(
-			final Collection<Session> sessions, final NGramFactory ngramFactory, final boolean onlyInstructor) {
-		final Map<Session, Object2IntMap<List<String>>> result = new HashMap<>(
-				HashedCollections.capacity(sessions.size()));
-		sessions.forEach(session -> {
-			final Object2IntMap<List<String>> ngramCounts = result.computeIfAbsent(session,
-					key -> new Object2IntOpenHashMap<>());
-			createNgrams(session, ngramFactory, onlyInstructor).forEach(ngram -> incrementCount(ngram, ngramCounts));
-		});
-		return result;
-	}
-
-	private static <K> void incrementCount(final K key, final Object2IntMap<? super K> counts) {
-		final int oldValue = counts.getInt(key);
-		final int oldValue2 = counts.put(key, oldValue + 1);
-		assert oldValue == oldValue2;
 	}
 
 	private static double normalizeWeight(final Weighted<? extends Collection<?>> weightedColl) {

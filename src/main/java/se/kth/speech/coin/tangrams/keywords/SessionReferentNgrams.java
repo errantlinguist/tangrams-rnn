@@ -106,6 +106,23 @@ final class SessionReferentNgrams {
 		});
 		return result;
 	}
+	
+	static Map<Session, Object2IntMap<List<String>>> createSessionNgramCountMap(
+			final Collection<Session> sessions, final NGramFactory ngramFactory, final boolean onlyInstructor) {
+		final Map<Session, Object2IntMap<List<String>>> result = new HashMap<>(
+				HashedCollections.capacity(sessions.size()));
+		sessions.forEach(session -> {
+			final Object2IntMap<List<String>> ngramCounts = result.computeIfAbsent(session,
+					key -> new Object2IntOpenHashMap<>());
+			createNgrams(session, ngramFactory, onlyInstructor).forEach(ngram -> incrementCount(ngram, ngramCounts));
+		});
+		return result;
+	}
+	
+	private static Stream<List<String>> createNgrams(final Session session, final NGramFactory ngramFactory,
+			final boolean onlyInstructor) {
+		return session.getRounds().stream().flatMap(round -> createNgrams(round, ngramFactory, onlyInstructor));
+	}
 
 	static Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> createSessionReferentPairNgramCountMap(
 			final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts) {
