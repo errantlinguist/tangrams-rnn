@@ -65,13 +65,11 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 
 	private static final int DEFAULT_INITIAL_WORD_MAP_CAPACITY = HashedCollections.capacity(1000);
 
-	public static <O, D> TfIdfCalculator<O, D> create(final Map<D, ? extends Object2IntMap<O>> docObservationCounts,
-			final boolean onlyInstructor) {
-		return create(docObservationCounts, onlyInstructor, TermFrequencyVariant.NATURAL);
+	public static <O, D> TfIdfCalculator<O, D> create(final Map<D, ? extends Object2IntMap<O>> docObservationCounts) {
+		return create(docObservationCounts, TermFrequencyVariant.NATURAL);
 	}
 
-	public static <O, D> TfIdfCalculator<O, D> create(final Map<D, ? extends Object2IntMap<O>> docObservationCounts,
-			final boolean onlyInstructor, final TermFrequencyVariant tfVariant) {
+	public static <O, D> TfIdfCalculator<O, D> create(final Map<D, ? extends Object2IntMap<O>> docObservationCounts, final TermFrequencyVariant tfVariant) {
 		final int initialMapCapcity = HashedCollections.capacity(docObservationCounts.size());
 		final Map<D, Object2DoubleMap<O>> observationCountsPerDoc = new HashMap<>(initialMapCapcity);
 		final Map<O, Set<D>> observationDocs = new HashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY);

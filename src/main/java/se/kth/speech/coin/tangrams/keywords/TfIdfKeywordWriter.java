@@ -227,17 +227,19 @@ public final class TfIdfKeywordWriter {
 				final Path refTokenFilePath = ((File) cl.getParsedOptionValue(Parameter.REFERRING_TOKENS.optName))
 						.toPath();
 
-				final Map<Session, Object2IntMap<List<String>>> sessionNgramCounts = createSessionNgramCountMap(
-						new SessionSetReader(refTokenFilePath).apply(inpaths).getSessions(),
-						Parameter.createNgramFactory(cl));
-				LOGGER.info("Will extract keywords from {} session(s).", sessionNgramCounts.size());
+				final Collection<Session> sessions = new SessionSetReader(refTokenFilePath).apply(inpaths)
+						.getSessions();
+				LOGGER.info("Will extract keywords from {} session(s).", sessions.size());
 				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
 				LOGGER.info("Only use instructor language? {}", onlyInstructor);
+
+				final Map<Session, Object2IntMap<List<String>>> sessionNgramCounts = createSessionNgramCountMap(
+						sessions, Parameter.createNgramFactory(cl), onlyInstructor);
 
 				LOGGER.info("Calculating TF-IDF scores.");
 				final long tfIdfCalculatorConstructionStart = System.currentTimeMillis();
 				final TfIdfCalculator<List<String>, Session> tfIdfCalculator = TfIdfCalculator
-						.create(sessionNgramCounts, onlyInstructor, tfVariant);
+						.create(sessionNgramCounts, tfVariant);
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfCalculatorConstructionStart) / 1000.0);
 				final TfIdfKeywordWriter keywordWriter = new TfIdfKeywordWriter(sessionNgramCounts, tfIdfCalculator);
@@ -265,10 +267,17 @@ public final class TfIdfKeywordWriter {
 		}
 	}
 
-	private static Stream<List<String>> createNgrams(final Session session, final NGramFactory ngramFactory) {
-		final Stream<List<String>> uttTokenSeqs = session.getRounds().stream().map(Round::getUtts).flatMap(List::stream)
-				.map(Utterance::getReferringTokens);
+	private static Stream<List<String>> createNgrams(final Round round, final NGramFactory ngramFactory,
+			final boolean onlyInstructor) {
+		final Stream<Utterance> utts = round.getUtts().stream();
+		final Stream<Utterance> instructorUtts = utts.filter(Utterance::isInstructor);
+		final Stream<List<String>> uttTokenSeqs = instructorUtts.map(Utterance::getReferringTokens);
 		return uttTokenSeqs.map(ngramFactory).flatMap(List::stream);
+	}
+
+	private static Stream<List<String>> createNgrams(final Session session, final NGramFactory ngramFactory,
+			final boolean onlyInstructor) {
+		return session.getRounds().stream().flatMap(round -> createNgrams(round, ngramFactory, onlyInstructor));
 	}
 
 	private static Stream<String> createRow(final String sessionName, final Weighted<List<String>> scoredNgram) {
@@ -288,13 +297,13 @@ public final class TfIdfKeywordWriter {
 	}
 
 	private static Map<Session, Object2IntMap<List<String>>> createSessionNgramCountMap(
-			final Collection<Session> sessions, final NGramFactory ngramFactory) {
+			final Collection<Session> sessions, final NGramFactory ngramFactory, final boolean onlyInstructor) {
 		final Map<Session, Object2IntMap<List<String>>> result = new HashMap<>(
 				HashedCollections.capacity(sessions.size()));
 		sessions.forEach(session -> {
 			final Object2IntMap<List<String>> ngramCounts = result.computeIfAbsent(session,
 					key -> new Object2IntOpenHashMap<>());
-			createNgrams(session, ngramFactory).forEach(ngram -> incrementCount(ngram, ngramCounts));
+			createNgrams(session, ngramFactory, onlyInstructor).forEach(ngram -> incrementCount(ngram, ngramCounts));
 		});
 		return result;
 	}
