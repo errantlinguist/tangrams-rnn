@@ -155,7 +155,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter {
 			final int maxLengthValue;
 
 			final Number minLength = (Number) cl.getParsedOptionValue(Parameter.MIN_NGRAM_LENGTH.optName);
-			final Number maxLength = (Number) cl.getParsedOptionValue(Parameter.MIN_NGRAM_LENGTH.optName);
+			final Number maxLength = (Number) cl.getParsedOptionValue(Parameter.MAX_NGRAM_LENGTH.optName);
 			if (minLength == null) {
 				if (maxLength == null) {
 					minLengthValue = DEFAULT_MIN_LENGTH;
