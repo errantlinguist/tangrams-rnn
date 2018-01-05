@@ -251,7 +251,7 @@ public final class TfIdfKeywordVisualizationWriter {
 
 				session.getRounds().forEach(round -> {
 					// Use the same n-gram list for each referent
-					final Object2IntMap<List<String>> ngramCounts = createNgramCountMap(session, ngramFactory,
+					final Object2IntMap<List<String>> ngramCounts = createNgramCountMap(round, ngramFactory,
 							onlyInstructor);
 
 					getTargetRefs(round).map(vizRefs::get).forEach(vizRef -> {
@@ -407,10 +407,10 @@ public final class TfIdfKeywordVisualizationWriter {
 				TagCreator.title("TF-IDF scores"));
 	}
 
-	private static Object2IntMap<List<String>> createNgramCountMap(final Session session,
+	private static Object2IntMap<List<String>> createNgramCountMap(final Round round,
 			final NGramFactory ngramFactory, final boolean onlyInstructor) {
 		@SuppressWarnings("unchecked")
-		final List<List<String>> ngrams = Arrays.asList(createNgrams(session, ngramFactory, onlyInstructor).toArray(List[]::new));
+		final List<List<String>> ngrams = Arrays.asList(createNgrams(round, ngramFactory, onlyInstructor).toArray(List[]::new));
 		final Object2IntOpenHashMap<List<String>> result = new Object2IntOpenHashMap<List<String>>(ngrams.size());
 		ngrams.forEach(ngram -> incrementCount(ngram, result));
 		result.trim();
@@ -423,11 +423,6 @@ public final class TfIdfKeywordVisualizationWriter {
 		final Stream<Utterance> instructorUtts = utts.filter(Utterance::isInstructor);
 		final Stream<List<String>> uttTokenSeqs = instructorUtts.map(Utterance::getReferringTokens);
 		return uttTokenSeqs.map(ngramFactory).flatMap(List::stream);
-	}
-
-	private static Stream<List<String>> createNgrams(final Session session, final NGramFactory ngramFactory,
-			final boolean onlyInstructor) {
-		return session.getRounds().stream().flatMap(round -> createNgrams(round, ngramFactory, onlyInstructor));
 	}
 
 	private static Map<VisualizableReferent, SVGSVGElement> createRefSVGRootElementMap(
