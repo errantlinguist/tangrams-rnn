@@ -20,13 +20,14 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableSet;
+import java.util.TreeSet;
 import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.Collector;
@@ -311,9 +312,8 @@ public final class TfIdfKeywordWriter {
 
 	public int write(final CSVPrinter printer) throws IOException {
 		int result = 0;
-		
-		final List<Entry<Session, ? extends Collection<List<String>>>> sortedEntries = new ArrayList<>(sessionNgrams.entrySet());
-		sortedEntries.sort(Comparator.comparing(entry -> entry.getKey().getName(), SESSION_NAME_COMPARATOR));
+		final NavigableSet<Entry<Session, ? extends Collection<List<String>>>> sortedEntries = new TreeSet<>(
+				Comparator.comparing(entry -> entry.getKey().getName(), SESSION_NAME_COMPARATOR));
 		sortedEntries.addAll(sessionNgrams.entrySet());
 		for (final Entry<Session, ? extends Collection<List<String>>> entry : sortedEntries) {
 			final Session session = entry.getKey();
