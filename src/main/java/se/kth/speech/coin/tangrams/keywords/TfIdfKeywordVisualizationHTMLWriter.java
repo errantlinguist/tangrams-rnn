@@ -444,7 +444,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		final ContainerTag[] rows = refNgramRows.map(TfIdfKeywordVisualizationHTMLWriter::createReferentNGramRows)
 				.flatMap(List::stream).toArray(ContainerTag[]::new);
 
-		final ContainerTag thead = TagCreator.thead(TagCreator.tr(TagCreator.td("Dyad"), TagCreator.td("Image"),
+		final ContainerTag thead = TagCreator.thead(TagCreator.tr(TagCreator.th("Dyad"), TagCreator.td("Image"),
 				TagCreator.td("N-gram"), TagCreator.td("Score"), TagCreator.td("Count")));
 		final ContainerTag tbody = TagCreator.tbody(rows);
 		final ContainerTag table = TagCreator.table(thead, tbody);
