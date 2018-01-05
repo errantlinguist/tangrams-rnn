@@ -69,14 +69,16 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 		return create(docObservationCounts, TermFrequencyVariant.NATURAL);
 	}
 
-	public static <O, D> TfIdfCalculator<O, D> create(final Map<D, ? extends Object2IntMap<O>> docObservationCounts, final TermFrequencyVariant tfVariant) {
+	public static <O, D> TfIdfCalculator<O, D> create(final Map<D, ? extends Object2IntMap<O>> docObservationCounts,
+			final TermFrequencyVariant tfVariant) {
 		final int initialMapCapcity = HashedCollections.capacity(docObservationCounts.size());
-		final Map<D, Object2DoubleMap<O>> observationCountsPerDoc = new HashMap<>(initialMapCapcity);
+		final Map<D, Object2DoubleOpenHashMap<O>> observationCountsPerDoc = new HashMap<>(initialMapCapcity);
 		final Map<O, Set<D>> observationDocs = new HashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY);
 		for (final Entry<D, ? extends Object2IntMap<O>> entry : docObservationCounts.entrySet()) {
 			final D doc = entry.getKey();
 			final Object2DoubleMap<O> docTokenCounts = observationCountsPerDoc.computeIfAbsent(doc, key -> {
-				final Object2DoubleMap<O> counts = new Object2DoubleOpenHashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY);
+				final Object2DoubleOpenHashMap<O> counts = new Object2DoubleOpenHashMap<>(
+						DEFAULT_INITIAL_WORD_MAP_CAPACITY);
 				counts.defaultReturnValue(0.0);
 				return counts;
 			});
@@ -89,10 +91,11 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 			});
 		}
 
+		observationCountsPerDoc.values().forEach(Object2DoubleOpenHashMap::trim);
 		return new TfIdfCalculator<>(observationCountsPerDoc, observationDocs, docObservationCounts.size(), tfVariant);
 	}
 
-	private static <K> void incrementCount(final K key, int addend, final Object2DoubleMap<? super K> counts) {
+	private static <K> void incrementCount(final K key, final int addend, final Object2DoubleMap<? super K> counts) {
 		final double augend = counts.getDouble(key);
 		final double oldValue = counts.put(key, augend + addend);
 		assert oldValue == augend;
@@ -106,7 +109,7 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 		return result;
 	}
 
-	private final Map<D, Object2DoubleMap<O>> observationCountsPerDoc;
+	private final Map<D, ? extends Object2DoubleMap<O>> observationCountsPerDoc;
 
 	private final Map<O, Set<D>> observationDocs;
 
@@ -114,7 +117,7 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 
 	private final double totalDocCount;
 
-	private TfIdfCalculator(final Map<D, Object2DoubleMap<O>> observationCountsPerDoc,
+	private TfIdfCalculator(final Map<D, ? extends Object2DoubleMap<O>> observationCountsPerDoc,
 			final Map<O, Set<D>> observationDocs, final int totalDocCount, final TermFrequencyVariant tfVariant) {
 		this.observationCountsPerDoc = observationCountsPerDoc;
 		this.observationDocs = observationDocs;
