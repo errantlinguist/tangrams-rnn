@@ -80,16 +80,18 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 			@Override
 			public Option get() {
 				return Option.builder(optName).longOpt("max-length")
-						.desc("The maximum length of n-grams to calculate scores for..").hasArg().argName("length")
-						.type(Number.class).build();
+						.desc(String.format("The maximum length of n-grams to calculate scores for; Default: %d",
+								DEFAULT_MAX_LENGTH))
+						.hasArg().argName("length").type(Number.class).build();
 			}
 		},
 		MIN_NGRAM_LENGTH("min") {
 			@Override
 			public Option get() {
 				return Option.builder(optName).longOpt("min-length")
-						.desc("The minimum length of n-grams to calculate scores for..").hasArg().argName("length")
-						.type(Number.class).build();
+						.desc(String.format("The minimum length of n-grams to calculate scores for; Default: %d",
+								DEFAULT_MIN_LENGTH))
+						.hasArg().argName("length").type(Number.class).build();
 			}
 		},
 		ONLY_INSTRUCTOR("i") {
@@ -191,8 +193,6 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 	}
 
-
-
 	private static final String FOOTER;
 
 	private static final String HEADER;
@@ -254,11 +254,12 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 				final NGramFactory ngramFactory = Parameter.createNgramFactory(cl);
 
-				final Map<Referent, VisualizableReferent> vizRefs = SessionReferentNgrams.createVisualizableReferentMap(sessions);
-				final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts = SessionReferentNgrams.createSessionReferentNgramCountMap(
-						sessions, vizRefs, ngramFactory, onlyInstructor);
-				final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> pairNgramCounts = SessionReferentNgrams.createSessionReferentPairNgramCountMap(
-						sessionRefNgramCounts);
+				final Map<Referent, VisualizableReferent> vizRefs = SessionReferentNgrams
+						.createVisualizableReferentMap(sessions);
+				final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts = SessionReferentNgrams
+						.createSessionReferentNgramCountMap(sessions, vizRefs, ngramFactory, onlyInstructor);
+				final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> pairNgramCounts = SessionReferentNgrams
+						.createSessionReferentPairNgramCountMap(sessionRefNgramCounts);
 				LOGGER.info("Calculating TF-IDF scores for {} session-referent pairs.", pairNgramCounts.size());
 				final long tfIdfCalculatorConstructionStart = System.currentTimeMillis();
 				final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator = TfIdfCalculator
@@ -306,8 +307,6 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		return Stream.of("\\begin{tabular}{|l l l|}", "\\hline%", colHeaderRow, "\\hline%");
 	}
 
-	
-
 	private static String createRow(final String dyadId, final Node refSvgRootElem, final List<String> ngram,
 			final int count, final double score) {
 		final String ngramRepr = ngram.stream().collect(TOKEN_JOINER);
@@ -317,16 +316,11 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		return rowCells.collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM + LINE_DELIM;
 	}
 
-	
-
-	
 	private static List<BiConsumer<VisualizableReferent, SVGDocument>> createSVGDocPostProcessors() {
 		final BiConsumer<VisualizableReferent, SVGDocument> resizer = (ref, svgDoc) -> SVGDocuments.setSize(svgDoc,
 				"100%", "100%");
 		return Arrays.asList(resizer);
 	}
-
-
 
 	private final TfIdfKeywordVisualizationRowFactory<String> rowFactory;
 
