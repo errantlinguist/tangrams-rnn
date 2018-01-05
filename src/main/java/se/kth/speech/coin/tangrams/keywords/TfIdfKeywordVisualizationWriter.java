@@ -84,7 +84,7 @@ import se.kth.speech.function.ThrowingSupplier;
  */
 public final class TfIdfKeywordVisualizationWriter {
 
-	private class DocumentTfIdfCalculator {
+	private class DocumentTfIdfCalculator implements ToDoubleFunction<List<String>> {
 
 		private final Entry<String, VisualizableReferent> doc;
 
@@ -92,11 +92,12 @@ public final class TfIdfKeywordVisualizationWriter {
 			this.doc = doc;
 		}
 
-		private double applyAsDouble(final List<String> ngram, final int count) {
+		@Override
+		public double applyAsDouble(final List<String> ngram) {
 			final double score = tfidfCalculator.applyAsDouble(ngram, doc);
 			final int ngramOrder = ngram.size();
 			final double normalizer = ngramOrder + Math.log10(ngramOrder);
-			return score * normalizer * count;
+			return score * normalizer;
 		}
 	}
 
@@ -545,13 +546,11 @@ public final class TfIdfKeywordVisualizationWriter {
 		return rows.length;
 	}
 
-	private DoubleStream calculateWeightedNgramScores(final Object2IntMap<List<String>> ngramCounts,
+	private DoubleStream calculateNgramScores(final Collection<List<String>> ngrams,
 			final Entry<String, VisualizableReferent> sessionRef) {
 		final DocumentTfIdfCalculator sessionNgramScorer = new DocumentTfIdfCalculator(sessionRef);
-		return ngramCounts.object2IntEntrySet().stream().mapToDouble(ngramCount -> {
-			final List<String> ngram = ngramCount.getKey();
-			final int count = ngramCount.getIntValue();
-			return sessionNgramScorer.applyAsDouble(ngram, count);
+		return ngrams.stream().mapToDouble(ngram -> {
+			return sessionNgramScorer.applyAsDouble(ngram);
 		});
 	}
 
@@ -573,8 +572,8 @@ public final class TfIdfKeywordVisualizationWriter {
 			// referent's total score
 			final Map<VisualizableReferent, Object2IntMap<List<String>>> refNgramCounts = sessionRefNgramCounts
 					.getValue();
-			final ToDoubleFunction<Entry<VisualizableReferent, Object2IntMap<List<String>>>> inverseNgramCountScorer = entry -> -calculateWeightedNgramScores(
-					entry.getValue(), Pair.of(sessionName, entry.getKey())).average().orElse(Double.NEGATIVE_INFINITY);
+			final ToDoubleFunction<Entry<VisualizableReferent, Object2IntMap<List<String>>>> inverseNgramCountScorer = entry -> -calculateNgramScores(
+					entry.getValue().keySet(), Pair.of(sessionName, entry.getKey())).average().orElse(Double.NEGATIVE_INFINITY);
 			final Comparator<Entry<VisualizableReferent, Object2IntMap<List<String>>>> ngramScoreComparator = Comparator
 					.comparingDouble(inverseNgramCountScorer);
 			final Stream<Entry<VisualizableReferent, Object2IntMap<List<String>>>> nbestRefNgramCounts = refNgramCounts
@@ -588,14 +587,13 @@ public final class TfIdfKeywordVisualizationWriter {
 				// referent
 				final DocumentTfIdfCalculator ngramScorer = new DocumentTfIdfCalculator(Pair.of(sessionName, ref));
 				final Comparator<Object2IntMap.Entry<List<String>>> nbestNgramCountComparator = Comparator
-						.comparingDouble(ngramCount -> -ngramScorer.applyAsDouble(ngramCount.getKey(),
-								1));
+						.comparingDouble(ngramCount -> -ngramScorer.applyAsDouble(ngramCount.getKey()));
 				final Stream<Object2IntMap.Entry<List<String>>> nbestNgramCounts = entry.getValue().object2IntEntrySet()
 						.stream().sorted(nbestNgramCountComparator).limit(nbestNgrams);
 				return nbestNgramCounts.map(ngramCount -> {
 					final List<String> ngram = ngramCount.getKey();
 					final int count = ngramCount.getIntValue();
-					return createRow(sessionName, svgTag, ngram, count, ngramScorer.applyAsDouble(ngram, 1));
+					return createRow(sessionName, svgTag, ngram, count, ngramScorer.applyAsDouble(ngram));
 				});
 			});
 		});
