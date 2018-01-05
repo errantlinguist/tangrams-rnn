@@ -37,8 +37,6 @@ final class VisualizableReferent {
 
 	private final int green;
 
-	private final float hue;
-
 	private final int red;
 
 	private final String shape;
@@ -46,7 +44,6 @@ final class VisualizableReferent {
 	private VisualizableReferent(final Referent ref) {
 		blue = ref.getBlueInt();
 		green = ref.getGreenInt();
-		hue = ref.getHue();
 		red = ref.getRedInt();
 		shape = ref.getShape();
 	}
@@ -72,9 +69,6 @@ final class VisualizableReferent {
 			return false;
 		}
 		if (Float.floatToIntBits(green) != Float.floatToIntBits(other.green)) {
-			return false;
-		}
-		if (Float.floatToIntBits(hue) != Float.floatToIntBits(other.hue)) {
 			return false;
 		}
 		if (Float.floatToIntBits(red) != Float.floatToIntBits(other.red)) {
@@ -129,7 +123,6 @@ final class VisualizableReferent {
 		int result = 1;
 		result = prime * result + Float.floatToIntBits(blue);
 		result = prime * result + Float.floatToIntBits(green);
-		result = prime * result + Float.floatToIntBits(hue);
 		result = prime * result + Float.floatToIntBits(red);
 		result = prime * result + (shape == null ? 0 : shape.hashCode());
 		return result;
@@ -148,8 +141,6 @@ final class VisualizableReferent {
 		builder.append(blue);
 		builder.append(", green=");
 		builder.append(green);
-		builder.append(", hue=");
-		builder.append(hue);
 		builder.append(", red=");
 		builder.append(red);
 		builder.append(", shape=");
