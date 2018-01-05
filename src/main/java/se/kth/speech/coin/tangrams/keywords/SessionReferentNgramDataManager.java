@@ -113,11 +113,12 @@ final class SessionReferentNgramDataManager {
 		return session.getRounds().stream().flatMap(this::createNgrams);
 	}
 
-	Map<Session, Object2IntMap<List<String>>> createSessionNgramCountMap(final Collection<Session> sessions) {
-		final Map<Session, Object2IntMap<List<String>>> result = new HashMap<>(
+	Map<String, Object2IntMap<List<String>>> createSessionNgramCountMap(final Collection<Session> sessions) {
+		final Map<String, Object2IntMap<List<String>>> result = new HashMap<>(
 				HashedCollections.capacity(sessions.size()));
 		sessions.forEach(session -> {
-			final Object2IntMap<List<String>> ngramCounts = result.computeIfAbsent(session,
+			final String sessionName = session.getName();
+			final Object2IntMap<List<String>> ngramCounts = result.computeIfAbsent(sessionName,
 					key -> new Object2IntOpenHashMap<>());
 			createNgrams(session).forEach(ngram -> incrementCount(ngram, ngramCounts));
 		});

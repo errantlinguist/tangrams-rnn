@@ -228,13 +228,13 @@ public final class TfIdfKeywordWriter {
 				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
 				LOGGER.info("Only use instructor language? {}", onlyInstructor);
 
-				final Map<Session, Object2IntMap<List<String>>> sessionNgramCounts = new SessionReferentNgramDataManager(
+				final Map<String, Object2IntMap<List<String>>> sessionNgramCounts = new SessionReferentNgramDataManager(
 						Parameter.createNgramFactory(cl), onlyInstructor).createSessionNgramCountMap(sessions);
 
 				LOGGER.info("Calculating TF-IDF scores.");
 				final long tfIdfCalculatorConstructionStart = System.currentTimeMillis();
-				final TfIdfCalculator<List<String>, Session> tfIdfCalculator = TfIdfCalculator
-						.create(sessionNgramCounts, tfVariant);
+				final TfIdfCalculator<List<String>, String> tfIdfCalculator = TfIdfCalculator.create(sessionNgramCounts,
+						tfVariant);
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfCalculatorConstructionStart) / 1000.0);
 				final TfIdfKeywordWriter keywordWriter = new TfIdfKeywordWriter(sessionNgramCounts, tfIdfCalculator);
@@ -284,12 +284,12 @@ public final class TfIdfKeywordWriter {
 		return weight / wrapped.size();
 	}
 
-	private final Map<Session, Object2IntMap<List<String>>> sessionNgramCounts;
+	private final Map<String, Object2IntMap<List<String>>> sessionNgramCounts;
 
-	private final TfIdfCalculator<List<String>, Session> tfidfCalculator;
+	private final TfIdfCalculator<List<String>, String> tfidfCalculator;
 
-	public TfIdfKeywordWriter(final Map<Session, Object2IntMap<List<String>>> sessionNgramCounts,
-			final TfIdfCalculator<List<String>, Session> tfidfCalculator) {
+	public TfIdfKeywordWriter(final Map<String, Object2IntMap<List<String>>> sessionNgramCounts,
+			final TfIdfCalculator<List<String>, String> tfidfCalculator) {
 		this.sessionNgramCounts = sessionNgramCounts;
 		this.tfidfCalculator = tfidfCalculator;
 	}
@@ -297,13 +297,13 @@ public final class TfIdfKeywordWriter {
 	public int write(final CSVPrinter printer) throws IOException {
 		int result = 0;
 
-		final List<Entry<Session, ? extends Object2IntMap<List<String>>>> sortedEntries = new ArrayList<>(
+		final List<Entry<String, ? extends Object2IntMap<List<String>>>> sortedEntries = new ArrayList<>(
 				sessionNgramCounts.entrySet());
-		sortedEntries.sort(Comparator.comparing(entry -> entry.getKey().getName(), SESSION_NAME_COMPARATOR));
-		for (final Entry<Session, ? extends Object2IntMap<List<String>>> entry : sortedEntries) {
-			final Session session = entry.getKey();
+		sortedEntries.sort(Comparator.comparing(entry -> entry.getKey(), SESSION_NAME_COMPARATOR));
+		for (final Entry<String, ? extends Object2IntMap<List<String>>> entry : sortedEntries) {
+			final String sessionName = entry.getKey();
 			final Object2IntMap<List<String>> ngramCounts = entry.getValue();
-			final ToDoubleFunction<List<String>> ngramScorer = word -> tfidfCalculator.applyAsDouble(word, session);
+			final ToDoubleFunction<List<String>> ngramScorer = word -> tfidfCalculator.applyAsDouble(word, sessionName);
 			final Stream<Weighted<List<String>>> scoredNgrams = ngramCounts.object2IntEntrySet().stream()
 					.map(ngramCount -> {
 						final List<String> ngram = ngramCount.getKey();
@@ -312,7 +312,6 @@ public final class TfIdfKeywordWriter {
 						return new Weighted<>(ngram, score * count);
 					}).sorted(SCORED_NGRAM_COMPARATOR);
 
-			final String sessionName = session.getName();
 			final Stream<Stream<String>> cellValues = scoredNgrams
 					.map(scoredNgram -> createRow(sessionName, scoredNgram));
 			final List<String[]> rows = Arrays
