@@ -268,7 +268,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs,
 						nbestNgrams);
 				final TfIdfKeywordVisualizationLaTeXWriter keywordWriter = new TfIdfKeywordVisualizationLaTeXWriter(
-						imgResDir, tfIdfCalculator, nbestRefs, nbestNgrams, outdir);
+						outdir, tfIdfCalculator, imgResDir, nbestRefs, nbestNgrams);
 
 				LOGGER.info("Writing rows.");
 				final long writeStart = System.currentTimeMillis();
@@ -319,9 +319,9 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 	private final TfIdfKeywordVisualizationRowFactory<String> rowFactory;
 
-	public TfIdfKeywordVisualizationLaTeXWriter(final Path imgResDir,
+	public TfIdfKeywordVisualizationLaTeXWriter(final Path outdir,
 			final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator,
-			final long nbestRefs, final long nbestNgrams, final Path outdir) {
+			final Path imgResDir, final long nbestRefs, final long nbestNgrams) {
 		this.outdir = outdir;
 
 		final SVGDocumentFactory svgDocFactory = new SVGDocumentFactory(imgResDir, SVG_DOC_POSTPROCESSORS);
