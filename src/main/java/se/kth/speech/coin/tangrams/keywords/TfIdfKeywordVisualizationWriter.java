@@ -66,6 +66,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import j2html.Config;
 import j2html.TagCreator;
 import j2html.tags.ContainerTag;
+import j2html.tags.DomContent;
 import j2html.tags.UnescapedText;
 import se.kth.speech.HashedCollections;
 import se.kth.speech.coin.tangrams.CLIParameters;
@@ -530,7 +531,7 @@ public final class TfIdfKeywordVisualizationWriter {
 		});
 	}
 
-	private ContainerTag createRow(final String dyadId, final UnescapedText svgTag, final List<String> ngram,
+	private ContainerTag createRow(final String dyadId, final DomContent svgTag, final List<String> ngram,
 			final int count, final double score) {
 		final String ngramRepr = ngram.stream().collect(TOKEN_JOINER);
 		final ContainerTag svgCell = TagCreator.td(svgTag);
