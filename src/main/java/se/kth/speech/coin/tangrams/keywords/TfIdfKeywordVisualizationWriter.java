@@ -589,13 +589,13 @@ public final class TfIdfKeywordVisualizationWriter {
 				final DocumentTfIdfCalculator ngramScorer = new DocumentTfIdfCalculator(Pair.of(sessionName, ref));
 				final Comparator<Object2IntMap.Entry<List<String>>> nbestNgramCountComparator = Comparator
 						.comparingDouble(ngramCount -> -ngramScorer.applyAsDouble(ngramCount.getKey(),
-								ngramCount.getIntValue()));
+								1));
 				final Stream<Object2IntMap.Entry<List<String>>> nbestNgramCounts = entry.getValue().object2IntEntrySet()
 						.stream().sorted(nbestNgramCountComparator).limit(nbestNgrams);
 				return nbestNgramCounts.map(ngramCount -> {
 					final List<String> ngram = ngramCount.getKey();
 					final int count = ngramCount.getIntValue();
-					return createRow(sessionName, svgTag, ngram, count, ngramScorer.applyAsDouble(ngram, count));
+					return createRow(sessionName, svgTag, ngram, count, ngramScorer.applyAsDouble(ngram, 1));
 				});
 			});
 		});
