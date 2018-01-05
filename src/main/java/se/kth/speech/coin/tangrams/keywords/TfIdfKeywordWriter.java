@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -45,8 +46,7 @@ import org.apache.commons.csv.CSVPrinter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Maps;
-
+import se.kth.speech.HashedCollections;
 import se.kth.speech.coin.tangrams.CLIParameters;
 import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.Session;
@@ -287,7 +287,7 @@ public final class TfIdfKeywordWriter {
 
 	private static Map<Session, List<List<String>>> createSessionNgramMap(final Collection<Session> sessions,
 			final NGramFactory ngramFactory) {
-		final Map<Session, List<List<String>>> result = Maps.newHashMapWithExpectedSize(sessions.size());
+		final Map<Session, List<List<String>>> result = new HashMap<>(HashedCollections.capacity(sessions.size()));
 		sessions.forEach(
 				session -> result.put(session, createNgrams(session, ngramFactory).collect(Collectors.toList())));
 		return result;
