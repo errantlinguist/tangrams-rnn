@@ -192,19 +192,6 @@ public final class TfIdfKeywordWriter implements Closeable, Flushable {
 
 	private static final Comparator<Weighted<? extends List<?>>> SCORED_NGRAM_COMPARATOR = createScoredNgramComparator();
 
-	private static final Comparator<String> SESSION_NAME_COMPARATOR = new Comparator<String>() {
-
-		@Override
-		public int compare(final String o1, final String o2) {
-			// NOTE: This comparison only works for session names which
-			// represent integer values
-			final int i1 = Integer.parseInt(o1);
-			final int i2 = Integer.parseInt(o2);
-			return Integer.compare(i1, i2);
-		}
-
-	};
-
 	private static final Collector<CharSequence, ?, String> TOKEN_JOINER = Collectors.joining(" ");
 
 	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD
@@ -312,7 +299,7 @@ public final class TfIdfKeywordWriter implements Closeable, Flushable {
 
 		final List<Entry<String, ? extends Object2IntMap<List<String>>>> sortedEntries = new ArrayList<>(
 				sessionNgramCounts.entrySet());
-		sortedEntries.sort(Comparator.comparing(entry -> entry.getKey(), SESSION_NAME_COMPARATOR));
+		sortedEntries.sort(Comparator.comparing(entry -> entry.getKey(), Session.getNameComparator()));
 		for (final Entry<String, ? extends Object2IntMap<List<String>>> entry : sortedEntries) {
 			final String sessionName = entry.getKey();
 			final Object2IntMap<List<String>> ngramCounts = entry.getValue();

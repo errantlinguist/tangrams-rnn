@@ -15,13 +15,51 @@
  */
 package se.kth.speech.coin.tangrams.wac.data;
 
+import java.util.Comparator;
 import java.util.List;
 
 public final class Session {
 
-	private final List<Round> rounds;
+	private static final Comparator<String> NAME_COMPARATOR = new Comparator<String>() {
+
+		@Override
+		public int compare(final String o1, final String o2) {
+			int result = 0;
+			try {
+				final double n1 = Double.parseDouble(o1);
+				try {
+					final double n2 = Double.parseDouble(o2);
+					// Both strings are numeric; Compare as doubles
+					result = Double.compare(n1, n2);
+				} catch (final NumberFormatException e2) {
+					// The first string is numeric but the second isn't
+					result = -1;
+				}
+			} catch (final NumberFormatException e1) {
+				try {
+					Double.parseDouble(o2);
+					// The second string is numeric but the first isn't
+					result = 1;
+				} catch (final NumberFormatException e2) {
+					// Neither string is numeric; Compare as strings
+					result = o1.compareTo(o2);
+				}
+			}
+			return result;
+		}
+
+	};
+
+	/**
+	 * @return the nameComparator
+	 */
+	public static Comparator<String> getNameComparator() {
+		return NAME_COMPARATOR;
+	}
 
 	private final String name;
+
+	private final List<Round> rounds;
 
 	public Session(final String name, final List<Round> rounds) { // NO_UCD (use default)
 		this.name = name;
@@ -30,7 +68,7 @@ public final class Session {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
@@ -78,7 +116,7 @@ public final class Session {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
@@ -92,12 +130,12 @@ public final class Session {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
 	public String toString() {
-		StringBuilder builder = new StringBuilder(64 * (rounds.size() + 1));
+		final StringBuilder builder = new StringBuilder(64 * (rounds.size() + 1));
 		builder.append("Session [name=");
 		builder.append(name);
 		builder.append(", rounds=");

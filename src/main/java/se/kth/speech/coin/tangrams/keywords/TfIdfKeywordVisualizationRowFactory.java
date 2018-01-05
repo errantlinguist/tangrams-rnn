@@ -33,6 +33,7 @@ import org.w3c.dom.svg.SVGDocument;
 import org.w3c.dom.svg.SVGSVGElement;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import se.kth.speech.coin.tangrams.wac.data.Session;
 
 /**
  * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
@@ -64,36 +65,6 @@ public final class TfIdfKeywordVisualizationRowFactory<R>
 		}
 	}
 
-	private static final Comparator<String> SESSION_NAME_COMPARATOR = new Comparator<String>() {
-
-		@Override
-		public int compare(final String o1, final String o2) {
-			int result = 0;
-			try {
-				final double n1 = Double.parseDouble(o1);
-				try {
-					final double n2 = Double.parseDouble(o2);
-					// Both strings are numeric; Compare as doubles
-					result = Double.compare(n1, n2);
-				} catch (final NumberFormatException e2) {
-					// The first string is numeric but the second isn't
-					result = -1;
-				}
-			} catch (final NumberFormatException e1) {
-				try {
-					Double.parseDouble(o2);
-					// The second string is numeric but the first isn't
-					result = 1;
-				} catch (final NumberFormatException e2) {
-					// Neither string is numeric; Compare as strings
-					result = o1.compareTo(o2);
-				}
-			}
-			return result;
-		}
-
-	};
-
 	private final long nbestNgrams;
 
 	private final long nbestRefs;
@@ -123,7 +94,7 @@ public final class TfIdfKeywordVisualizationRowFactory<R>
 		final Map<VisualizableReferent, SVGSVGElement> refSvgRootElems = createRefSVGRootElementMap(distinctRefs);
 
 		final Stream<Entry<String, Map<VisualizableReferent, Object2IntMap<List<String>>>>> sortedSessionRefNgramCounts = sessionNgramCounts
-				.entrySet().stream().sorted(Comparator.comparing(entry -> entry.getKey(), SESSION_NAME_COMPARATOR));
+				.entrySet().stream().sorted(Comparator.comparing(entry -> entry.getKey(), Session.getNameComparator()));
 		return sortedSessionRefNgramCounts.flatMap(sessionRefNgramCounts -> {
 			final String sessionName = sessionRefNgramCounts.getKey();
 			// After having sorted by session name, sort by the score of a given
