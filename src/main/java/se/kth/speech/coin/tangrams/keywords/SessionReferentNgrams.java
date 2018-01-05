@@ -49,7 +49,7 @@ final class SessionReferentNgrams {
 		@SuppressWarnings("unchecked")
 		final List<List<String>> ngrams = Arrays
 				.asList(createNgrams(round, ngramFactory, onlyInstructor).toArray(List[]::new));
-		final Object2IntOpenHashMap<List<String>> result = new Object2IntOpenHashMap<List<String>>(ngrams.size());
+		final Object2IntOpenHashMap<List<String>> result = new Object2IntOpenHashMap<>(ngrams.size());
 		ngrams.forEach(ngram -> incrementCount(ngram, result));
 		result.trim();
 		return result;
@@ -73,15 +73,23 @@ final class SessionReferentNgrams {
 		assert oldValue == oldValue2;
 	}
 
+	private static <K> void incrementCount(final Object2IntMap.Entry<K> entry, final Object2IntMap<? super K> counts) {
+		final K key = entry.getKey();
+		final int oldValue = counts.getInt(key);
+		final int oldValue2 = counts.put(key, oldValue + entry.getIntValue());
+		assert oldValue == oldValue2;
+	}
+
 	static Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> createSessionReferentNgramCountMap(
 			final Collection<Session> sessions, final Map<Referent, VisualizableReferent> vizRefs,
 			final NGramFactory ngramFactory, final boolean onlyInstructor) {
-		final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> result = new HashMap<>(
-				sessions.size());
+		final int refNgramCountMapInitialCapacity = HashedCollections.capacity(EST_UNIQUE_REFS_PER_SESSION);
+		final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> result = sessions.stream()
+				.collect(Collectors.toMap(Session::getName, session -> new HashMap<>(refNgramCountMapInitialCapacity)));
+
 		sessions.forEach(session -> {
 			final String sessionName = session.getName();
-			final Map<VisualizableReferent, Object2IntMap<List<String>>> refNgramCounts = result.computeIfAbsent(
-					sessionName, key -> new HashMap<>(HashedCollections.capacity(EST_UNIQUE_REFS_PER_SESSION)));
+			final Map<VisualizableReferent, Object2IntMap<List<String>>> refNgramCounts = result.get(sessionName);
 
 			session.getRounds().forEach(round -> {
 				// Use the same n-gram list for each referent
@@ -89,8 +97,10 @@ final class SessionReferentNgrams {
 						onlyInstructor);
 
 				getTargetRefs(round).map(vizRefs::get).forEach(vizRef -> {
-					final Object2IntMap<List<String>> oldTableValue = refNgramCounts.put(vizRef, ngramCounts);
-					assert oldTableValue == null;
+					final Object2IntMap<List<String>> extantNgramCounts = refNgramCounts.computeIfAbsent(vizRef,
+							key -> new Object2IntOpenHashMap<>());
+					ngramCounts.object2IntEntrySet()
+							.forEach(ngramCount -> incrementCount(ngramCount, extantNgramCounts));
 				});
 			});
 		});
@@ -111,8 +121,7 @@ final class SessionReferentNgrams {
 		return result;
 	}
 
-	static Map<Referent, VisualizableReferent> createVisualizableReferentMap(
-			final Collection<Session> sessions) {
+	static Map<Referent, VisualizableReferent> createVisualizableReferentMap(final Collection<Session> sessions) {
 		final Stream<Referent> refs = sessions.stream().map(Session::getRounds).flatMap(List::stream)
 				.flatMap(SessionReferentNgrams::getTargetRefs);
 		return refs.distinct().collect(Collectors.toMap(Function.identity(), VisualizableReferent::fetch));
