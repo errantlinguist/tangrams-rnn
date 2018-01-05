@@ -72,16 +72,18 @@ public final class TfIdfKeywordWriter implements Closeable, Flushable {
 			@Override
 			public Option get() {
 				return Option.builder(optName).longOpt("max-length")
-						.desc("The maximum length of n-grams to calculate scores for..").hasArg().argName("length")
-						.type(Number.class).build();
+						.desc(String.format("The maximum length of n-grams to calculate scores for; Default: %d",
+								DEFAULT_MAX_LENGTH))
+						.hasArg().argName("length").type(Number.class).build();
 			}
 		},
 		MIN_NGRAM_LENGTH("min") {
 			@Override
 			public Option get() {
 				return Option.builder(optName).longOpt("min-length")
-						.desc("The minimum length of n-grams to calculate scores for..").hasArg().argName("length")
-						.type(Number.class).build();
+						.desc(String.format("The minimum length of n-grams to calculate scores for; Default: %d",
+								DEFAULT_MIN_LENGTH))
+						.hasArg().argName("length").type(Number.class).build();
 			}
 		},
 		ONLY_INSTRUCTOR("i") {
@@ -134,7 +136,7 @@ public final class TfIdfKeywordWriter implements Closeable, Flushable {
 			final int maxLengthValue;
 
 			final Number minLength = (Number) cl.getParsedOptionValue(Parameter.MIN_NGRAM_LENGTH.optName);
-			final Number maxLength = (Number) cl.getParsedOptionValue(Parameter.MIN_NGRAM_LENGTH.optName);
+			final Number maxLength = (Number) cl.getParsedOptionValue(Parameter.MAX_NGRAM_LENGTH.optName);
 			if (minLength == null) {
 				if (maxLength == null) {
 					minLengthValue = DEFAULT_MIN_LENGTH;
