@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.ToDoubleFunction;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
@@ -60,8 +61,6 @@ import org.w3c.dom.Node;
 import org.w3c.dom.svg.SVGDocument;
 import org.w3c.dom.svg.SVGSVGElement;
 
-import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
-import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import j2html.Config;
@@ -231,82 +230,56 @@ public final class TfIdfKeywordVisualizationWriter {
 
 	}
 
-	private class SessionReferentNgramScoreData {
+	private static class SessionReferentNgramCountData {
 
-		/**
-		 * A mapping of session-referent pair to the sum of scores for all
-		 * <em>n</em>-grams for that pair.
-		 */
-		private final Object2DoubleMap<Entry<String, VisualizableReferent>> pairScores;
+		private static final int EST_UNIQUE_REFS_PER_SESSION = 50;
 
-		/**
-		 * A mapping of sessions to sub-maps, each of which maps each referent
-		 * for that session to the sum of scores for all <n>-grams observed for
-		 * that session-referent pair.
-		 */
-		private final Map<String, Object2DoubleMap<VisualizableReferent>> table;
+		private final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> paired;
 
-		private SessionReferentNgramScoreData(
-				final Map<? extends Entry<String, VisualizableReferent>, ? extends Object2IntMap<List<String>>> sessionRefNgramCounts) {
-			pairScores = new Object2DoubleOpenHashMap<>(sessionRefNgramCounts.size());
-			pairScores.defaultReturnValue(Double.NaN);
-			sessionRefNgramCounts.forEach((sessionRef, ngramCounts) -> {
-				final DoubleStream ngramScores = calculateWeightedNgramScores(ngramCounts, sessionRef);
-				final double totalScore = ngramScores.sum();
-				pairScores.put(sessionRef, totalScore);
-			});
-			assert pairScores.size() == sessionRefNgramCounts.size();
+		private final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> table;
 
-			table = new HashMap<>();
-			sessionRefNgramCounts.forEach((sessionRef, ngramCounts) -> {
-				final String sessionName = sessionRef.getKey();
-				// The total score for the given referent over all
-				// session-referent pairs
-				final Object2DoubleMap<VisualizableReferent> refScores = table.computeIfAbsent(sessionName, key -> {
-					final Object2DoubleOpenHashMap<VisualizableReferent> newScoreMap = new Object2DoubleOpenHashMap<>();
-					newScoreMap.defaultReturnValue(0.0);
-					return newScoreMap;
+		private SessionReferentNgramCountData(final Collection<Session> sessions,
+				final Map<Referent, VisualizableReferent> vizRefs, final NGramFactory ngramFactory) {
+			paired = new HashMap<>(HashedCollections.capacity(sessions.size() * EST_UNIQUE_REFS_PER_SESSION));
+			table = new HashMap<>(sessions.size());
+			sessions.forEach(session -> {
+				final String sessionName = session.getName();
+				final Map<VisualizableReferent, Object2IntMap<List<String>>> refNgramCounts = table.computeIfAbsent(
+						sessionName, key -> new HashMap<>(HashedCollections.capacity(EST_UNIQUE_REFS_PER_SESSION)));
+
+				session.getRounds().forEach(round -> {
+					// Use the same n-gram list for each referent
+					final Object2IntMap<List<String>> ngramCounts = createNgramCountMap(session, ngramFactory);
+
+					getTargetRefs(round).map(vizRefs::get).forEach(vizRef -> {
+						final Object2IntMap<List<String>> oldTableValue = refNgramCounts.put(vizRef, ngramCounts);
+						assert oldTableValue == null;
+
+						final Pair<String, VisualizableReferent> sessionVizRef = Pair.of(sessionName, vizRef);
+						final Object2IntMap<List<String>> oldPairValue = paired.put(sessionVizRef, ngramCounts);
+						assert oldPairValue == null;
+					});
 				});
-				final VisualizableReferent ref = sessionRef.getValue();
-				final double oldScore = refScores.getDouble(ref);
-				final DoubleStream ngramScores = calculateWeightedNgramScores(ngramCounts, sessionRef);
-				final double newScore = oldScore + ngramScores.sum();
-				refScores.put(ref, newScore);
-			});
-
-		}
-
-		private DoubleStream calculateWeightedNgramScores(final Object2IntMap<List<String>> ngramCounts,
-				final Entry<String, VisualizableReferent> sessionRef) {
-			final DocumentTfIdfCalculator sessionNgramScorer = new DocumentTfIdfCalculator(sessionRef);
-			return ngramCounts.object2IntEntrySet().stream().mapToDouble(ngramCount -> {
-				final List<String> ngram = ngramCount.getKey();
-				final int count = ngramCount.getIntValue();
-				return sessionNgramScorer.applyAsDouble(ngram, count);
 			});
 		}
 
 		/**
-		 * @param sessionRef
-		 *            The session-referent pair to get the score for.
-		 * @return The sum of scores for all <em>n</em>-grams for a given
-		 *         session-referent pair.
+		 * @return the paired
 		 */
-		private double getPairTotalScore(final Entry<String, VisualizableReferent> sessionRef) {
-			return pairScores.getDouble(sessionRef);
+		private Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> getPaired() {
+			return paired;
+		}
+
+		private Stream<VisualizableReferent> getReferents() {
+			return paired.keySet().stream().map(Entry::getValue);
 		}
 
 		/**
-		 *
-		 * @param sessionRef
-		 * @return
+		 * @return the table
 		 */
-		private double getSessionReferentScore(final Entry<String, VisualizableReferent> sessionRef) {
-			final String sessionName = sessionRef.getKey();
-			final VisualizableReferent ref = sessionRef.getValue();
-			return table.get(sessionName).getDouble(ref);
+		private Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> getTable() {
+			return table;
 		}
-
 	}
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(TfIdfKeywordVisualizationWriter.class);
@@ -363,12 +336,14 @@ public final class TfIdfKeywordVisualizationWriter {
 				final NGramFactory ngramFactory = Parameter.createNgramFactory(cl);
 
 				final Map<Referent, VisualizableReferent> vizRefs = createVisualizableReferentMap(sessions);
-				final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> sessionRefNgramCounts = createSessionRefNgramCountMap(
-						sessions, vizRefs, ngramFactory);
-				LOGGER.info("Calculating TF-IDF scores for {} session-referent pairs.", sessionRefNgramCounts.size());
+				final SessionReferentNgramCountData sessionRefNgramCounts = new SessionReferentNgramCountData(sessions,
+						vizRefs, ngramFactory);
+				final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> pairNgramCounts = sessionRefNgramCounts
+						.getPaired();
+				LOGGER.info("Calculating TF-IDF scores for {} session-referent pairs.", pairNgramCounts.size());
 				final long tfIdfCalculatorConstructionStart = System.currentTimeMillis();
 				final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator = TfIdfCalculator
-						.create(sessionRefNgramCounts, onlyInstructor, tfVariant);
+						.create(pairNgramCounts, onlyInstructor, tfVariant);
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfCalculatorConstructionStart) / 1000.0);
 
@@ -429,6 +404,15 @@ public final class TfIdfKeywordVisualizationWriter {
 				TagCreator.title("TF-IDF scores"));
 	}
 
+	private static Object2IntMap<List<String>> createNgramCountMap(final Session session,
+			final NGramFactory ngramFactory) {
+		final List<List<String>> ngrams = createNgramList(session, ngramFactory);
+		final Object2IntOpenHashMap<List<String>> result = new Object2IntOpenHashMap<List<String>>(ngrams.size());
+		ngrams.forEach(ngram -> incrementCount(ngram, result));
+		result.trim();
+		return result;
+	}
+
 	/**
 	 * This method is a hack to avoid the inability to suppress generic type
 	 * casting in its caller method.
@@ -456,37 +440,14 @@ public final class TfIdfKeywordVisualizationWriter {
 	}
 
 	private static Map<VisualizableReferent, SVGSVGElement> createRefSVGRootElementMap(
-			final Stream<VisualizableReferent> refs, final Path imgResDir) {
+			final Stream<VisualizableReferent> distinctRefs, final Path imgResDir) {
 		final Map<VisualizableReferent, SVGSVGElement> result = new HashMap<>();
 		// int nextDocId = 1;
-		refs.distinct().forEach(ref -> {
+		distinctRefs.forEach(ref -> {
 			final SVGDocument doc = createSVGDocument(ref, imgResDir);
 			final SVGSVGElement rootElem = doc.getRootElement();
 			// rootElem.setId("svg-" + Integer.toString(nextDocId++));
 			result.put(ref, rootElem);
-		});
-		return result;
-	}
-
-	private static Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> createSessionRefNgramCountMap(
-			final Collection<Session> sessions, final Map<Referent, VisualizableReferent> vizRefs,
-			final NGramFactory ngramFactory) {
-		final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> result = new HashMap<>(
-				HashedCollections.capacity(sessions.size()));
-		sessions.forEach(session -> {
-			final String sessionName = session.getName();
-			session.getRounds().forEach(round -> {
-				// Use the same n-gram list for each referent
-				final List<List<String>> ngrams = createNgramList(session, ngramFactory);
-				final int estimatedTotalSessionRefNgramCount = Math
-						.toIntExact(Math.round(Math.ceil(ngrams.size() * 1.5f)));
-				getTargetRefs(round).map(vizRefs::get).forEach(vizRef -> {
-					final Pair<String, VisualizableReferent> sessionVizRef = Pair.of(sessionName, vizRef);
-					final Object2IntMap<List<String>> ngramCounts = result.computeIfAbsent(sessionVizRef,
-							key -> new Object2IntOpenHashMap<>(estimatedTotalSessionRefNgramCount));
-					ngrams.forEach(ngram -> incrementCount(ngram, ngramCounts));
-				});
-			});
 		});
 		return result;
 	}
@@ -547,58 +508,26 @@ public final class TfIdfKeywordVisualizationWriter {
 
 	private final Map<VisualizableReferent, SVGSVGElement> refSvgRootElems;
 
-	private final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> pairNgramCounts;
+	private final SessionReferentNgramCountData sessionNgramCounts;
 
 	private final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfidfCalculator;
 
-	public TfIdfKeywordVisualizationWriter(final Path imgResDir,
-			final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> pairNgramCounts,
+	public TfIdfKeywordVisualizationWriter(final Path imgResDir, final SessionReferentNgramCountData sessionNgramCounts,
 			final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfidfCalculator,
 			final long nbestRefs, final long nbestNgrams) {
-		this.pairNgramCounts = pairNgramCounts;
-		refSvgRootElems = createRefSVGRootElementMap(pairNgramCounts.keySet().stream().map(Entry::getValue), imgResDir);
+		this.sessionNgramCounts = sessionNgramCounts;
+		final Stream<VisualizableReferent> distinctRefs = sessionNgramCounts.getReferents().distinct();
+		refSvgRootElems = createRefSVGRootElementMap(distinctRefs, imgResDir);
 		this.tfidfCalculator = tfidfCalculator;
 		this.nbestRefs = nbestRefs;
 		this.nbestNgrams = nbestNgrams;
 	}
 
 	public int write(final Writer writer) throws IOException {
-		final SessionReferentNgramScoreData sessionRefNgramScores = new SessionReferentNgramScoreData(pairNgramCounts);
-
-		final Comparator<Entry<Entry<String, VisualizableReferent>, ?>> sessionNameComparator = Comparator
-				.comparing(entry -> entry.getKey().getKey(), SESSION_NAME_COMPARATOR);
-		// After sorting by session name, sort by the score of a given
-		// referent's total score over all session-referent pairs seen
-		final Comparator<Entry<Entry<String, VisualizableReferent>, ?>> bestScoringSessionRefComparator = Comparator
-				.comparingDouble(entry -> -sessionRefNgramScores.getSessionReferentScore(entry.getKey()));
-
-		final Iterable<Entry<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>>> sortedSessionRefNgramCounts = pairNgramCounts
-				.entrySet().stream()
-				.sorted(sessionNameComparator.thenComparing(bestScoringSessionRefComparator))::iterator;
-		final Stream.Builder<ContainerTag> rowArrayBuiler = Stream.builder();
-		for (final Entry<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> entry : sortedSessionRefNgramCounts) {
-			final Entry<String, VisualizableReferent> sessionRef = entry.getKey();
-			final String sessionName = sessionRef.getKey();
-			final VisualizableReferent ref = sessionRef.getValue();
-			final SVGSVGElement refSvgRootElem = refSvgRootElems.get(ref);
-			final UnescapedText svgTag = TagCreator.rawHtml(createXMLString(refSvgRootElem));
-
-			final Object2IntMap<List<String>> ngramCounts = entry.getValue();
-			final DocumentTfIdfCalculator ngramScorer = new DocumentTfIdfCalculator(sessionRef);
-			final Stream<Object2IntMap.Entry<List<String>>> nbestNgramCounts = ngramCounts.object2IntEntrySet().stream()
-					.sorted(Comparator.comparingDouble(
-							ngramCount -> -ngramScorer.applyAsDouble(ngramCount.getKey(), ngramCount.getIntValue())))
-					.limit(nbestNgrams);
-			nbestNgramCounts.map(ngramCount -> {
-				final List<String> ngram = ngramCount.getKey();
-				final int count = ngramCount.getIntValue();
-				return createRow(sessionName, svgTag, ngram, count, ngramScorer.applyAsDouble(ngram, count));
-			}).forEach(rowArrayBuiler);
-		}
+		final ContainerTag[] rows = createRows().toArray(ContainerTag[]::new);
 
 		final ContainerTag thead = TagCreator.thead(TagCreator.tr(TagCreator.td("Dyad"), TagCreator.td("Image"),
 				TagCreator.td("N-gram"), TagCreator.td("Score"), TagCreator.td("Count")));
-		final ContainerTag[] rows = rowArrayBuiler.build().toArray(ContainerTag[]::new);
 		final ContainerTag tbody = TagCreator.tbody(rows);
 		final ContainerTag table = TagCreator.table(thead, tbody);
 		final ContainerTag html = TagCreator.html(createHTMLHeadTag(), TagCreator.body(table));
@@ -607,12 +536,60 @@ public final class TfIdfKeywordVisualizationWriter {
 		return rows.length;
 	}
 
+	private DoubleStream calculateWeightedNgramScores(final Object2IntMap<List<String>> ngramCounts,
+			final Entry<String, VisualizableReferent> sessionRef) {
+		final DocumentTfIdfCalculator sessionNgramScorer = new DocumentTfIdfCalculator(sessionRef);
+		return ngramCounts.object2IntEntrySet().stream().mapToDouble(ngramCount -> {
+			final List<String> ngram = ngramCount.getKey();
+			final int count = ngramCount.getIntValue();
+			return sessionNgramScorer.applyAsDouble(ngram, count);
+		});
+	}
+
 	private ContainerTag createRow(final String dyadId, final UnescapedText svgTag, final List<String> ngram,
 			final int count, final double score) {
 		final String ngramRepr = ngram.stream().collect(TOKEN_JOINER);
 		final ContainerTag svgCell = TagCreator.td(svgTag);
 		return TagCreator.tr(TagCreator.td(dyadId), svgCell, TagCreator.td(ngramRepr),
 				TagCreator.td(Double.toString(score)), TagCreator.td(Integer.toString(count)));
+	}
+
+	private Stream<ContainerTag> createRows() {
+		final Stream<Entry<String, Map<VisualizableReferent, Object2IntMap<List<String>>>>> sortedSessionRefNgramCounts = sessionNgramCounts
+				.getTable().entrySet().stream()
+				.sorted(Comparator.comparing(entry -> entry.getKey(), SESSION_NAME_COMPARATOR));
+		return sortedSessionRefNgramCounts.flatMap(sessionRefNgramCounts -> {
+			final String sessionName = sessionRefNgramCounts.getKey();
+			// After having sorted by session name, sort by the score of a given
+			// referent's total score
+			final Map<VisualizableReferent, Object2IntMap<List<String>>> refNgramCounts = sessionRefNgramCounts
+					.getValue();
+			final ToDoubleFunction<Entry<VisualizableReferent, Object2IntMap<List<String>>>> inverseNgramCountScorer = entry -> -calculateWeightedNgramScores(
+					entry.getValue(), Pair.of(sessionName, entry.getKey())).average().orElse(Double.NEGATIVE_INFINITY);
+			final Comparator<Entry<VisualizableReferent, Object2IntMap<List<String>>>> ngramScoreComparator = Comparator
+					.comparingDouble(inverseNgramCountScorer);
+			final Stream<Entry<VisualizableReferent, Object2IntMap<List<String>>>> nbestRefNgramCounts = refNgramCounts
+					.entrySet().stream().sorted(ngramScoreComparator).limit(nbestRefs);
+			return nbestRefNgramCounts.flatMap(entry -> {
+				final VisualizableReferent ref = entry.getKey();
+				final SVGSVGElement refSvgRootElem = refSvgRootElems.get(ref);
+				final UnescapedText svgTag = TagCreator.rawHtml(createXMLString(refSvgRootElem));
+
+				// Create rows only for the n-best n-grams for the given
+				// referent
+				final DocumentTfIdfCalculator ngramScorer = new DocumentTfIdfCalculator(Pair.of(sessionName, ref));
+				final Comparator<Object2IntMap.Entry<List<String>>> nbestNgramCountComparator = Comparator
+						.comparingDouble(
+								ngramCount -> -ngramScorer.applyAsDouble(ngramCount.getKey(), ngramCount.getIntValue()));
+				final Stream<Object2IntMap.Entry<List<String>>> nbestNgramCounts = entry.getValue().object2IntEntrySet()
+						.stream().sorted(nbestNgramCountComparator).limit(nbestNgrams);
+				return nbestNgramCounts.map(ngramCount -> {
+					final List<String> ngram = ngramCount.getKey();
+					final int count = ngramCount.getIntValue();
+					return createRow(sessionName, svgTag, ngram, count, ngramScorer.applyAsDouble(ngram, count));
+				});
+			});
+		});
 	}
 
 }
