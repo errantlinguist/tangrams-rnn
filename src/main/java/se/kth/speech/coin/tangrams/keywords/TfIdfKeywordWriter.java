@@ -46,6 +46,8 @@ import org.apache.commons.csv.CSVPrinter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import se.kth.speech.HashedCollections;
 import se.kth.speech.coin.tangrams.CLIParameters;
 import se.kth.speech.coin.tangrams.wac.data.Round;
@@ -96,8 +98,8 @@ public final class TfIdfKeywordWriter {
 		OUTPATH("o") {
 			@Override
 			public Option get() {
-				return Option.builder(optName).longOpt("outpath").desc(
-						"The file to write the results to; If this option is not supplied, the standard output stream will be used.")
+				return Option.builder(optName).longOpt("outpath")
+						.desc("The file to write the results to; If this option is not supplied, the standard output stream will be used.")
 						.hasArg().argName("path").type(File.class).build();
 			}
 		},
@@ -225,20 +227,20 @@ public final class TfIdfKeywordWriter {
 				final Path refTokenFilePath = ((File) cl.getParsedOptionValue(Parameter.REFERRING_TOKENS.optName))
 						.toPath();
 
-				final Map<Session, List<List<String>>> sessionNgrams = createSessionNgramMap(
+				final Map<Session, Object2IntMap<List<String>>> sessionNgramCounts = createSessionNgramCountMap(
 						new SessionSetReader(refTokenFilePath).apply(inpaths).getSessions(),
 						Parameter.createNgramFactory(cl));
-				LOGGER.info("Will extract keywords from {} session(s).", sessionNgrams.size());
+				LOGGER.info("Will extract keywords from {} session(s).", sessionNgramCounts.size());
 				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
 				LOGGER.info("Only use instructor language? {}", onlyInstructor);
 
 				LOGGER.info("Calculating TF-IDF scores.");
 				final long tfIdfCalculatorConstructionStart = System.currentTimeMillis();
-				final TfIdfCalculator<List<String>, Session> tfIdfCalculator = TfIdfCalculator.create(sessionNgrams,
-						onlyInstructor, tfVariant);
+				final TfIdfCalculator<List<String>, Session> tfIdfCalculator = TfIdfCalculator
+						.create(sessionNgramCounts, onlyInstructor, tfVariant);
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfCalculatorConstructionStart) / 1000.0);
-				final TfIdfKeywordWriter keywordWriter = new TfIdfKeywordWriter(sessionNgrams, tfIdfCalculator);
+				final TfIdfKeywordWriter keywordWriter = new TfIdfKeywordWriter(sessionNgramCounts, tfIdfCalculator);
 
 				LOGGER.info("Writing rows.");
 				final long writeStart = System.currentTimeMillis();
@@ -285,12 +287,22 @@ public final class TfIdfKeywordWriter {
 		return normalizedWeightAscending.reversed().thenComparing(ngramLengthAscending.reversed());
 	}
 
-	private static Map<Session, List<List<String>>> createSessionNgramMap(final Collection<Session> sessions,
-			final NGramFactory ngramFactory) {
-		final Map<Session, List<List<String>>> result = new HashMap<>(HashedCollections.capacity(sessions.size()));
-		sessions.forEach(
-				session -> result.put(session, createNgrams(session, ngramFactory).collect(Collectors.toList())));
+	private static Map<Session, Object2IntMap<List<String>>> createSessionNgramCountMap(
+			final Collection<Session> sessions, final NGramFactory ngramFactory) {
+		final Map<Session, Object2IntMap<List<String>>> result = new HashMap<>(
+				HashedCollections.capacity(sessions.size()));
+		sessions.forEach(session -> {
+			final Object2IntMap<List<String>> ngramCounts = result.computeIfAbsent(session,
+					key -> new Object2IntOpenHashMap<>());
+			createNgrams(session, ngramFactory).forEach(ngram -> incrementCount(ngram, ngramCounts));
+		});
 		return result;
+	}
+
+	private static <K> void incrementCount(final K key, final Object2IntMap<? super K> counts) {
+		final int oldValue = counts.getInt(key);
+		final int oldValue2 = counts.put(key, oldValue + 1);
+		assert oldValue == oldValue2;
 	}
 
 	private static double normalizeWeight(final Weighted<? extends Collection<?>> weightedColl) {
@@ -299,28 +311,33 @@ public final class TfIdfKeywordWriter {
 		return weight / wrapped.size();
 	}
 
-	private final Map<Session, ? extends Collection<List<String>>> sessionNgrams;
+	private final Map<Session, Object2IntMap<List<String>>> sessionNgramCounts;
 
 	private final TfIdfCalculator<List<String>, Session> tfidfCalculator;
 
-	public TfIdfKeywordWriter(final Map<Session, ? extends Collection<List<String>>> sessionNgrams,
+	public TfIdfKeywordWriter(final Map<Session, Object2IntMap<List<String>>> sessionNgramCounts,
 			final TfIdfCalculator<List<String>, Session> tfidfCalculator) {
-		this.sessionNgrams = sessionNgrams;
+		this.sessionNgramCounts = sessionNgramCounts;
 		this.tfidfCalculator = tfidfCalculator;
 	}
 
 	public int write(final CSVPrinter printer) throws IOException {
 		int result = 0;
-		
-		final List<Entry<Session, ? extends Collection<List<String>>>> sortedEntries = new ArrayList<>(sessionNgrams.entrySet());
+
+		final List<Entry<Session, ? extends Object2IntMap<List<String>>>> sortedEntries = new ArrayList<>(
+				sessionNgramCounts.entrySet());
 		sortedEntries.sort(Comparator.comparing(entry -> entry.getKey().getName(), SESSION_NAME_COMPARATOR));
-		for (final Entry<Session, ? extends Collection<List<String>>> entry : sortedEntries) {
+		for (final Entry<Session, ? extends Object2IntMap<List<String>>> entry : sortedEntries) {
 			final Session session = entry.getKey();
-			final Collection<List<String>> ngrams = entry.getValue();
-			final ToDoubleFunction<List<String>> ngramWeighter = word -> tfidfCalculator.applyAsDouble(word, session);
-			final Stream<Weighted<List<String>>> scoredNgrams = ngrams.stream().distinct()
-					.map(ngram -> new Weighted<>(ngram, ngramWeighter.applyAsDouble(ngram)))
-					.sorted(SCORED_NGRAM_COMPARATOR);
+			final Object2IntMap<List<String>> ngramCounts = entry.getValue();
+			final ToDoubleFunction<List<String>> ngramScorer = word -> tfidfCalculator.applyAsDouble(word, session);
+			final Stream<Weighted<List<String>>> scoredNgrams = ngramCounts.object2IntEntrySet().stream()
+					.map(ngramCount -> {
+						final List<String> ngram = ngramCount.getKey();
+						final double score = ngramScorer.applyAsDouble(ngram);
+						final int count = ngramCount.getIntValue();
+						return new Weighted<>(ngram, score * count);
+					}).sorted(SCORED_NGRAM_COMPARATOR);
 
 			final String sessionName = session.getName();
 			final Stream<Stream<String>> cellValues = scoredNgrams

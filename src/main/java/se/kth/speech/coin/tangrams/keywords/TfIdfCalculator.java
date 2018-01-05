@@ -26,6 +26,7 @@ import it.unimi.dsi.fastutil.doubles.DoubleCollection;
 import it.unimi.dsi.fastutil.doubles.DoubleIterable;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import se.kth.speech.HashedCollections;
 
 /**
@@ -64,37 +65,39 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 
 	private static final int DEFAULT_INITIAL_WORD_MAP_CAPACITY = HashedCollections.capacity(1000);
 
-	public static <O, D> TfIdfCalculator<O, D> create(final Map<D, ? extends Iterable<O>> docObservations,
+	public static <O, D> TfIdfCalculator<O, D> create(final Map<D, ? extends Object2IntMap<O>> docObservationCounts,
 			final boolean onlyInstructor) {
-		return create(docObservations, onlyInstructor, TermFrequencyVariant.NATURAL);
+		return create(docObservationCounts, onlyInstructor, TermFrequencyVariant.NATURAL);
 	}
 
-	public static <O, D> TfIdfCalculator<O, D> create(final Map<D, ? extends Iterable<O>> docObservations,
+	public static <O, D> TfIdfCalculator<O, D> create(final Map<D, ? extends Object2IntMap<O>> docObservationCounts,
 			final boolean onlyInstructor, final TermFrequencyVariant tfVariant) {
-		final int initialMapCapcity = HashedCollections.capacity(docObservations.size());
+		final int initialMapCapcity = HashedCollections.capacity(docObservationCounts.size());
 		final Map<D, Object2DoubleMap<O>> observationCountsPerDoc = new HashMap<>(initialMapCapcity);
 		final Map<O, Set<D>> observationDocs = new HashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY);
-		for (final Entry<D, ? extends Iterable<O>> entry : docObservations.entrySet()) {
+		for (final Entry<D, ? extends Object2IntMap<O>> entry : docObservationCounts.entrySet()) {
 			final D doc = entry.getKey();
 			final Object2DoubleMap<O> docTokenCounts = observationCountsPerDoc.computeIfAbsent(doc, key -> {
 				final Object2DoubleMap<O> counts = new Object2DoubleOpenHashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY);
 				counts.defaultReturnValue(0.0);
 				return counts;
 			});
-			final Iterable<O> observations = entry.getValue();
-			observations.forEach(observation -> {
-				incrementCount(observation, docTokenCounts);
+			final Object2IntMap<O> observationCounts = entry.getValue();
+			observationCounts.object2IntEntrySet().forEach(observationCount -> {
+				final O observation = observationCount.getKey();
+				final int count = observationCount.getIntValue();
+				incrementCount(observation, count, docTokenCounts);
 				observationDocs.computeIfAbsent(observation, key -> new HashSet<>(initialMapCapcity)).add(doc);
 			});
 		}
 
-		return new TfIdfCalculator<>(observationCountsPerDoc, observationDocs, docObservations.size(), tfVariant);
+		return new TfIdfCalculator<>(observationCountsPerDoc, observationDocs, docObservationCounts.size(), tfVariant);
 	}
 
-	private static <K> void incrementCount(final K key, final Object2DoubleMap<? super K> counts) {
-		final double oldValue = counts.getDouble(key);
-		final double oldValue2 = counts.put(key, oldValue + 1.0);
-		assert oldValue == oldValue2;
+	private static <K> void incrementCount(final K key, int addend, final Object2DoubleMap<? super K> counts) {
+		final double augend = counts.getDouble(key);
+		final double oldValue = counts.put(key, augend + addend);
+		assert oldValue == augend;
 	}
 
 	private static double max(final DoubleIterable values) {
