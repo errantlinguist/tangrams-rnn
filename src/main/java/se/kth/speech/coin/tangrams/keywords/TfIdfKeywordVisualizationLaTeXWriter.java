@@ -317,10 +317,8 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		}
 	}
 
-	private static String createFirstReferentNGramRow(final Entry<String, String> sessionRefVizElem,
+	private static String createFirstReferentNGramRow(final String sessionName, final String refVizElem,
 			final Stream<String> ngramRowCells, final int rowspan) {
-		final String sessionName = sessionRefVizElem.getKey();
-		final String refVizElem = sessionRefVizElem.getValue();
 		final Stream<String> prefixCells = Stream.of(sessionName, refVizElem);
 		return Stream.concat(prefixCells, ngramRowCells).collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
 	}
@@ -346,16 +344,17 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 	}
 
 	private static List<String> createReferentNGramRows(
-			final Entry<Entry<String, String>, Stream<Stream<String>>> refNgramRowCells) {
-		final Entry<String, String> sessionRefVizElem = refNgramRowCells.getKey();
+			final ReferentNGramRowGouping<String, Stream<String>> refNgramRowGrouping) {
 		@SuppressWarnings("unchecked")
-		final List<Stream<String>> ngramRowCells = Arrays.asList(refNgramRowCells.getValue().toArray(Stream[]::new));
+		final List<Stream<String>> ngramRowCells = Arrays
+				.asList(refNgramRowGrouping.getNgramRows().toArray(Stream[]::new));
 		final int rowspan = ngramRowCells.size();
 
 		final List<String> result = new ArrayList<>(ngramRowCells.size());
 		final Iterator<Stream<String>> ngramRowCellIter = ngramRowCells.iterator();
 		if (ngramRowCellIter.hasNext()) {
-			result.add(createFirstReferentNGramRow(sessionRefVizElem, ngramRowCellIter.next(), rowspan));
+			result.add(createFirstReferentNGramRow(refNgramRowGrouping.getSessionName(),
+					refNgramRowGrouping.getRefVizElem(), ngramRowCellIter.next(), rowspan));
 			while (ngramRowCellIter.hasNext()) {
 				result.add(createNextReferentNGramRow(ngramRowCellIter.next()));
 			}
@@ -393,7 +392,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 	public int write(final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts)
 			throws IOException {
-		final Stream<Entry<Entry<String, String>, Stream<Stream<String>>>> refNgramRows = rowFactory
+		final Stream<ReferentNGramRowGouping<String, Stream<String>>> refNgramRows = rowFactory
 				.apply(sessionRefNgramCounts);
 		final String[] rows = refNgramRows.map(TfIdfKeywordVisualizationLaTeXWriter::createReferentNGramRows)
 				.flatMap(List::stream).toArray(String[]::new);

@@ -337,11 +337,9 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		}
 	}
 
-	private static ContainerTag createFirstReferentNGramRow(final Entry<String, UnescapedText> sessionRefVizElem,
+	private static ContainerTag createFirstReferentNGramRow(final String sessionName, final UnescapedText refVizElem,
 			final Stream<ContainerTag> ngramRowCells, final int rowspan) {
-		final String sessionName = sessionRefVizElem.getKey();
 		final ContainerTag dyadCell = TagCreator.td(sessionName).attr("rowspan", rowspan);
-		final UnescapedText refVizElem = sessionRefVizElem.getValue();
 		final ContainerTag refCell = TagCreator.td(refVizElem).attr("rowspan", rowspan);
 		final Stream<ContainerTag> prefixCells = Stream.of(dyadCell, refCell);
 		return TagCreator.tr(Stream.concat(prefixCells, ngramRowCells).toArray(ContainerTag[]::new));
@@ -377,17 +375,17 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 	}
 
 	private static List<ContainerTag> createReferentNGramRows(
-			final Entry<? extends Entry<String, UnescapedText>, Stream<Stream<ContainerTag>>> refNgramRowCells) {
-		final Entry<String, UnescapedText> sessionRefVizElem = refNgramRowCells.getKey();
+			final ReferentNGramRowGouping<UnescapedText, Stream<ContainerTag>> refNgramRowGrouping) {
 		@SuppressWarnings("unchecked")
 		final List<Stream<ContainerTag>> ngramRowCells = Arrays
-				.asList(refNgramRowCells.getValue().toArray(Stream[]::new));
+				.asList(refNgramRowGrouping.getNgramRows().toArray(Stream[]::new));
 		final int rowspan = ngramRowCells.size();
 
 		final List<ContainerTag> result = new ArrayList<>(ngramRowCells.size());
 		final Iterator<Stream<ContainerTag>> ngramRowCellIter = ngramRowCells.iterator();
 		if (ngramRowCellIter.hasNext()) {
-			result.add(createFirstReferentNGramRow(sessionRefVizElem, ngramRowCellIter.next(), rowspan));
+			result.add(createFirstReferentNGramRow(refNgramRowGrouping.getSessionName(),
+					refNgramRowGrouping.getRefVizElem(), ngramRowCellIter.next(), rowspan));
 			while (ngramRowCellIter.hasNext()) {
 				result.add(createNextReferentNGramRow(ngramRowCellIter.next()));
 			}
@@ -439,7 +437,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 
 	public int write(final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts)
 			throws IOException {
-		final Stream<Entry<Entry<String, UnescapedText>, Stream<Stream<ContainerTag>>>> refNgramRows = refNgramRowFactory
+		final Stream<ReferentNGramRowGouping<UnescapedText, Stream<ContainerTag>>> refNgramRows = refNgramRowFactory
 				.apply(sessionRefNgramCounts);
 		final ContainerTag[] rows = refNgramRows.map(TfIdfKeywordVisualizationHTMLWriter::createReferentNGramRows)
 				.flatMap(List::stream).toArray(ContainerTag[]::new);

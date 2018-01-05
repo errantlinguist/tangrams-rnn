@@ -36,11 +36,10 @@ import se.kth.speech.coin.tangrams.wac.data.Session;
  *
  */
 public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
-		Function<Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>>, Stream<Entry<Entry<String, V>, Stream<R>>>> {
+		Function<Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>>, Stream<ReferentNGramRowGouping<V, R>>> {
 
 	public interface NGramRowFactory<R> {
-		R apply(final List<String> ngram, final int count,
-				final double score);
+		R apply(final List<String> ngram, final int count, final double score);
 	}
 
 	private class DocumentTfIdfCalculator implements ToDoubleFunction<List<String>> {
@@ -70,9 +69,11 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 
 	private final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator;
 
-	public TfIdfKeywordVisualizationRowFactory(final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator,
+	public TfIdfKeywordVisualizationRowFactory(
+			final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator,
 			final long nbestRefs, final long nbestNgrams,
-			final Function<? super VisualizableReferent, ? extends V> refVisualizationFactory, final NGramRowFactory<? extends R> rowFactory) {
+			final Function<? super VisualizableReferent, ? extends V> refVisualizationFactory,
+			final NGramRowFactory<? extends R> rowFactory) {
 		this.tfIdfCalculator = tfIdfCalculator;
 		this.nbestRefs = nbestRefs;
 		this.nbestNgrams = nbestNgrams;
@@ -81,7 +82,7 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 	}
 
 	@Override
-	public Stream<Entry<Entry<String, V>, Stream<R>>> apply(
+	public Stream<ReferentNGramRowGouping<V, R>> apply(
 			final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionNgramCounts) {
 		final Stream<Entry<String, Map<VisualizableReferent, Object2IntMap<List<String>>>>> sortedSessionRefNgramCounts = sessionNgramCounts
 				.entrySet().stream().sorted(Comparator.comparing(entry -> entry.getKey(), Session.getNameComparator()));
@@ -110,7 +111,7 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 		});
 	}
 
-	private Entry<Entry<String, V>, Stream<R>> createRows(final String sessionName,
+	private ReferentNGramRowGouping<V, R> createRows(final String sessionName,
 			final Entry<VisualizableReferent, Object2IntMap<List<String>>> entry) {
 		final VisualizableReferent ref = entry.getKey();
 		final V refViz = refVisualizationFactory.apply(ref);
@@ -127,7 +128,7 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 			final int count = ngramCount.getIntValue();
 			return rowFactory.apply(ngram, count, ngramScorer.applyAsDouble(ngram));
 		});
-		return Pair.of(Pair.of(sessionName, refViz), rows);
+		return new ReferentNGramRowGouping<>(sessionName, refViz, rows);
 	}
 
 }
