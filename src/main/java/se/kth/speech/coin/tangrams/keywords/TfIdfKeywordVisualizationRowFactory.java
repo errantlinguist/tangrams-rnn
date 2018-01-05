@@ -68,11 +68,28 @@ public final class TfIdfKeywordVisualizationRowFactory<R>
 
 		@Override
 		public int compare(final String o1, final String o2) {
-			// NOTE: This comparison only works for session names which
-			// represent integer values
-			final int i1 = Integer.parseInt(o1);
-			final int i2 = Integer.parseInt(o2);
-			return Integer.compare(i1, i2);
+			int result = 0;
+			try {
+				final int i1 = Integer.parseInt(o1);
+				try {
+					final int i2 = Integer.parseInt(o2);
+					// Both strings are numeric; Compare as ints
+					result = Integer.compare(i1, i2);
+				} catch (final NumberFormatException e2) {
+					// The first string is numeric but the second isn't
+					result = -1;
+				}
+			} catch (final NumberFormatException e1) {
+				try {
+					Integer.parseInt(o2);
+					// The second string is numeric but the first isn't
+					result = 1;
+				} catch (final NumberFormatException e2) {
+					// Neither string is numeric; Compare as strings
+					result = o1.compareTo(o2);
+				}
+			}
+			return result;
 		}
 
 	};
