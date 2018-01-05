@@ -26,7 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.svg.SVGDocument;
 
-import se.kth.speech.coin.tangrams.content.SVGDocuments;
+import se.kth.speech.coin.tangrams.svg.SVGDocuments;
 
 /**
  * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>

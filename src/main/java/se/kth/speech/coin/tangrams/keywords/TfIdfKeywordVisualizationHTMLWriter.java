@@ -65,7 +65,7 @@ import j2html.tags.ContainerTag;
 import j2html.tags.UnescapedText;
 import se.kth.speech.HashedCollections;
 import se.kth.speech.coin.tangrams.CLIParameters;
-import se.kth.speech.coin.tangrams.content.SVGDocuments;
+import se.kth.speech.coin.tangrams.svg.SVGDocuments;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.Session;

@@ -13,10 +13,8 @@
  *	See the License for the specific language governing permissions and
  *	limitations under the License.
  */
-package se.kth.speech.coin.tangrams.content;
+package se.kth.speech.coin.tangrams.svg;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -32,8 +30,7 @@ import java.util.function.Supplier;
 
 import org.apache.batik.transcoder.SVGAbstractTranscoder;
 import org.apache.batik.transcoder.TranscoderException;
-import org.apache.batik.transcoder.TranscoderInput;
-import org.apache.batik.transcoder.TranscoderOutput;
+import org.apache.batik.transcoder.image.PNGTranscoder;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -42,11 +39,8 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.fop.svg.PDFTranscoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.svg.SVGDocument;
-import org.w3c.dom.svg.SVGSVGElement;
 
 import se.kth.speech.function.ThrowingSupplier;
 
@@ -55,7 +49,7 @@ import se.kth.speech.function.ThrowingSupplier;
  * @since 7 Mar 2017
  *
  */
-public final class SVGToPDFWriter {
+public final class SVGToPNGWriter {
 
 	private enum Parameter implements Supplier<Option> {
 		HEIGHT("h") {
@@ -160,7 +154,7 @@ public final class SVGToPDFWriter {
 
 		private static void printHelp() {
 			final HelpFormatter formatter = new HelpFormatter();
-			formatter.printHelp(SVGToPDFWriter.class.getName() + " INPATHS...", OPTIONS);
+			formatter.printHelp(SVGToPNGWriter.class.getName() + " INPATHS...", OPTIONS);
 		}
 
 		protected final String optName;
@@ -171,7 +165,7 @@ public final class SVGToPDFWriter {
 
 	}
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(SVGToPDFWriter.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(SVGToPNGWriter.class);
 
 	public static void main(final CommandLine cl)
 			throws TranscoderException, IOException, URISyntaxException, ParseException {
@@ -181,12 +175,12 @@ public final class SVGToPDFWriter {
 			final Path[] inpaths = cl.getArgList().stream().map(Paths::get).toArray(Path[]::new);
 			final File outpath = (File) cl.getParsedOptionValue(Parameter.OUTPATH.optName);
 			final Consumer<SVGAbstractTranscoder> transcoderConfigurator = Parameter.createTranscoderConfigurator(cl);
-			final Supplier<PDFTranscoder> transcoderFactory = () -> {
-				final PDFTranscoder transcoder = new PDFTranscoder();
+			final Supplier<PNGTranscoder> transcoderFactory = () -> {
+				final PNGTranscoder transcoder = new PNGTranscoder();
 				transcoderConfigurator.accept(transcoder);
 				return transcoder;
 			};
-			final TranscodingWriter writer = new TranscodingWriter(transcoderFactory, "pdf");
+			final TranscodingWriter writer = new TranscodingWriter(transcoderFactory, "png");
 
 			switch (inpaths.length) {
 			case 0: {
@@ -234,121 +228,5 @@ public final class SVGToPDFWriter {
 	private static ThrowingSupplier<OutputStream, IOException> createNewFileSupplier(final Path outfile) {
 		return () -> createNewFile(outfile);
 	}
-	
-	private static void setSize(final SVGDocument doc, final float width, final float height, final String unit) {
-		final SVGSVGElement rootElem = doc.getRootElement();
-		setSize(rootElem, width + unit, height + unit);
-	}
-
-	private static void setSize(final SVGSVGElement elem, final String width, final String height) {
-		// This has been tested; The property changes are in fact persisted
-		final String tag = elem.getTagName();
-		LOGGER.info("Original dimensions of element \"{}\" are {} * {}.", tag,
-				elem.getWidth().getBaseVal().getValueAsString(), elem.getHeight().getBaseVal().getValueAsString());
-		// https://xmlgraphics.apache.org/batik/faq.html#changes-are-not-rendered
-		elem.setAttributeNS(null, "width", width);
-		elem.setAttributeNS(null, "height", height);
-		LOGGER.info("New dimensions of element \"{}\" are {} * {}.", tag,
-				elem.getWidth().getBaseVal().getValueAsString(), elem.getHeight().getBaseVal().getValueAsString());
-	}
-
-	/**
-	 * @see <a href=
-	 *      "http://stackoverflow.com/q/32721467/1391325">StackOverflow</a>
-	 * @param doc
-	 * @param outpath
-	 * @throws TranscoderException
-	 * @throws IOException
-	 */
-	public static void write(final SVGDocument doc, final Path outpath) throws TranscoderException, IOException {
-		setSize(doc, 50f, 50f, "px");
-		final ByteArrayOutputStream resultByteStream = new ByteArrayOutputStream();
-		final TranscoderInput transcoderInput = new TranscoderInput(doc);
-		final TranscoderOutput transcoderOutput = new TranscoderOutput(resultByteStream);
-
-		final PDFTranscoder transcoder = new PDFTranscoder();
-		// final UserAgent userAgent = pngTranscoder.getUserAgent();
-		// final float[] maxDimensions = findMaxDimensions(doc, userAgent);
-		// KEY_WIDTH and KEY_HEIGHT determine the size of the PDF itself but not the size of the image therein
-//		transcoder.addTranscodingHint(SVGAbstractTranscoder.KEY_WIDTH, Float.valueOf(20f));
-//		transcoder.addTranscodingHint(SVGAbstractTranscoder.KEY_HEIGHT, Float.valueOf(500f));
-		// pngTranscoder.addTranscodingHint(SVGAbstractTranscoder.KEY_WIDTH,
-		// Float.valueOf(maxDimensions[0]));
-		// pngTranscoder.addTranscodingHint(SVGAbstractTranscoder.KEY_HEIGHT,
-		// Float.valueOf(maxDimensions[1]));
-		transcoder.transcode(transcoderInput, transcoderOutput);
-
-		try (OutputStream os = new BufferedOutputStream(
-				Files.newOutputStream(outpath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))) {
-			resultByteStream.writeTo(os);
-			// writer.flush();
-		}
-
-	}
-
-	// /**
-	// *
-	// * @param lengthValMatcher
-	// * The {@link Matcher} object matching the length to normalize
-	// * @param userAgent
-	// * The {@link UserAgent} instance to use for converting lengths
-	// * to pixel equivalents.
-	// * @return A floating-point value representing the matched length in
-	// pixels.
-	// */
-	// private static float createPixelLength(final Matcher lengthValMatcher,
-	// final UserAgent userAgent) {
-	// float result = Float.parseFloat(lengthValMatcher.group(1));
-	// if (lengthValMatcher.groupCount() > 1) {
-	// final String measurement = lengthValMatcher.group(2);
-	// if (measurement.equalsIgnoreCase("mm")) {
-	// result = result / userAgent.getPixelUnitToMillimeter();
-	// }
-	// }
-	// return result;
-	// }
-	//
-	// /**
-	// * Finds the width of the widest <code>svg</code> element and the height
-	// of
-	// * the tallest <code>svg</code> element in a given {@link Document} in
-	// * pixels.
-	// *
-	// * @param doc
-	// * The {@code Document} to find the maximum dimensions for.
-	// * @param userAgent
-	// * The {@link UserAgent} instance to use for converting lengths
-	// * to pixel equivalents.
-	// * @return A two-element array of <code>{width, height}</code>.
-	// */
-	// private static float[] findMaxDimensions(final Document doc, final
-	// UserAgent userAgent) {
-	// final Matcher lengthValMatcher = LENGTH_MEASUREMENT_PATTERN.matcher("");
-	// final NodeList svgNodes = doc.getElementsByTagName("svg");
-	// float maxWidth = -1;
-	// float maxHeight = -1;
-	// for (int i = 0; i < svgNodes.getLength(); ++i) {
-	// final Node svgNode = svgNodes.item(i);
-	// final NamedNodeMap svgNodeAttrs = svgNode.getAttributes();
-	// {
-	// final Node svgWidthAttrNode = svgNodeAttrs.getNamedItem("width");
-	// lengthValMatcher.reset(svgWidthAttrNode.getTextContent());
-	// if (lengthValMatcher.matches()) {
-	// final float width = createPixelLength(lengthValMatcher, userAgent);
-	// maxWidth = Math.max(maxWidth, width);
-	// }
-	// }
-	// {
-	// final Node svgHeightAttrNode = svgNodeAttrs.getNamedItem("height");
-	// lengthValMatcher.reset(svgHeightAttrNode.getTextContent());
-	// if (lengthValMatcher.matches()) {
-	// final float height = createPixelLength(lengthValMatcher, userAgent);
-	// maxHeight = Math.max(maxHeight, height);
-	// }
-	// }
-	//
-	// }
-	// return new float[] { maxWidth, maxHeight };
-	// }
 
 }

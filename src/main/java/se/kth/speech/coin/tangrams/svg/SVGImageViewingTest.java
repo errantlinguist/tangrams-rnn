@@ -13,7 +13,7 @@
  *	See the License for the specific language governing permissions and
  *	limitations under the License.
  */
-package se.kth.speech.coin.tangrams.content;
+package se.kth.speech.coin.tangrams.svg;
 
 import java.awt.Dimension;
 import java.awt.EventQueue;
