@@ -100,6 +100,16 @@ public final class SVGDocuments {
 		return read(uri.toString());
 	}
 
+	public static void removeSize(final SVGSVGElement elem) {
+		// This has been tested; The property changes are in fact persisted
+		final String tag = elem.getTagName();
+		LOGGER.debug("Original dimensions of element \"{}\" are {} * {}.", tag,
+				elem.getWidth().getBaseVal().getValueAsString(), elem.getHeight().getBaseVal().getValueAsString());
+		// https://xmlgraphics.apache.org/batik/faq.html#changes-are-not-rendered
+		elem.removeAttributeNS(null, "width");
+		elem.removeAttributeNS(null, "height");
+	}
+
 	/**
 	 *
 	 * @param doc
@@ -124,8 +134,8 @@ public final class SVGDocuments {
 	 * @param value
 	 *            The new value of the property.
 	 * @param priority
-	 *            The new priority of the property (e.g. "important") or the
-	 *            empty string if none.
+	 *            The new priority of the property (e.g. "important") or the empty
+	 *            string if none.
 	 */
 	public static void setPathStyles(final Document doc, final String propertyName, final String value,
 			final String priority) {
@@ -134,11 +144,6 @@ public final class SVGDocuments {
 			final Node pathNode = pathNodes.item(pathNodeIdx);
 			setStyle(pathNode, propertyName, value, priority);
 		}
-	}
-
-	public static void setSize(final SVGDocument doc, final String width, final String height) {
-		final SVGSVGElement rootElem = doc.getRootElement();
-		setSize(rootElem, width, height);
 	}
 
 	public static void setSize(final SVGSVGElement elem, final String width, final String height) {
@@ -162,8 +167,8 @@ public final class SVGDocuments {
 	 * @param value
 	 *            The new value of the property.
 	 * @param priority
-	 *            The new priority of the property (e.g. "important") or the
-	 *            empty string if none.
+	 *            The new priority of the property (e.g. "important") or the empty
+	 *            string if none.
 	 */
 	public static void setStyle(final Node node, final String propertyName, final String value, final String priority) {
 		// final CSSStyleDeclaration style = pathNode.getStyle();

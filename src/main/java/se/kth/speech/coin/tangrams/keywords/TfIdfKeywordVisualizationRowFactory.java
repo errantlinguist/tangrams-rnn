@@ -17,20 +17,15 @@ package se.kth.speech.coin.tangrams.keywords;
 
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.w3c.dom.Node;
-import org.w3c.dom.svg.SVGDocument;
-import org.w3c.dom.svg.SVGSVGElement;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import se.kth.speech.coin.tangrams.wac.data.Session;
@@ -40,11 +35,11 @@ import se.kth.speech.coin.tangrams.wac.data.Session;
  * @since Dec 1, 2017
  *
  */
-public final class TfIdfKeywordVisualizationRowFactory<R>
-		implements Function<Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>>, Stream<R>> {
+public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
+		Function<Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>>, Stream<Entry<Entry<String, V>, Stream<R>>>> {
 
-	public interface RowFactory<R> {
-		R apply(final String dyadId, final Node refSvgRootElem, final List<String> ngram, final int count,
+	public interface NGramRowFactory<R> {
+		R apply(final List<String> ngram, final int count,
 				final double score);
 	}
 
@@ -69,30 +64,25 @@ public final class TfIdfKeywordVisualizationRowFactory<R>
 
 	private final long nbestRefs;
 
-	private final RowFactory<R> rowFactory;
+	private final Function<? super VisualizableReferent, ? extends V> refVisualizationFactory;
+
+	private final NGramRowFactory<? extends R> rowFactory;
 
 	private final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator;
 
-	private final Function<? super VisualizableReferent, ? extends SVGDocument> svgDocFactory;
-
-	public TfIdfKeywordVisualizationRowFactory(
-			final Function<? super VisualizableReferent, ? extends SVGDocument> svgDocFactory,
-			final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator,
-			final long nbestRefs, final long nbestNgrams, final RowFactory<R> rowFactory) {
-		this.svgDocFactory = svgDocFactory;
+	public TfIdfKeywordVisualizationRowFactory(final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator,
+			final long nbestRefs, final long nbestNgrams,
+			final Function<? super VisualizableReferent, ? extends V> refVisualizationFactory, final NGramRowFactory<? extends R> rowFactory) {
 		this.tfIdfCalculator = tfIdfCalculator;
 		this.nbestRefs = nbestRefs;
 		this.nbestNgrams = nbestNgrams;
+		this.refVisualizationFactory = refVisualizationFactory;
 		this.rowFactory = rowFactory;
 	}
 
 	@Override
-	public Stream<R> apply(
+	public Stream<Entry<Entry<String, V>, Stream<R>>> apply(
 			final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionNgramCounts) {
-		final Stream<VisualizableReferent> distinctRefs = sessionNgramCounts.values().stream().map(Map::keySet)
-				.flatMap(Set::stream).distinct();
-		final Map<VisualizableReferent, SVGSVGElement> refSvgRootElems = createRefSVGRootElementMap(distinctRefs);
-
 		final Stream<Entry<String, Map<VisualizableReferent, Object2IntMap<List<String>>>>> sortedSessionRefNgramCounts = sessionNgramCounts
 				.entrySet().stream().sorted(Comparator.comparing(entry -> entry.getKey(), Session.getNameComparator()));
 		return sortedSessionRefNgramCounts.flatMap(sessionRefNgramCounts -> {
@@ -108,24 +98,7 @@ public final class TfIdfKeywordVisualizationRowFactory<R>
 					.comparingDouble(inverseNgramCountScorer);
 			final Stream<Entry<VisualizableReferent, Object2IntMap<List<String>>>> nbestRefNgramCounts = refNgramCounts
 					.entrySet().stream().sorted(ngramScoreComparator).limit(nbestRefs);
-			return nbestRefNgramCounts.flatMap(entry -> {
-				final VisualizableReferent ref = entry.getKey();
-				final SVGSVGElement refSvgRootElem = refSvgRootElems.get(ref);
-
-				// Create rows only for the n-best n-grams for the given
-				// referent
-				final DocumentTfIdfCalculator ngramScorer = new DocumentTfIdfCalculator(Pair.of(sessionName, ref));
-				final Comparator<Object2IntMap.Entry<List<String>>> nbestNgramCountComparator = Comparator
-						.comparingDouble(ngramCount -> -ngramScorer.applyAsDouble(ngramCount.getKey()));
-				final Stream<Object2IntMap.Entry<List<String>>> nbestNgramCounts = entry.getValue().object2IntEntrySet()
-						.stream().sorted(nbestNgramCountComparator).limit(nbestNgrams);
-				return nbestNgramCounts.map(ngramCount -> {
-					final List<String> ngram = ngramCount.getKey();
-					final int count = ngramCount.getIntValue();
-					return rowFactory.apply(sessionName, refSvgRootElem, ngram, count,
-							ngramScorer.applyAsDouble(ngram));
-				});
-			});
+			return nbestRefNgramCounts.map(entry -> createRows(sessionName, entry));
 		});
 	}
 
@@ -137,17 +110,24 @@ public final class TfIdfKeywordVisualizationRowFactory<R>
 		});
 	}
 
-	private Map<VisualizableReferent, SVGSVGElement> createRefSVGRootElementMap(
-			final Stream<VisualizableReferent> distinctRefs) {
-		final Map<VisualizableReferent, SVGSVGElement> result = new HashMap<>();
-		// int nextDocId = 1;
-		distinctRefs.forEach(ref -> {
-			final SVGDocument doc = svgDocFactory.apply(ref);
-			final SVGSVGElement rootElem = doc.getRootElement();
-			// rootElem.setId("svg-" + Integer.toString(nextDocId++));
-			result.put(ref, rootElem);
+	private Entry<Entry<String, V>, Stream<R>> createRows(final String sessionName,
+			final Entry<VisualizableReferent, Object2IntMap<List<String>>> entry) {
+		final VisualizableReferent ref = entry.getKey();
+		final V refViz = refVisualizationFactory.apply(ref);
+
+		// Create rows only for the n-best n-grams for the given
+		// referent
+		final DocumentTfIdfCalculator ngramScorer = new DocumentTfIdfCalculator(Pair.of(sessionName, ref));
+		final Comparator<Object2IntMap.Entry<List<String>>> nbestNgramCountComparator = Comparator
+				.comparingDouble(ngramCount -> -ngramScorer.applyAsDouble(ngramCount.getKey()));
+		final Stream<Object2IntMap.Entry<List<String>>> nbestNgramCounts = entry.getValue().object2IntEntrySet()
+				.stream().sorted(nbestNgramCountComparator).limit(nbestNgrams);
+		final Stream<R> rows = nbestNgramCounts.map(ngramCount -> {
+			final List<String> ngram = ngramCount.getKey();
+			final int count = ngramCount.getIntValue();
+			return rowFactory.apply(ngram, count, ngramScorer.applyAsDouble(ngram));
 		});
-		return result;
+		return Pair.of(Pair.of(sessionName, refViz), rows);
 	}
 
 }

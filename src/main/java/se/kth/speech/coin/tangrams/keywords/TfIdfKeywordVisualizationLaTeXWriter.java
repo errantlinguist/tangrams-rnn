@@ -21,12 +21,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -41,7 +45,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.Node;
 import org.w3c.dom.svg.SVGDocument;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
@@ -188,6 +191,30 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 	}
 
+	private static class PDFLinkTableCellStringFactory implements Function<VisualizableReferent, String> {
+
+		private final Map<VisualizableReferent, String> cache;
+
+		private final Function<? super VisualizableReferent, ? extends SVGDocument> svgDocFactory;
+
+		private PDFLinkTableCellStringFactory(
+				final Function<? super VisualizableReferent, ? extends SVGDocument> svgDocFactory) {
+			this.svgDocFactory = svgDocFactory;
+			cache = new HashMap<>();
+		}
+
+		@Override
+		public String apply(final VisualizableReferent ref) {
+			return cache.computeIfAbsent(ref, this::create);
+		}
+
+		private String create(final VisualizableReferent ref) {
+			final SVGDocument doc = svgDocFactory.apply(ref);
+			// TODO: Finish
+			return "";
+		}
+	}
+
 	private static final String FOOTER;
 
 	private static final String HEADER;
@@ -290,34 +317,67 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		}
 	}
 
+	private static String createFirstReferentNGramRow(final Entry<String, String> sessionRefVizElem,
+			final Stream<String> ngramRowCells, final int rowspan) {
+		final String sessionName = sessionRefVizElem.getKey();
+		final String refVizElem = sessionRefVizElem.getValue();
+		final Stream<String> prefixCells = Stream.of(sessionName, refVizElem);
+		return Stream.concat(prefixCells, ngramRowCells).collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
+	}
+
 	private static Stream<String> createFooterLines() {
 		return Stream.of("\\hline%", "\\end{tabular}");
 	}
 
 	private static Stream<String> createHeaderLines() {
-		final Stream<String> colHeaders = Stream.of("Dyad", "Referent", "$n$-gram");
-		final String colHeaderRow = colHeaders.collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
-		return Stream.of("\\begin{tabular}{|l l l|}", "\\hline%", colHeaderRow, "\\hline%");
+		final List<String> colHeaders = Arrays.asList("Dyad", "Referent", "$n$-gram", "Score");
+		final String colHeaderRow = colHeaders.stream().collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
+		return Stream.of("\\begin{tabular}{|l l l l|}", "\\hline%", colHeaderRow, "\\hline%");
 	}
 
-	private static String createRow(final String dyadId, final Node refSvgRootElem, final List<String> ngram,
-			final int count, final double score) {
+	private static String createNextReferentNGramRow(final Stream<String> ngramRowCells) {
+		final Stream<String> prefixCells = Stream.of("", "");
+		return Stream.concat(prefixCells, ngramRowCells).collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
+	}
+
+	private static Stream<String> createNGramRowCells(final List<String> ngram, final int count, final double score) {
 		final String ngramRepr = ngram.stream().collect(TOKEN_JOINER);
-		// TODO: Implement
-		final String referentRepr = "";
-		final Stream<String> rowCells = Stream.of(dyadId, referentRepr, ngramRepr);
+		return Stream.of(ngramRepr, Double.toString(score));
+	}
+
+	private static List<String> createReferentNGramRows(
+			final Entry<Entry<String, String>, Stream<Stream<String>>> refNgramRowCells) {
+		final Entry<String, String> sessionRefVizElem = refNgramRowCells.getKey();
+		@SuppressWarnings("unchecked")
+		final List<Stream<String>> ngramRowCells = Arrays.asList(refNgramRowCells.getValue().toArray(Stream[]::new));
+		final int rowspan = ngramRowCells.size();
+
+		final List<String> result = new ArrayList<>(ngramRowCells.size());
+		final Iterator<Stream<String>> ngramRowCellIter = ngramRowCells.iterator();
+		if (ngramRowCellIter.hasNext()) {
+			result.add(createFirstReferentNGramRow(sessionRefVizElem, ngramRowCellIter.next(), rowspan));
+			while (ngramRowCellIter.hasNext()) {
+				result.add(createNextReferentNGramRow(ngramRowCellIter.next()));
+			}
+		}
+		return result;
+	}
+
+	private static String createRow(final List<String> ngram, final int count, final double score) {
+		final String ngramRepr = ngram.stream().collect(TOKEN_JOINER);
+		final Stream<String> rowCells = Stream.of(ngramRepr);
 		return rowCells.collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM + LINE_DELIM;
 	}
 
 	private static List<BiConsumer<VisualizableReferent, SVGDocument>> createSVGDocPostProcessors() {
-		final BiConsumer<VisualizableReferent, SVGDocument> resizer = (ref, svgDoc) -> SVGDocuments.setSize(svgDoc,
-				"100%", "100%");
+		final BiConsumer<VisualizableReferent, SVGDocument> resizer = (ref, svgDoc) -> SVGDocuments
+				.removeSize(svgDoc.getRootElement());
 		return Arrays.asList(resizer);
 	}
 
 	private final Path outdir;
 
-	private final TfIdfKeywordVisualizationRowFactory<String> rowFactory;
+	private final TfIdfKeywordVisualizationRowFactory<String, Stream<String>> rowFactory;
 
 	public TfIdfKeywordVisualizationLaTeXWriter(final Path outdir,
 			final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator,
@@ -325,15 +385,19 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		this.outdir = outdir;
 
 		final SVGDocumentFactory svgDocFactory = new SVGDocumentFactory(imgResDir, SVG_DOC_POSTPROCESSORS);
-		final TfIdfKeywordVisualizationRowFactory.RowFactory<String> latexTableRowFactory = TfIdfKeywordVisualizationLaTeXWriter::createRow;
-		rowFactory = new TfIdfKeywordVisualizationRowFactory<>(svgDocFactory, tfIdfCalculator, nbestRefs, nbestNgrams,
-				latexTableRowFactory);
+		final PDFLinkTableCellStringFactory refTableCellFactory = new PDFLinkTableCellStringFactory(svgDocFactory);
+		final TfIdfKeywordVisualizationRowFactory.NGramRowFactory<Stream<String>> ngramRowFactory = TfIdfKeywordVisualizationLaTeXWriter::createNGramRowCells;
+		rowFactory = new TfIdfKeywordVisualizationRowFactory<>(tfIdfCalculator, nbestRefs, nbestNgrams,
+				refTableCellFactory, ngramRowFactory);
 	}
 
 	public int write(final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts)
 			throws IOException {
-		final String[] rows = rowFactory.apply(sessionRefNgramCounts).toArray(String[]::new);
-		// TODO: Write individual PDFS for each referent to file
+		final Stream<Entry<Entry<String, String>, Stream<Stream<String>>>> refNgramRows = rowFactory
+				.apply(sessionRefNgramCounts);
+		final String[] rows = refNgramRows.map(TfIdfKeywordVisualizationLaTeXWriter::createReferentNGramRows)
+				.flatMap(List::stream).toArray(String[]::new);
+		// TODO: Write individual PDFs for each referent to file
 
 		final Path outdir = Files.createDirectories(this.outdir);
 		final Path latexFilePath = outdir.resolve("tf-idf.tex");

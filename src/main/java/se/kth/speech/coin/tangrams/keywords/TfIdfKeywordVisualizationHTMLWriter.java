@@ -26,15 +26,20 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
@@ -206,6 +211,47 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 
 	}
 
+	private static class ReferentHtmlSvgElementFactory implements Function<VisualizableReferent, UnescapedText> {
+
+		private static String createXMLString(final Node node) {
+			// https://stackoverflow.com/a/10356325/1391325
+			final DOMSource domSource = new DOMSource(node);
+			final StringWriter writer = new StringWriter();
+			final StreamResult result = new StreamResult(writer);
+			final TransformerFactory tf = TransformerFactory.newInstance();
+			Transformer transformer;
+			try {
+				transformer = tf.newTransformer();
+				transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+				transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+				transformer.transform(domSource, result);
+				return writer.toString();
+			} catch (final TransformerException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		private final Map<VisualizableReferent, UnescapedText> cache;
+
+		private final Function<? super VisualizableReferent, ? extends SVGDocument> svgDocFactory;
+
+		private ReferentHtmlSvgElementFactory(
+				final Function<? super VisualizableReferent, ? extends SVGDocument> svgDocFactory) {
+			this.svgDocFactory = svgDocFactory;
+			cache = new HashMap<>();
+		}
+
+		@Override
+		public UnescapedText apply(final VisualizableReferent ref) {
+			return cache.computeIfAbsent(ref, this::create);
+		}
+
+		private UnescapedText create(final VisualizableReferent ref) {
+			final SVGDocument doc = svgDocFactory.apply(ref);
+			return TagCreator.rawHtml(createXMLString(doc.getRootElement()));
+		}
+	}
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(TfIdfKeywordVisualizationHTMLWriter.class);
 
 	private static final List<BiConsumer<VisualizableReferent, SVGDocument>> SVG_DOC_POSTPROCESSORS = createSVGDocPostProcessors();
@@ -291,6 +337,16 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		}
 	}
 
+	private static ContainerTag createFirstReferentNGramRow(final Entry<String, UnescapedText> sessionRefVizElem,
+			final Stream<ContainerTag> ngramRowCells, final int rowspan) {
+		final String sessionName = sessionRefVizElem.getKey();
+		final ContainerTag headerCell = TagCreator.th(sessionName).attr("rowspan", rowspan);
+		final UnescapedText refVizElem = sessionRefVizElem.getValue();
+		final ContainerTag refCell = TagCreator.td(refVizElem).attr("rowspan", rowspan);
+		final Stream<ContainerTag> prefixCells = Stream.of(headerCell, refCell);
+		return TagCreator.tr(Stream.concat(prefixCells, ngramRowCells).toArray(ContainerTag[]::new));
+	}
+
 	private static String createHTMLDocumentString(final ContainerTag html) {
 		final String result;
 		synchronized (Config.class) {
@@ -309,40 +365,43 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 				TagCreator.title("TF-IDF scores"));
 	}
 
-	private static ContainerTag createRow(final String dyadId, final Node refSvgRootElem, final List<String> ngram,
-			final int count, final double score) {
-		final UnescapedText svgTag = TagCreator.rawHtml(createXMLString(refSvgRootElem));
+	private static ContainerTag createNextReferentNGramRow(final Stream<ContainerTag> ngramRowCells) {
+		return TagCreator.tr(ngramRowCells.toArray(ContainerTag[]::new));
+	}
+
+	private static Stream<ContainerTag> createNGramRowCells(final List<String> ngram, final int count,
+			final double score) {
 		final String ngramRepr = ngram.stream().collect(TOKEN_JOINER);
-		final ContainerTag svgCell = TagCreator.td(svgTag);
-		return TagCreator.tr(TagCreator.td(dyadId), svgCell, TagCreator.td(ngramRepr),
-				TagCreator.td(Double.toString(score)), TagCreator.td(Integer.toString(count)));
+		return Stream.of(TagCreator.td(ngramRepr), TagCreator.td(Double.toString(score)),
+				TagCreator.td(Integer.toString(count)));
+	}
+
+	private static List<ContainerTag> createReferentNGramRows(
+			final Entry<? extends Entry<String, UnescapedText>, Stream<Stream<ContainerTag>>> refNgramRowCells) {
+		final Entry<String, UnescapedText> sessionRefVizElem = refNgramRowCells.getKey();
+		@SuppressWarnings("unchecked")
+		final List<Stream<ContainerTag>> ngramRowCells = Arrays
+				.asList(refNgramRowCells.getValue().toArray(Stream[]::new));
+		final int rowspan = ngramRowCells.size();
+
+		final List<ContainerTag> result = new ArrayList<>(ngramRowCells.size());
+		final Iterator<Stream<ContainerTag>> ngramRowCellIter = ngramRowCells.iterator();
+		if (ngramRowCellIter.hasNext()) {
+			result.add(createFirstReferentNGramRow(sessionRefVizElem, ngramRowCellIter.next(), rowspan));
+			while (ngramRowCellIter.hasNext()) {
+				result.add(createNextReferentNGramRow(ngramRowCellIter.next()));
+			}
+		}
+		return result;
 	}
 
 	private static List<BiConsumer<VisualizableReferent, SVGDocument>> createSVGDocPostProcessors() {
-		final BiConsumer<VisualizableReferent, SVGDocument> resizer = (ref, svgDoc) -> SVGDocuments.setSize(svgDoc,
-				"100%", "100px");
+		final BiConsumer<VisualizableReferent, SVGDocument> resizer = (ref, svgDoc) -> SVGDocuments
+				.setSize(svgDoc.getRootElement(), "100%", "5em");
 		return Arrays.asList(resizer);
 	}
 
-	private static String createXMLString(final Node node) {
-		// https://stackoverflow.com/a/10356325/1391325
-		final DOMSource domSource = new DOMSource(node);
-		final StringWriter writer = new StringWriter();
-		final StreamResult result = new StreamResult(writer);
-		final TransformerFactory tf = TransformerFactory.newInstance();
-		Transformer transformer;
-		try {
-			transformer = tf.newTransformer();
-			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-			transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-			transformer.transform(domSource, result);
-			return writer.toString();
-		} catch (final TransformerException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	private final TfIdfKeywordVisualizationRowFactory<ContainerTag> rowFactory;
+	private final TfIdfKeywordVisualizationRowFactory<UnescapedText, Stream<ContainerTag>> refNgramRowFactory;
 
 	private final Writer writer;
 
@@ -350,10 +409,12 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 			final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator,
 			final Path imgResDir, final long nbestRefs, final long nbestNgrams) {
 		this.writer = writer;
+
 		final SVGDocumentFactory svgDocFactory = new SVGDocumentFactory(imgResDir, SVG_DOC_POSTPROCESSORS);
-		final TfIdfKeywordVisualizationRowFactory.RowFactory<ContainerTag> htmlTableRowFactory = TfIdfKeywordVisualizationHTMLWriter::createRow;
-		rowFactory = new TfIdfKeywordVisualizationRowFactory<>(svgDocFactory, tfIdfCalculator, nbestRefs, nbestNgrams,
-				htmlTableRowFactory);
+		final ReferentHtmlSvgElementFactory refSvgElemFactory = new ReferentHtmlSvgElementFactory(svgDocFactory);
+		final TfIdfKeywordVisualizationRowFactory.NGramRowFactory<Stream<ContainerTag>> ngramRowFactory = TfIdfKeywordVisualizationHTMLWriter::createNGramRowCells;
+		refNgramRowFactory = new TfIdfKeywordVisualizationRowFactory<>(tfIdfCalculator, nbestRefs, nbestNgrams,
+				refSvgElemFactory, ngramRowFactory);
 	}
 
 	/*
@@ -378,7 +439,10 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 
 	public int write(final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts)
 			throws IOException {
-		final ContainerTag[] rows = rowFactory.apply(sessionRefNgramCounts).toArray(ContainerTag[]::new);
+		final Stream<Entry<Entry<String, UnescapedText>, Stream<Stream<ContainerTag>>>> refNgramRows = refNgramRowFactory
+				.apply(sessionRefNgramCounts);
+		final ContainerTag[] rows = refNgramRows.map(TfIdfKeywordVisualizationHTMLWriter::createReferentNGramRows)
+				.flatMap(List::stream).toArray(ContainerTag[]::new);
 
 		final ContainerTag thead = TagCreator.thead(TagCreator.tr(TagCreator.td("Dyad"), TagCreator.td("Image"),
 				TagCreator.td("N-gram"), TagCreator.td("Score"), TagCreator.td("Count")));
