@@ -316,8 +316,8 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 				LOGGER.info("Writing rows.");
 				final long writeStart = System.currentTimeMillis();
 				try (final TfIdfKeywordVisualizationHTMLWriter keywordWriter = new TfIdfKeywordVisualizationHTMLWriter(
-						new BufferedWriter(new OutputStreamWriter(outStreamGetter.get())), tfIdfCalculator, imgResDir,
-						nbestRefs, nbestNgrams)) {
+						new BufferedWriter(new OutputStreamWriter(outStreamGetter.get())), tfIdfCalculator, nbestRefs,
+						nbestNgrams, imgResDir)) {
 					rowsWritten = keywordWriter.write(sessionRefNgramCounts);
 				}
 				LOGGER.info("Wrote {} row(s) in {} seconds.", rowsWritten,
@@ -405,7 +405,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 
 	public TfIdfKeywordVisualizationHTMLWriter(final Writer writer,
 			final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator,
-			final Path imgResDir, final long nbestRefs, final long nbestNgrams) {
+			final long nbestRefs, final long nbestNgrams, final Path imgResDir) {
 		this.writer = writer;
 
 		final SVGDocumentFactory svgDocFactory = new SVGDocumentFactory(imgResDir, SVG_DOC_POSTPROCESSORS);
