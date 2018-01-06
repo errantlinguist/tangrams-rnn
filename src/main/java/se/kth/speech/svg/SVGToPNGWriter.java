@@ -13,7 +13,7 @@
  *	See the License for the specific language governing permissions and
  *	limitations under the License.
  */
-package se.kth.speech.coin.tangrams.svg;
+package se.kth.speech.svg;
 
 import java.io.File;
 import java.io.IOException;

@@ -57,10 +57,10 @@ import org.w3c.dom.svg.SVGDocument;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import se.kth.speech.LaTeX;
-import se.kth.speech.coin.tangrams.svg.SVGDocuments;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
+import se.kth.speech.svg.SVGDocuments;
 
 /**
  * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>

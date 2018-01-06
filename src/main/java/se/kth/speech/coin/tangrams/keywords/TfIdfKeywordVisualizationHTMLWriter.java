@@ -66,11 +66,11 @@ import j2html.TagCreator;
 import j2html.tags.ContainerTag;
 import j2html.tags.UnescapedText;
 import se.kth.speech.coin.tangrams.CLIParameters;
-import se.kth.speech.coin.tangrams.svg.SVGDocuments;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.function.ThrowingSupplier;
+import se.kth.speech.svg.SVGDocuments;
 
 /**
  * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
