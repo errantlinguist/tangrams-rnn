@@ -35,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.ToDoubleBiFunction;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -142,8 +143,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		TERM_FREQUENCY("tf") {
 			@Override
 			public Option get() {
-				final TfIdfScorer.TermFrequencyVariant[] possibleVals = TfIdfScorer.TermFrequencyVariant
-						.values();
+				final TfIdfScorer.TermFrequencyVariant[] possibleVals = TfIdfScorer.TermFrequencyVariant.values();
 				return Option.builder(optName).longOpt("term-frequency")
 						.desc(String.format(
 								"The method of calculating term frequencies. Possible values: %s; Default value: %s\"",
@@ -319,7 +319,8 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				final Map<Referent, VisualizableReferent> vizRefs = SessionReferentNgramDataManager
 						.createVisualizableReferentMap(sessions);
 				final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts = new SessionReferentNgramDataManager(
-						Parameter.createNgramFactory(cl), onlyInstructor).createSessionReferentNgramCountMap(sessions, vizRefs);
+						Parameter.createNgramFactory(cl), onlyInstructor).createSessionReferentNgramCountMap(sessions,
+								vizRefs);
 				final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> pairNgramCounts = SessionReferentNgramDataManager
 						.createSessionReferentPairNgramCountMap(sessionRefNgramCounts);
 				LOGGER.info("Calculating TF-IDF scores for {} session-referent pairs.", pairNgramCounts.size());
@@ -412,7 +413,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 	private final TfIdfKeywordVisualizationRowFactory<Path, Stream<String>> rowFactory;
 
 	public TfIdfKeywordVisualizationLaTeXWriter(final Path outdir,
-			final TfIdfScorer<List<String>, Entry<String, VisualizableReferent>> tfIdfScorer,
+			final ToDoubleBiFunction<? super List<String>, ? super Entry<String, VisualizableReferent>> tfIdfScorer,
 			final long nbestRefs, final long nbestNgrams, final Path imgResDir, final String imgHeight)
 			throws IOException {
 		this.outdir = Files.createDirectories(outdir);
@@ -425,11 +426,10 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		} catch (final FileAlreadyExistsException e) {
 			LOGGER.debug("Directory \"{}\" already exists.", imgResOutdir);
 		}
-		final ReferentImageTranscoder refTableCellFactory = new ReferentImageTranscoder(svgDocFactory,
-				imgResOutdir);
+		final ReferentImageTranscoder refTableCellFactory = new ReferentImageTranscoder(svgDocFactory, imgResOutdir);
 		final TfIdfKeywordVisualizationRowFactory.NGramRowFactory<Stream<String>> ngramRowFactory = TfIdfKeywordVisualizationLaTeXWriter::createNGramRowCells;
-		rowFactory = new TfIdfKeywordVisualizationRowFactory<>(tfIdfScorer, nbestRefs, nbestNgrams,
-				refTableCellFactory, ngramRowFactory);
+		rowFactory = new TfIdfKeywordVisualizationRowFactory<>(tfIdfScorer, nbestRefs, nbestNgrams, refTableCellFactory,
+				ngramRowFactory);
 	}
 
 	public int write(final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts)
