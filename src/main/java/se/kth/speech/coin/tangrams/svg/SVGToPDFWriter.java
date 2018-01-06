@@ -46,7 +46,6 @@ import org.apache.fop.svg.PDFTranscoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.svg.SVGDocument;
-import org.w3c.dom.svg.SVGSVGElement;
 
 import se.kth.speech.function.ThrowingSupplier;
 
@@ -75,8 +74,8 @@ public final class SVGToPDFWriter {
 		OUTPATH("o") {
 			@Override
 			public Option get() {
-				return Option.builder(optName).longOpt("output")
-						.desc("If a single input file is specified; This is the path of the file to write the output to. If multiple files and/or directories are specified, this is the directory to which all output files will be written.")
+				return Option.builder(optName).longOpt("output").desc(
+						"If a single input file is specified; This is the path of the file to write the output to. If multiple files and/or directories are specified, this is the directory to which all output files will be written.")
 						.hasArg().type(File.class).argName("path").build();
 			}
 		},
@@ -227,41 +226,15 @@ public final class SVGToPDFWriter {
 		}
 	}
 
-	private static OutputStream createNewFile(final Path outfile) throws IOException {
-		return Files.newOutputStream(outfile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-	}
-
-	private static ThrowingSupplier<OutputStream, IOException> createNewFileSupplier(final Path outfile) {
-		return () -> createNewFile(outfile);
-	}
-	
-	private static void setSize(final SVGDocument doc, final float width, final float height, final String unit) {
-		final SVGSVGElement rootElem = doc.getRootElement();
-		setSize(rootElem, width + unit, height + unit);
-	}
-
-	private static void setSize(final SVGSVGElement elem, final String width, final String height) {
-		// This has been tested; The property changes are in fact persisted
-		final String tag = elem.getTagName();
-		LOGGER.info("Original dimensions of element \"{}\" are {} * {}.", tag,
-				elem.getWidth().getBaseVal().getValueAsString(), elem.getHeight().getBaseVal().getValueAsString());
-		// https://xmlgraphics.apache.org/batik/faq.html#changes-are-not-rendered
-		elem.setAttributeNS(null, "width", width);
-		elem.setAttributeNS(null, "height", height);
-		LOGGER.info("New dimensions of element \"{}\" are {} * {}.", tag,
-				elem.getWidth().getBaseVal().getValueAsString(), elem.getHeight().getBaseVal().getValueAsString());
-	}
-
 	/**
-	 * @see <a href=
-	 *      "http://stackoverflow.com/q/32721467/1391325">StackOverflow</a>
+	 * @see <a href= "http://stackoverflow.com/q/32721467/1391325">StackOverflow</a>
 	 * @param doc
 	 * @param outpath
 	 * @throws TranscoderException
 	 * @throws IOException
 	 */
 	public static void write(final SVGDocument doc, final Path outpath) throws TranscoderException, IOException {
-		setSize(doc, 50f, 50f, "px");
+		SVGDocuments.setSize(doc.getRootElement(), "50px", "50px");
 		final ByteArrayOutputStream resultByteStream = new ByteArrayOutputStream();
 		final TranscoderInput transcoderInput = new TranscoderInput(doc);
 		final TranscoderOutput transcoderOutput = new TranscoderOutput(resultByteStream);
@@ -269,9 +242,12 @@ public final class SVGToPDFWriter {
 		final PDFTranscoder transcoder = new PDFTranscoder();
 		// final UserAgent userAgent = pngTranscoder.getUserAgent();
 		// final float[] maxDimensions = findMaxDimensions(doc, userAgent);
-		// KEY_WIDTH and KEY_HEIGHT determine the size of the PDF itself but not the size of the image therein
-//		transcoder.addTranscodingHint(SVGAbstractTranscoder.KEY_WIDTH, Float.valueOf(20f));
-//		transcoder.addTranscodingHint(SVGAbstractTranscoder.KEY_HEIGHT, Float.valueOf(500f));
+		// KEY_WIDTH and KEY_HEIGHT determine the size of the PDF itself but not the
+		// size of the image therein
+		// transcoder.addTranscodingHint(SVGAbstractTranscoder.KEY_WIDTH,
+		// Float.valueOf(20f));
+		// transcoder.addTranscodingHint(SVGAbstractTranscoder.KEY_HEIGHT,
+		// Float.valueOf(500f));
 		// pngTranscoder.addTranscodingHint(SVGAbstractTranscoder.KEY_WIDTH,
 		// Float.valueOf(maxDimensions[0]));
 		// pngTranscoder.addTranscodingHint(SVGAbstractTranscoder.KEY_HEIGHT,
@@ -284,6 +260,14 @@ public final class SVGToPDFWriter {
 			// writer.flush();
 		}
 
+	}
+
+	private static OutputStream createNewFile(final Path outfile) throws IOException {
+		return Files.newOutputStream(outfile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+	}
+
+	private static ThrowingSupplier<OutputStream, IOException> createNewFileSupplier(final Path outfile) {
+		return () -> createNewFile(outfile);
 	}
 
 	// /**
