@@ -42,19 +42,24 @@ final class NGramFactory implements Function<List<String>, List<List<String>>> {
 		TOKEN_JOINER = Collectors.joining(TOKEN_DELIMITER);
 	}
 
-	private final Map<List<String>, List<List<String>>> cache;
-
-	private final int minLength;
-
-	private final int maxLength;
-
-	public NGramFactory(final int minLength, final int maxLength) {
-		this(minLength, maxLength, new HashMap<>(1000));
+	private static NGramTokenizer createTokenizer(final int minLength, final int maxLength) {
+		final NGramTokenizer result = new NGramTokenizer();
+		result.setDelimiters(TOKEN_DELIMITER);
+		result.setNGramMinSize(minLength);
+		result.setNGramMaxSize(maxLength);
+		return result;
 	}
 
-	private NGramFactory(final int minLength, final int maxLength, final Map<List<String>, List<List<String>>> cache) {
-		this.minLength = minLength;
-		this.maxLength = maxLength;
+	private final Map<List<String>, List<List<String>>> cache;
+
+	private final NGramTokenizer tokenizer;
+
+	public NGramFactory(final int minLength, final int maxLength) {
+		this(createTokenizer(minLength, maxLength), new HashMap<>(1000));
+	}
+
+	private NGramFactory(final NGramTokenizer tokenizer, final Map<List<String>, List<List<String>>> cache) {
+		this.tokenizer = tokenizer;
 		this.cache = cache;
 	}
 
@@ -69,10 +74,6 @@ final class NGramFactory implements Function<List<String>, List<List<String>>> {
 	}
 
 	private List<List<String>> createNgrams(final List<String> tokenSeq) {
-		final NGramTokenizer tokenizer = new NGramTokenizer();
-		tokenizer.setDelimiters(TOKEN_DELIMITER);
-		tokenizer.setNGramMinSize(minLength);
-		tokenizer.setNGramMaxSize(Math.min(tokenSeq.size(), maxLength));
 		final String inputStr = tokenSeq.stream().collect(TOKEN_JOINER);
 		tokenizer.tokenize(inputStr);
 		final Stream.Builder<List<String>> resultBuilder = Stream.builder();
