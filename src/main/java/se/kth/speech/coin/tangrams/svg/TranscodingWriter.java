@@ -43,7 +43,7 @@ import se.kth.speech.function.ThrowingSupplier;
  * @since 7 Mar 2017
  *
  */
-final class TranscodingWriter {
+public final class TranscodingWriter {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(TranscodingWriter.class);
 
