@@ -329,15 +329,15 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfCalculatorConstructionStart) / 1000.0);
 
-				final String imgWidth = "1em";
-				LOGGER.info("Will include images using a width of \"{}\".", imgWidth);
+				final String imgHeight = "2ex";
+				LOGGER.info("Will include images using a height of \"{}\".", imgHeight);
 
 				final long nbestRefs = 1;
 				final long nbestNgrams = 1;
 				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs,
 						nbestNgrams);
 				final TfIdfKeywordVisualizationLaTeXWriter keywordWriter = new TfIdfKeywordVisualizationLaTeXWriter(
-						outdir, tfIdfCalculator, nbestRefs, nbestNgrams, imgResDir, imgWidth);
+						outdir, tfIdfCalculator, nbestRefs, nbestNgrams, imgResDir, imgHeight);
 
 				LOGGER.info("Writing rows.");
 				final long writeStart = System.currentTimeMillis();
@@ -405,7 +405,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		}
 	}
 
-	private final String imgWidth;
+	private final String imgHeight;
 
 	private final Path outdir;
 
@@ -413,10 +413,10 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 	public TfIdfKeywordVisualizationLaTeXWriter(final Path outdir,
 			final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator,
-			final long nbestRefs, final long nbestNgrams, final Path imgResDir, final String imgWidth)
+			final long nbestRefs, final long nbestNgrams, final Path imgResDir, final String imgHeight)
 			throws IOException {
 		this.outdir = Files.createDirectories(outdir);
-		this.imgWidth = imgWidth;
+		this.imgHeight = imgHeight;
 
 		final SVGDocumentFactory svgDocFactory = new SVGDocumentFactory(imgResDir, SVG_DOC_POSTPROCESSORS);
 		final Path imgResOutdir = outdir.resolve("tf-idf-imgs");
@@ -462,7 +462,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 	}
 
 	private String createGraphicsIncludeStatement(final Path outfilePath, final int rowspan) {
-		final String prefix = String.format("\\multirow{%d}{*}{\\includegraphics[width=%s]{", rowspan, imgWidth);
+		final String prefix = String.format("\\multirow{%d}{*}{\\includegraphics[height=%s]{", rowspan, imgHeight);
 		final String pathStr = LaTeX.escapeReservedCharacters(outfilePath.toString());
 		final String suffix = "}}";
 		return prefix + pathStr + suffix;
