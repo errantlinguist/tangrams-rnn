@@ -15,8 +15,11 @@
  */
 package se.kth.speech.coin.tangrams.keywords;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -36,6 +39,9 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.batik.transcoder.TranscoderException;
+import org.apache.batik.transcoder.TranscoderInput;
+import org.apache.batik.transcoder.TranscoderOutput;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -43,11 +49,14 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.fop.svg.PDFTranscoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
 import org.w3c.dom.svg.SVGDocument;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import se.kth.speech.LaTeX;
 import se.kth.speech.coin.tangrams.svg.SVGDocuments;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Session;
@@ -59,6 +68,18 @@ import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
  *
  */
 public final class TfIdfKeywordVisualizationLaTeXWriter {
+
+	public static final class PDFWritingException extends RuntimeException {
+
+		/**
+		 *
+		 */
+		private static final long serialVersionUID = 5335309159174049878L;
+
+		private PDFWritingException(final Exception cause) {
+			super(cause);
+		}
+	}
 
 	private enum Parameter implements Supplier<Option> {
 		HELP("?") {
@@ -191,28 +212,44 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 	}
 
-	private static class PDFLinkTableCellStringFactory implements Function<VisualizableReferent, String> {
+	private static class PDFLinkTableCellStringFactory implements Function<VisualizableReferent, Path> {
 
-		private final Map<VisualizableReferent, String> cache;
+		private final Map<VisualizableReferent, Path> cache;
+
+		private int nextDocId = 1;
+
+		private final Path outfileDir;
 
 		private final Function<? super VisualizableReferent, ? extends SVGDocument> svgDocFactory;
 
 		private PDFLinkTableCellStringFactory(
-				final Function<? super VisualizableReferent, ? extends SVGDocument> svgDocFactory) {
+				final Function<? super VisualizableReferent, ? extends SVGDocument> svgDocFactory,
+				final Path outfileDir) {
 			this.svgDocFactory = svgDocFactory;
+			this.outfileDir = outfileDir;
+
 			cache = new HashMap<>();
 		}
 
 		@Override
-		public String apply(final VisualizableReferent ref) {
+		public Path apply(final VisualizableReferent ref) {
 			return cache.computeIfAbsent(ref, this::create);
 		}
 
-		private String create(final VisualizableReferent ref) {
+		private Path create(final VisualizableReferent ref) {
 			final SVGDocument doc = svgDocFactory.apply(ref);
-			// TODO: Finish
-			return "";
+			final int docId = nextDocId++;
+			final String filename = "ref-" + docId + ".pdf";
+			final Path result = outfileDir.resolve(filename);
+			LOGGER.debug("Writing transcoded image PDF file to \"{}\".", result);
+			try {
+				writePDF(doc, result);
+			} catch (TranscoderException | IOException e) {
+				throw new PDFWritingException(e);
+			}
+			return result;
 		}
+
 	}
 
 	private static final String FOOTER;
@@ -234,6 +271,8 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 	private static final String TOKEN_DELIMITER;
 
 	private static final Collector<CharSequence, ?, String> TOKEN_JOINER;
+
+	private static final PDFTranscoder TRANSCODER = new PDFTranscoder();
 
 	static {
 		LINE_DELIM = System.lineSeparator();
@@ -290,12 +329,15 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfCalculatorConstructionStart) / 1000.0);
 
+				final String imgWidth = "3em";
+				LOGGER.info("Will include images using a width of \"{}\".", imgWidth);
+
 				final long nbestRefs = 3;
 				final long nbestNgrams = 3;
 				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs,
 						nbestNgrams);
 				final TfIdfKeywordVisualizationLaTeXWriter keywordWriter = new TfIdfKeywordVisualizationLaTeXWriter(
-						outdir, tfIdfCalculator, imgResDir, nbestRefs, nbestNgrams);
+						outdir, tfIdfCalculator, nbestRefs, nbestNgrams, imgResDir, imgWidth);
 
 				LOGGER.info("Writing rows.");
 				final long writeStart = System.currentTimeMillis();
@@ -315,12 +357,6 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 			System.out.println(String.format("An error occurred while parsing the command-line arguments: %s", e));
 			Parameter.printHelp();
 		}
-	}
-
-	private static String createFirstReferentNGramRow(final String sessionName, final String refVizElem,
-			final Stream<String> ngramRowCells, final int rowspan) {
-		final Stream<String> prefixCells = Stream.of(sessionName, refVizElem);
-		return Stream.concat(prefixCells, ngramRowCells).collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
 	}
 
 	private static Stream<String> createFooterLines() {
@@ -343,8 +379,97 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		return Stream.of(ngramRepr, Double.toString(score));
 	}
 
-	private static List<String> createReferentNGramRows(
-			final ReferentNGramRowGrouping<String, Stream<String>> refNgramRowGrouping) {
+	private static List<BiConsumer<VisualizableReferent, SVGDocument>> createSVGDocPostProcessors() {
+		final BiConsumer<VisualizableReferent, SVGDocument> resizer = (ref, svgDoc) -> SVGDocuments
+				.removeSize(svgDoc.getRootElement());
+		return Arrays.asList(resizer);
+	}
+
+	/**
+	 * @see <a href= "http://stackoverflow.com/q/32721467/1391325">StackOverflow</a>
+	 * @param doc
+	 * @param outputStreamSupplier
+	 * @throws TranscoderException
+	 * @throws IOException
+	 */
+	private static void writePDF(final Document doc, final Path outfilePath) throws TranscoderException, IOException {
+		final ByteArrayOutputStream resultByteStream = new ByteArrayOutputStream();
+		final TranscoderInput transcoderInput = new TranscoderInput(doc);
+		final TranscoderOutput transcoderOutput = new TranscoderOutput(resultByteStream);
+
+		TRANSCODER.transcode(transcoderInput, transcoderOutput);
+
+		try (OutputStream os = Files.newOutputStream(outfilePath, StandardOpenOption.CREATE,
+				StandardOpenOption.TRUNCATE_EXISTING)) {
+			resultByteStream.writeTo(os);
+		}
+	}
+
+	private final String imgWidth;
+
+	private final Path outdir;
+
+	private final TfIdfKeywordVisualizationRowFactory<Path, Stream<String>> rowFactory;
+
+	public TfIdfKeywordVisualizationLaTeXWriter(final Path outdir,
+			final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator,
+			final long nbestRefs, final long nbestNgrams, final Path imgResDir, final String imgWidth)
+			throws IOException {
+		this.outdir = Files.createDirectories(outdir);
+		this.imgWidth = imgWidth;
+
+		final SVGDocumentFactory svgDocFactory = new SVGDocumentFactory(imgResDir, SVG_DOC_POSTPROCESSORS);
+		final Path imgResOutdir = outdir.resolve("tf-idf-imgs");
+		try {
+			Files.createDirectory(imgResOutdir);
+		} catch (final FileAlreadyExistsException e) {
+			LOGGER.debug("Directory \"{}\" already exists.", imgResOutdir);
+		}
+		final PDFLinkTableCellStringFactory refTableCellFactory = new PDFLinkTableCellStringFactory(svgDocFactory,
+				imgResOutdir);
+		final TfIdfKeywordVisualizationRowFactory.NGramRowFactory<Stream<String>> ngramRowFactory = TfIdfKeywordVisualizationLaTeXWriter::createNGramRowCells;
+		rowFactory = new TfIdfKeywordVisualizationRowFactory<>(tfIdfCalculator, nbestRefs, nbestNgrams,
+				refTableCellFactory, ngramRowFactory);
+	}
+
+	public int write(final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts)
+			throws IOException {
+		final Stream<ReferentNGramRowGrouping<Path, Stream<String>>> refNgramRows = rowFactory
+				.apply(sessionRefNgramCounts);
+		final String[] rows = refNgramRows.map(this::createReferentNGramRows).flatMap(List::stream)
+				.toArray(String[]::new);
+
+		final Stream.Builder<String> fileLineStreamBuilder = Stream.builder();
+		fileLineStreamBuilder.accept(HEADER);
+		Arrays.stream(rows).forEach(fileLineStreamBuilder);
+		fileLineStreamBuilder.accept(FOOTER);
+		final Stream<String> fileLines = fileLineStreamBuilder.build();
+
+		final Path latexFilePath = outdir.resolve("tf-idf.tex");
+		LOGGER.debug("Writing LaTeX file to \"{}\".", latexFilePath);
+		Files.write(latexFilePath, (Iterable<String>) fileLines::iterator, StandardOpenOption.CREATE,
+				StandardOpenOption.TRUNCATE_EXISTING);
+		return rows.length;
+	}
+
+	private String createFirstReferentNGramRow(final String sessionName, final Path refVizElem,
+			final Stream<String> ngramRowCells, final int rowspan) {
+		final Path relOutfilePath = outdir.relativize(refVizElem);
+		LOGGER.debug("Creating LaTeX include statement for path \"{}\".", relOutfilePath);
+		final String refVizIncludeStr = createGraphicsIncludeStatement(relOutfilePath, rowspan);
+		final Stream<String> prefixCells = Stream.of(sessionName, refVizIncludeStr);
+		return Stream.concat(prefixCells, ngramRowCells).collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
+	}
+
+	private String createGraphicsIncludeStatement(final Path outfilePath, final int rowspan) {
+		final String prefix = String.format("\\multirow{%d}{*}{\\includegraphics[width=%s]{", rowspan, imgWidth);
+		final String pathStr = LaTeX.escapeReservedCharacters(outfilePath.toString());
+		final String suffix = "}}";
+		return prefix + pathStr + suffix;
+	}
+
+	private List<String> createReferentNGramRows(
+			final ReferentNGramRowGrouping<Path, Stream<String>> refNgramRowGrouping) {
 		@SuppressWarnings("unchecked")
 		final List<Stream<String>> ngramRowCells = Arrays
 				.asList(refNgramRowGrouping.getNgramRows().toArray(Stream[]::new));
@@ -360,55 +485,6 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 			}
 		}
 		return result;
-	}
-
-	private static String createRow(final List<String> ngram, final int count, final double score) {
-		final String ngramRepr = ngram.stream().collect(TOKEN_JOINER);
-		final Stream<String> rowCells = Stream.of(ngramRepr);
-		return rowCells.collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM + LINE_DELIM;
-	}
-
-	private static List<BiConsumer<VisualizableReferent, SVGDocument>> createSVGDocPostProcessors() {
-		final BiConsumer<VisualizableReferent, SVGDocument> resizer = (ref, svgDoc) -> SVGDocuments
-				.removeSize(svgDoc.getRootElement());
-		return Arrays.asList(resizer);
-	}
-
-	private final Path outdir;
-
-	private final TfIdfKeywordVisualizationRowFactory<String, Stream<String>> rowFactory;
-
-	public TfIdfKeywordVisualizationLaTeXWriter(final Path outdir,
-			final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator,
-			final Path imgResDir, final long nbestRefs, final long nbestNgrams) {
-		this.outdir = outdir;
-
-		final SVGDocumentFactory svgDocFactory = new SVGDocumentFactory(imgResDir, SVG_DOC_POSTPROCESSORS);
-		final PDFLinkTableCellStringFactory refTableCellFactory = new PDFLinkTableCellStringFactory(svgDocFactory);
-		final TfIdfKeywordVisualizationRowFactory.NGramRowFactory<Stream<String>> ngramRowFactory = TfIdfKeywordVisualizationLaTeXWriter::createNGramRowCells;
-		rowFactory = new TfIdfKeywordVisualizationRowFactory<>(tfIdfCalculator, nbestRefs, nbestNgrams,
-				refTableCellFactory, ngramRowFactory);
-	}
-
-	public int write(final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts)
-			throws IOException {
-		final Stream<ReferentNGramRowGrouping<String, Stream<String>>> refNgramRows = rowFactory
-				.apply(sessionRefNgramCounts);
-		final String[] rows = refNgramRows.map(TfIdfKeywordVisualizationLaTeXWriter::createReferentNGramRows)
-				.flatMap(List::stream).toArray(String[]::new);
-		// TODO: Write individual PDFs for each referent to file
-
-		final Path outdir = Files.createDirectories(this.outdir);
-		final Path latexFilePath = outdir.resolve("tf-idf.tex");
-
-		final Stream.Builder<String> fileLineStreamBuilder = Stream.builder();
-		fileLineStreamBuilder.accept(HEADER);
-		Arrays.stream(rows).forEach(fileLineStreamBuilder);
-		fileLineStreamBuilder.accept(FOOTER);
-		final Stream<String> fileLines = fileLineStreamBuilder.build();
-		Files.write(latexFilePath, (Iterable<String>) fileLines::iterator, StandardOpenOption.CREATE,
-				StandardOpenOption.TRUNCATE_EXISTING);
-		return rows.length;
 	}
 
 }
