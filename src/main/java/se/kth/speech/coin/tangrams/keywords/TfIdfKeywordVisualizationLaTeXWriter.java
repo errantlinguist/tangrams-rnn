@@ -212,7 +212,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 	}
 
-	private static class PDFLinkTableCellStringFactory implements Function<VisualizableReferent, Path> {
+	private static class ReferentImageTranscoder implements Function<VisualizableReferent, Path> {
 
 		private final Map<VisualizableReferent, Path> cache;
 
@@ -222,7 +222,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 		private final Function<? super VisualizableReferent, ? extends SVGDocument> svgDocFactory;
 
-		private PDFLinkTableCellStringFactory(
+		private ReferentImageTranscoder(
 				final Function<? super VisualizableReferent, ? extends SVGDocument> svgDocFactory,
 				final Path outfileDir) {
 			this.svgDocFactory = svgDocFactory;
@@ -425,7 +425,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		} catch (final FileAlreadyExistsException e) {
 			LOGGER.debug("Directory \"{}\" already exists.", imgResOutdir);
 		}
-		final PDFLinkTableCellStringFactory refTableCellFactory = new PDFLinkTableCellStringFactory(svgDocFactory,
+		final ReferentImageTranscoder refTableCellFactory = new ReferentImageTranscoder(svgDocFactory,
 				imgResOutdir);
 		final TfIdfKeywordVisualizationRowFactory.NGramRowFactory<Stream<String>> ngramRowFactory = TfIdfKeywordVisualizationLaTeXWriter::createNGramRowCells;
 		rowFactory = new TfIdfKeywordVisualizationRowFactory<>(tfIdfCalculator, nbestRefs, nbestNgrams,
