@@ -314,12 +314,10 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
 				LOGGER.info("Only use instructor language? {}", onlyInstructor);
 
-				final NGramFactory ngramFactory = Parameter.createNgramFactory(cl);
-
 				final Map<Referent, VisualizableReferent> vizRefs = SessionReferentNgramDataManager
 						.createVisualizableReferentMap(sessions);
 				final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts = new SessionReferentNgramDataManager(
-						ngramFactory, onlyInstructor).createSessionReferentNgramCountMap(sessions, vizRefs);
+						Parameter.createNgramFactory(cl), onlyInstructor).createSessionReferentNgramCountMap(sessions, vizRefs);
 				final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> pairNgramCounts = SessionReferentNgramDataManager
 						.createSessionReferentPairNgramCountMap(sessionRefNgramCounts);
 				LOGGER.info("Calculating TF-IDF scores for {} session-referent pairs.", pairNgramCounts.size());
