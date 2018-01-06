@@ -15,8 +15,6 @@
  */
 package se.kth.speech.coin.tangrams.svg;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -32,8 +30,6 @@ import java.util.function.Supplier;
 
 import org.apache.batik.transcoder.SVGAbstractTranscoder;
 import org.apache.batik.transcoder.TranscoderException;
-import org.apache.batik.transcoder.TranscoderInput;
-import org.apache.batik.transcoder.TranscoderOutput;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -45,7 +41,6 @@ import org.apache.commons.cli.ParseException;
 import org.apache.fop.svg.PDFTranscoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.svg.SVGDocument;
 
 import se.kth.speech.function.ThrowingSupplier;
 
@@ -224,42 +219,6 @@ public final class SVGToPDFWriter {
 			System.out.println(String.format("An error occured while parsing the command-line arguments: %s", e));
 			Parameter.printHelp();
 		}
-	}
-
-	/**
-	 * @see <a href= "http://stackoverflow.com/q/32721467/1391325">StackOverflow</a>
-	 * @param doc
-	 * @param outpath
-	 * @throws TranscoderException
-	 * @throws IOException
-	 */
-	public static void write(final SVGDocument doc, final Path outpath) throws TranscoderException, IOException {
-		SVGDocuments.setSize(doc.getRootElement(), "50px", "50px");
-		final ByteArrayOutputStream resultByteStream = new ByteArrayOutputStream();
-		final TranscoderInput transcoderInput = new TranscoderInput(doc);
-		final TranscoderOutput transcoderOutput = new TranscoderOutput(resultByteStream);
-
-		final PDFTranscoder transcoder = new PDFTranscoder();
-		// final UserAgent userAgent = pngTranscoder.getUserAgent();
-		// final float[] maxDimensions = findMaxDimensions(doc, userAgent);
-		// KEY_WIDTH and KEY_HEIGHT determine the size of the PDF itself but not the
-		// size of the image therein
-		// transcoder.addTranscodingHint(SVGAbstractTranscoder.KEY_WIDTH,
-		// Float.valueOf(20f));
-		// transcoder.addTranscodingHint(SVGAbstractTranscoder.KEY_HEIGHT,
-		// Float.valueOf(500f));
-		// pngTranscoder.addTranscodingHint(SVGAbstractTranscoder.KEY_WIDTH,
-		// Float.valueOf(maxDimensions[0]));
-		// pngTranscoder.addTranscodingHint(SVGAbstractTranscoder.KEY_HEIGHT,
-		// Float.valueOf(maxDimensions[1]));
-		transcoder.transcode(transcoderInput, transcoderOutput);
-
-		try (OutputStream os = new BufferedOutputStream(
-				Files.newOutputStream(outpath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))) {
-			resultByteStream.writeTo(os);
-			// writer.flush();
-		}
-
 	}
 
 	private static OutputStream createNewFile(final Path outfile) throws IOException {
