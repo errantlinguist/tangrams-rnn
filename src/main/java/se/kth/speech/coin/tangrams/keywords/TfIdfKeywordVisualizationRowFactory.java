@@ -112,8 +112,8 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 	}
 
 	private ReferentNGramRowGrouping<V, R> createRows(final String sessionName,
-			final Entry<VisualizableReferent, Object2IntMap<List<String>>> entry) {
-		final VisualizableReferent ref = entry.getKey();
+			final Entry<VisualizableReferent, Object2IntMap<List<String>>> refNgramCounts) {
+		final VisualizableReferent ref = refNgramCounts.getKey();
 		final V refViz = refVisualizationFactory.apply(ref);
 
 		// Create rows only for the n-best n-grams for the given
@@ -121,7 +121,7 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 		final DocumentTfIdfCalculator ngramScorer = new DocumentTfIdfCalculator(Pair.of(sessionName, ref));
 		final Comparator<Object2IntMap.Entry<List<String>>> nbestNgramCountComparator = Comparator
 				.comparingDouble(ngramCount -> -ngramScorer.applyAsDouble(ngramCount.getKey()));
-		final Stream<Object2IntMap.Entry<List<String>>> nbestNgramCounts = entry.getValue().object2IntEntrySet()
+		final Stream<Object2IntMap.Entry<List<String>>> nbestNgramCounts = refNgramCounts.getValue().object2IntEntrySet()
 				.stream().sorted(nbestNgramCountComparator).limit(nbestNgrams);
 		final Stream<R> rows = nbestNgramCounts.map(ngramCount -> {
 			final List<String> ngram = ngramCount.getKey();
