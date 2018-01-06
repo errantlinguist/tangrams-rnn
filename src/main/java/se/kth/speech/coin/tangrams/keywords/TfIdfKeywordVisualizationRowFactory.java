@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
+import java.util.function.ToDoubleBiFunction;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
@@ -67,10 +68,10 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 
 	private final NGramRowFactory<? extends R> rowFactory;
 
-	private final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator;
+	private final ToDoubleBiFunction<? super List<String>, ? super Entry<String, VisualizableReferent>> tfIdfCalculator;
 
 	public TfIdfKeywordVisualizationRowFactory(
-			final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator,
+			final ToDoubleBiFunction<? super List<String>, ? super Entry<String, VisualizableReferent>> tfIdfCalculator,
 			final long nbestRefs, final long nbestNgrams,
 			final Function<? super VisualizableReferent, ? extends V> refVisualizationFactory,
 			final NGramRowFactory<? extends R> rowFactory) {
