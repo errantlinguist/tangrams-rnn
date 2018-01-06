@@ -13,7 +13,7 @@
  *	See the License for the specific language governing permissions and
  *	limitations under the License.
  */
-package se.kth.speech.coin.tangrams.keywords;
+package se.kth.speech.nlp;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -31,7 +31,7 @@ import weka.core.tokenizers.NGramTokenizer;
  * @since 3 Jan 2018
  *
  */
-final class NGramFactory implements Function<List<String>, List<List<String>>> {
+public final class NGramFactory implements Function<List<String>, List<List<String>>> {
 
 	private static final String TOKEN_DELIMITER;
 

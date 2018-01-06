@@ -53,6 +53,8 @@ import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.coin.tangrams.wac.logistic.Weighted;
 import se.kth.speech.function.ThrowingSupplier;
+import se.kth.speech.nlp.NGramFactory;
+import se.kth.speech.nlp.TfIdfScorer;
 
 /**
  * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>

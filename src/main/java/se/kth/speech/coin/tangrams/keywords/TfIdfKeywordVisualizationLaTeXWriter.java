@@ -60,6 +60,8 @@ import se.kth.speech.LaTeX;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
+import se.kth.speech.nlp.NGramFactory;
+import se.kth.speech.nlp.TfIdfScorer;
 import se.kth.speech.svg.SVGDocuments;
 
 /**
