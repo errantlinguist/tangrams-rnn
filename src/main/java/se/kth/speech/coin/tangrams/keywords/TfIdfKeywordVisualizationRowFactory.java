@@ -88,8 +88,7 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 				.entrySet().stream().sorted(Comparator.comparing(entry -> entry.getKey(), Session.getNameComparator()));
 		return sortedSessionRefNgramCounts.flatMap(sessionRefNgramCounts -> {
 			final String sessionName = sessionRefNgramCounts.getKey();
-			// After having sorted by session name, sort by the score of a given
-			// referent's total score
+			// After having sorted by session name, sort by the a given referent's total score
 			final Map<VisualizableReferent, Object2IntMap<List<String>>> refNgramCounts = sessionRefNgramCounts
 					.getValue();
 			final ToDoubleFunction<Entry<VisualizableReferent, Object2IntMap<List<String>>>> inverseNgramCountScorer = entry -> -calculateNgramScores(
