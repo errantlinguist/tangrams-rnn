@@ -50,8 +50,8 @@ public final class TfIdfScorer<O, D> implements ToDoubleBiFunction<O, D> {
 	 */
 	public enum TermFrequencyVariant {
 		/**
-		 * <em>tf(t,d)</em> = 0.5 + 0.5 &sdot; (<em>f</em><sub>t,d</sub>
-		 * &divide; max<sub><em>t&prime;</em> &isin; <em>d</em></sub>
+		 * <em>tf(t,d)</em> = 0.5 + 0.5 &sdot; (<em>f</em><sub>t,d</sub> &divide;
+		 * max<sub><em>t&prime;</em> &isin; <em>d</em></sub>
 		 * <em>f</em><sub><em>t&prime;,d</em></sub>)
 		 *
 		 */
@@ -65,17 +65,21 @@ public final class TfIdfScorer<O, D> implements ToDoubleBiFunction<O, D> {
 
 	private static final int DEFAULT_INITIAL_WORD_MAP_CAPACITY = 1000;
 
-	public static <O, D> TfIdfScorer<O, D> create(final Map<D, ? extends Object2IntMap<O>> docObservationCounts) {
+	public static <O, D> TfIdfScorer<O, D> create(
+			final Map<? extends D, ? extends Object2IntMap<? extends O>> docObservationCounts) {
 		return create(docObservationCounts, TermFrequencyVariant.NATURAL);
 	}
 
-	public static <O, D> TfIdfScorer<O, D> create(final Map<D, ? extends Object2IntMap<O>> docObservationCounts,
+	public static <O, D> TfIdfScorer<O, D> create(
+			final Map<? extends D, ? extends Object2IntMap<? extends O>> docObservationCounts,
 			final TermFrequencyVariant tfVariant) {
 		final int docCount = docObservationCounts.size();
 		final int initialDocSetCapcity = HashedCollections.capacity(docCount);
-		final Object2ObjectOpenHashMap<D, Object2DoubleOpenHashMap<O>> observationCountsPerDoc = new Object2ObjectOpenHashMap<>(docObservationCounts.size());
-		final Object2ObjectOpenHashMap<O, Set<D>> observationDocs = new Object2ObjectOpenHashMap<>(DEFAULT_INITIAL_WORD_MAP_CAPACITY);
-		for (final Entry<D, ? extends Object2IntMap<O>> entry : docObservationCounts.entrySet()) {
+		final Object2ObjectOpenHashMap<D, Object2DoubleOpenHashMap<O>> observationCountsPerDoc = new Object2ObjectOpenHashMap<>(
+				docObservationCounts.size());
+		final Object2ObjectOpenHashMap<O, Set<D>> observationDocs = new Object2ObjectOpenHashMap<>(
+				DEFAULT_INITIAL_WORD_MAP_CAPACITY);
+		for (final Entry<? extends D, ? extends Object2IntMap<? extends O>> entry : docObservationCounts.entrySet()) {
 			final D doc = entry.getKey();
 			final Object2DoubleMap<O> docTokenCounts = observationCountsPerDoc.computeIfAbsent(doc, key -> {
 				final Object2DoubleOpenHashMap<O> counts = new Object2DoubleOpenHashMap<>(
@@ -83,7 +87,7 @@ public final class TfIdfScorer<O, D> implements ToDoubleBiFunction<O, D> {
 				counts.defaultReturnValue(0.0);
 				return counts;
 			});
-			final Object2IntMap<O> observationCounts = entry.getValue();
+			final Object2IntMap<? extends O> observationCounts = entry.getValue();
 			observationCounts.object2IntEntrySet().forEach(observationCount -> {
 				final O observation = observationCount.getKey();
 				final int count = observationCount.getIntValue();
@@ -192,16 +196,16 @@ public final class TfIdfScorer<O, D> implements ToDoubleBiFunction<O, D> {
 	}
 
 	/**
-	 * Calculates the term frequency for a given observation <em>t</em> in a
-	 * given document <em>d</em> as the raw counts <em>tf(t,d)</em> =
+	 * Calculates the term frequency for a given observation <em>t</em> in a given
+	 * document <em>d</em> as the raw counts <em>tf(t,d)</em> =
 	 * <em>f</em><sub><em>t,d</em></sub>.
 	 *
 	 * @param observation
 	 *            The observation to calculate the term frequency of.
 	 * @param doc
 	 *            The document in which the given observation was found.
-	 * @return The natural term frequency for the given observation during the
-	 *         given document.
+	 * @return The natural term frequency for the given observation during the given
+	 *         document.
 	 */
 	private double naturalTf(final O observation, final D doc) {
 		final Map<O, Double> docWordCounts = observationCountsPerDoc.get(doc);
