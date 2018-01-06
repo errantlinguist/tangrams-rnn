@@ -329,11 +329,11 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfCalculatorConstructionStart) / 1000.0);
 
-				final String imgWidth = "3em";
+				final String imgWidth = "1em";
 				LOGGER.info("Will include images using a width of \"{}\".", imgWidth);
 
-				final long nbestRefs = 3;
-				final long nbestNgrams = 3;
+				final long nbestRefs = 1;
+				final long nbestNgrams = 1;
 				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs,
 						nbestNgrams);
 				final TfIdfKeywordVisualizationLaTeXWriter keywordWriter = new TfIdfKeywordVisualizationLaTeXWriter(
