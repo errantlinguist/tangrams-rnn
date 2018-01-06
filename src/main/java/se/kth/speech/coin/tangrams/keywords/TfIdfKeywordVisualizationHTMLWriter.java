@@ -139,7 +139,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		TERM_FREQUENCY("tf") {
 			@Override
 			public Option get() {
-				final TfIdfCalculator.TermFrequencyVariant[] possibleVals = TfIdfCalculator.TermFrequencyVariant
+				final TfIdfScorer.TermFrequencyVariant[] possibleVals = TfIdfScorer.TermFrequencyVariant
 						.values();
 				return Option.builder(optName).longOpt("term-frequency")
 						.desc(String.format(
@@ -153,7 +153,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 
 		private static final int DEFAULT_MIN_LENGTH = 2;
 
-		private static final TfIdfCalculator.TermFrequencyVariant DEFAULT_TF_VARIANT = TfIdfCalculator.TermFrequencyVariant.NATURAL;
+		private static final TfIdfScorer.TermFrequencyVariant DEFAULT_TF_VARIANT = TfIdfScorer.TermFrequencyVariant.NATURAL;
 
 		private static final Options OPTIONS = createOptions();
 
@@ -193,9 +193,9 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 			return result;
 		}
 
-		private static TfIdfCalculator.TermFrequencyVariant parseTermFrequencyVariant(final CommandLine cl) {
+		private static TfIdfScorer.TermFrequencyVariant parseTermFrequencyVariant(final CommandLine cl) {
 			final String name = cl.getOptionValue(Parameter.TERM_FREQUENCY.optName);
-			return name == null ? DEFAULT_TF_VARIANT : TfIdfCalculator.TermFrequencyVariant.valueOf(name);
+			return name == null ? DEFAULT_TF_VARIANT : TfIdfScorer.TermFrequencyVariant.valueOf(name);
 		}
 
 		private static void printHelp() {
@@ -279,7 +279,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 				final Path imgResDir = ((File) cl.getParsedOptionValue(Parameter.IMAGE_RESOURCE_DIR.optName)).toPath();
 				LOGGER.info("Will image resources from \"{}\".", imgResDir);
 
-				final TfIdfCalculator.TermFrequencyVariant tfVariant = Parameter.parseTermFrequencyVariant(cl);
+				final TfIdfScorer.TermFrequencyVariant tfVariant = Parameter.parseTermFrequencyVariant(cl);
 				LOGGER.info("Will use term-frequency variant {}.", tfVariant);
 
 				final ThrowingSupplier<PrintStream, IOException> outStreamGetter = CLIParameters
@@ -299,11 +299,11 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 				final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> pairNgramCounts = SessionReferentNgramDataManager
 						.createSessionReferentPairNgramCountMap(sessionRefNgramCounts);
 				LOGGER.info("Calculating TF-IDF scores for {} session-referent pairs.", pairNgramCounts.size());
-				final long tfIdfCalculatorConstructionStart = System.currentTimeMillis();
-				final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator = TfIdfCalculator
+				final long tfIdfScorerConstructionStart = System.currentTimeMillis();
+				final TfIdfScorer<List<String>, Entry<String, VisualizableReferent>> tfIdfScorer = TfIdfScorer
 						.create(pairNgramCounts, tfVariant);
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
-						(System.currentTimeMillis() - tfIdfCalculatorConstructionStart) / 1000.0);
+						(System.currentTimeMillis() - tfIdfScorerConstructionStart) / 1000.0);
 
 				final long nbestRefs = 3;
 				final long nbestNgrams = 3;
@@ -314,7 +314,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 				LOGGER.info("Writing rows.");
 				final long writeStart = System.currentTimeMillis();
 				try (final TfIdfKeywordVisualizationHTMLWriter keywordWriter = new TfIdfKeywordVisualizationHTMLWriter(
-						new BufferedWriter(new OutputStreamWriter(outStreamGetter.get())), tfIdfCalculator, nbestRefs,
+						new BufferedWriter(new OutputStreamWriter(outStreamGetter.get())), tfIdfScorer, nbestRefs,
 						nbestNgrams, imgResDir)) {
 					rowsWritten = keywordWriter.write(sessionRefNgramCounts);
 				}
@@ -402,14 +402,14 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 	private final Writer writer;
 
 	public TfIdfKeywordVisualizationHTMLWriter(final Writer writer,
-			final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator,
+			final TfIdfScorer<List<String>, Entry<String, VisualizableReferent>> tfIdfScorer,
 			final long nbestRefs, final long nbestNgrams, final Path imgResDir) {
 		this.writer = writer;
 
 		final SVGDocumentFactory svgDocFactory = new SVGDocumentFactory(imgResDir, SVG_DOC_POSTPROCESSORS);
 		final ReferentHtmlSvgElementFactory refSvgElemFactory = new ReferentHtmlSvgElementFactory(svgDocFactory);
 		final TfIdfKeywordVisualizationRowFactory.NGramRowFactory<Stream<ContainerTag>> ngramRowFactory = TfIdfKeywordVisualizationHTMLWriter::createNGramRowCells;
-		refNgramRowFactory = new TfIdfKeywordVisualizationRowFactory<>(tfIdfCalculator, nbestRefs, nbestNgrams,
+		refNgramRowFactory = new TfIdfKeywordVisualizationRowFactory<>(tfIdfScorer, nbestRefs, nbestNgrams,
 				refSvgElemFactory, ngramRowFactory);
 	}
 

@@ -140,7 +140,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		TERM_FREQUENCY("tf") {
 			@Override
 			public Option get() {
-				final TfIdfCalculator.TermFrequencyVariant[] possibleVals = TfIdfCalculator.TermFrequencyVariant
+				final TfIdfScorer.TermFrequencyVariant[] possibleVals = TfIdfScorer.TermFrequencyVariant
 						.values();
 				return Option.builder(optName).longOpt("term-frequency")
 						.desc(String.format(
@@ -154,7 +154,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 		private static final int DEFAULT_MIN_LENGTH = 2;
 
-		private static final TfIdfCalculator.TermFrequencyVariant DEFAULT_TF_VARIANT = TfIdfCalculator.TermFrequencyVariant.NATURAL;
+		private static final TfIdfScorer.TermFrequencyVariant DEFAULT_TF_VARIANT = TfIdfScorer.TermFrequencyVariant.NATURAL;
 
 		private static final Options OPTIONS = createOptions();
 
@@ -194,9 +194,9 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 			return result;
 		}
 
-		private static TfIdfCalculator.TermFrequencyVariant parseTermFrequencyVariant(final CommandLine cl) {
+		private static TfIdfScorer.TermFrequencyVariant parseTermFrequencyVariant(final CommandLine cl) {
 			final String name = cl.getOptionValue(Parameter.TERM_FREQUENCY.optName);
-			return name == null ? DEFAULT_TF_VARIANT : TfIdfCalculator.TermFrequencyVariant.valueOf(name);
+			return name == null ? DEFAULT_TF_VARIANT : TfIdfScorer.TermFrequencyVariant.valueOf(name);
 		}
 
 		private static void printHelp() {
@@ -300,7 +300,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				final Path imgResDir = ((File) cl.getParsedOptionValue(Parameter.IMAGE_RESOURCE_DIR.optName)).toPath();
 				LOGGER.info("Will image resources from \"{}\".", imgResDir);
 
-				final TfIdfCalculator.TermFrequencyVariant tfVariant = Parameter.parseTermFrequencyVariant(cl);
+				final TfIdfScorer.TermFrequencyVariant tfVariant = Parameter.parseTermFrequencyVariant(cl);
 				LOGGER.info("Will use term-frequency variant {}.", tfVariant);
 
 				final Path outdir = ((File) cl.getParsedOptionValue(Parameter.OUTDIR.optName)).toPath();
@@ -321,11 +321,11 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> pairNgramCounts = SessionReferentNgramDataManager
 						.createSessionReferentPairNgramCountMap(sessionRefNgramCounts);
 				LOGGER.info("Calculating TF-IDF scores for {} session-referent pairs.", pairNgramCounts.size());
-				final long tfIdfCalculatorConstructionStart = System.currentTimeMillis();
-				final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator = TfIdfCalculator
+				final long tfIdfScorerConstructionStart = System.currentTimeMillis();
+				final TfIdfScorer<List<String>, Entry<String, VisualizableReferent>> tfIdfScorer = TfIdfScorer
 						.create(pairNgramCounts, tfVariant);
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
-						(System.currentTimeMillis() - tfIdfCalculatorConstructionStart) / 1000.0);
+						(System.currentTimeMillis() - tfIdfScorerConstructionStart) / 1000.0);
 
 				final String imgHeight = "2ex";
 				LOGGER.info("Will include images using a height of \"{}\".", imgHeight);
@@ -335,7 +335,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs,
 						nbestNgrams);
 				final TfIdfKeywordVisualizationLaTeXWriter keywordWriter = new TfIdfKeywordVisualizationLaTeXWriter(
-						outdir, tfIdfCalculator, nbestRefs, nbestNgrams, imgResDir, imgHeight);
+						outdir, tfIdfScorer, nbestRefs, nbestNgrams, imgResDir, imgHeight);
 
 				LOGGER.info("Writing rows.");
 				final long writeStart = System.currentTimeMillis();
@@ -410,7 +410,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 	private final TfIdfKeywordVisualizationRowFactory<Path, Stream<String>> rowFactory;
 
 	public TfIdfKeywordVisualizationLaTeXWriter(final Path outdir,
-			final TfIdfCalculator<List<String>, Entry<String, VisualizableReferent>> tfIdfCalculator,
+			final TfIdfScorer<List<String>, Entry<String, VisualizableReferent>> tfIdfScorer,
 			final long nbestRefs, final long nbestNgrams, final Path imgResDir, final String imgHeight)
 			throws IOException {
 		this.outdir = Files.createDirectories(outdir);
@@ -426,7 +426,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		final ReferentImageTranscoder refTableCellFactory = new ReferentImageTranscoder(svgDocFactory,
 				imgResOutdir);
 		final TfIdfKeywordVisualizationRowFactory.NGramRowFactory<Stream<String>> ngramRowFactory = TfIdfKeywordVisualizationLaTeXWriter::createNGramRowCells;
-		rowFactory = new TfIdfKeywordVisualizationRowFactory<>(tfIdfCalculator, nbestRefs, nbestNgrams,
+		rowFactory = new TfIdfKeywordVisualizationRowFactory<>(tfIdfScorer, nbestRefs, nbestNgrams,
 				refTableCellFactory, ngramRowFactory);
 	}
 

@@ -113,7 +113,7 @@ public final class TfIdfKeywordWriter implements Closeable, Flushable {
 		TERM_FREQUENCY("tf") {
 			@Override
 			public Option get() {
-				final TfIdfCalculator.TermFrequencyVariant[] possibleVals = TfIdfCalculator.TermFrequencyVariant
+				final TfIdfScorer.TermFrequencyVariant[] possibleVals = TfIdfScorer.TermFrequencyVariant
 						.values();
 				return Option.builder(optName).longOpt("term-frequency")
 						.desc(String.format(
@@ -127,7 +127,7 @@ public final class TfIdfKeywordWriter implements Closeable, Flushable {
 
 		private static final int DEFAULT_MIN_LENGTH = 2;
 
-		private static final TfIdfCalculator.TermFrequencyVariant DEFAULT_TF_VARIANT = TfIdfCalculator.TermFrequencyVariant.NATURAL;
+		private static final TfIdfScorer.TermFrequencyVariant DEFAULT_TF_VARIANT = TfIdfScorer.TermFrequencyVariant.NATURAL;
 
 		private static final Options OPTIONS = createOptions();
 
@@ -167,9 +167,9 @@ public final class TfIdfKeywordWriter implements Closeable, Flushable {
 			return result;
 		}
 
-		private static TfIdfCalculator.TermFrequencyVariant parseTermFrequencyVariant(final CommandLine cl) {
+		private static TfIdfScorer.TermFrequencyVariant parseTermFrequencyVariant(final CommandLine cl) {
 			final String name = cl.getOptionValue(Parameter.TERM_FREQUENCY.optName);
-			return name == null ? DEFAULT_TF_VARIANT : TfIdfCalculator.TermFrequencyVariant.valueOf(name);
+			return name == null ? DEFAULT_TF_VARIANT : TfIdfScorer.TermFrequencyVariant.valueOf(name);
 		}
 
 		private static void printHelp() {
@@ -205,7 +205,7 @@ public final class TfIdfKeywordWriter implements Closeable, Flushable {
 				throw new ParseException("No input paths specified.");
 			} else {
 				LOGGER.info("Will read sessions from {}.", Arrays.toString(inpaths));
-				final TfIdfCalculator.TermFrequencyVariant tfVariant = Parameter.parseTermFrequencyVariant(cl);
+				final TfIdfScorer.TermFrequencyVariant tfVariant = Parameter.parseTermFrequencyVariant(cl);
 				LOGGER.info("Will use term-frequency variant {}.", tfVariant);
 
 				final ThrowingSupplier<PrintStream, IOException> outStreamGetter = CLIParameters
@@ -223,17 +223,17 @@ public final class TfIdfKeywordWriter implements Closeable, Flushable {
 						Parameter.createNgramFactory(cl), onlyInstructor).createSessionNgramCountMap(sessions);
 
 				LOGGER.info("Calculating TF-IDF scores.");
-				final long tfIdfCalculatorConstructionStart = System.currentTimeMillis();
-				final TfIdfCalculator<List<String>, String> tfIdfCalculator = TfIdfCalculator.create(sessionNgramCounts,
+				final long tfIdfScorerConstructionStart = System.currentTimeMillis();
+				final TfIdfScorer<List<String>, String> tfIdfScorer = TfIdfScorer.create(sessionNgramCounts,
 						tfVariant);
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
-						(System.currentTimeMillis() - tfIdfCalculatorConstructionStart) / 1000.0);
+						(System.currentTimeMillis() - tfIdfScorerConstructionStart) / 1000.0);
 
 				LOGGER.info("Writing rows.");
 				final long writeStart = System.currentTimeMillis();
 				int rowsWritten = 0;
 				try (final TfIdfKeywordWriter keywordWriter = new TfIdfKeywordWriter(
-						CSVFormat.TDF.withHeader(COL_HEADERS).print(outStreamGetter.get()), tfIdfCalculator)) {
+						CSVFormat.TDF.withHeader(COL_HEADERS).print(outStreamGetter.get()), tfIdfScorer)) {
 					rowsWritten = keywordWriter.write(sessionNgramCounts);
 				}
 				LOGGER.info("Wrote {} row(s) in {} seconds.", rowsWritten,
@@ -277,9 +277,9 @@ public final class TfIdfKeywordWriter implements Closeable, Flushable {
 
 	private final CSVPrinter printer;
 
-	private final TfIdfCalculator<List<String>, String> tfidfCalculator;
+	private final TfIdfScorer<List<String>, String> tfidfCalculator;
 
-	public TfIdfKeywordWriter(final CSVPrinter printer, final TfIdfCalculator<List<String>, String> tfidfCalculator) {
+	public TfIdfKeywordWriter(final CSVPrinter printer, final TfIdfScorer<List<String>, String> tfidfCalculator) {
 		this.printer = printer;
 		this.tfidfCalculator = tfidfCalculator;
 	}

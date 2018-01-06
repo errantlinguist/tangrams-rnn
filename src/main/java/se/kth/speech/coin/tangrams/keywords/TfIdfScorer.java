@@ -38,7 +38,7 @@ import se.kth.speech.HashedCollections;
  * @since Dec 1, 2017
  *
  */
-public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
+public final class TfIdfScorer<O, D> implements ToDoubleBiFunction<O, D> {
 
 	/**
 	 * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
@@ -65,11 +65,11 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 
 	private static final int DEFAULT_INITIAL_WORD_MAP_CAPACITY = 1000;
 
-	public static <O, D> TfIdfCalculator<O, D> create(final Map<D, ? extends Object2IntMap<O>> docObservationCounts) {
+	public static <O, D> TfIdfScorer<O, D> create(final Map<D, ? extends Object2IntMap<O>> docObservationCounts) {
 		return create(docObservationCounts, TermFrequencyVariant.NATURAL);
 	}
 
-	public static <O, D> TfIdfCalculator<O, D> create(final Map<D, ? extends Object2IntMap<O>> docObservationCounts,
+	public static <O, D> TfIdfScorer<O, D> create(final Map<D, ? extends Object2IntMap<O>> docObservationCounts,
 			final TermFrequencyVariant tfVariant) {
 		final int docCount = docObservationCounts.size();
 		final int initialDocSetCapcity = HashedCollections.capacity(docCount);
@@ -95,7 +95,7 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 		observationCountsPerDoc.trim();
 		observationCountsPerDoc.values().forEach(Object2DoubleOpenHashMap::trim);
 		observationDocs.trim();
-		return new TfIdfCalculator<>(observationCountsPerDoc, observationDocs, docObservationCounts.size(), tfVariant);
+		return new TfIdfScorer<>(observationCountsPerDoc, observationDocs, docObservationCounts.size(), tfVariant);
 	}
 
 	private static <K> void incrementCount(final K key, final int addend, final Object2DoubleMap<? super K> counts) {
@@ -120,7 +120,7 @@ public final class TfIdfCalculator<O, D> implements ToDoubleBiFunction<O, D> {
 
 	private final double totalDocCount;
 
-	private TfIdfCalculator(final Map<D, ? extends Object2DoubleMap<O>> observationCountsPerDoc,
+	private TfIdfScorer(final Map<D, ? extends Object2DoubleMap<O>> observationCountsPerDoc,
 			final Map<O, Set<D>> observationDocs, final int totalDocCount, final TermFrequencyVariant tfVariant) {
 		this.observationCountsPerDoc = observationCountsPerDoc;
 		this.observationDocs = observationDocs;

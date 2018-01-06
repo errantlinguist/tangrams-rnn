@@ -43,17 +43,17 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 		R apply(final List<String> ngram, final int count, final double score);
 	}
 
-	private class DocumentTfIdfCalculator implements ToDoubleFunction<List<String>> {
+	private class DocumentTfIdfScorer implements ToDoubleFunction<List<String>> {
 
 		private final Entry<String, VisualizableReferent> doc;
 
-		private DocumentTfIdfCalculator(final Entry<String, VisualizableReferent> doc) {
+		private DocumentTfIdfScorer(final Entry<String, VisualizableReferent> doc) {
 			this.doc = doc;
 		}
 
 		@Override
 		public double applyAsDouble(final List<String> ngram) {
-			final double score = tfIdfCalculator.applyAsDouble(ngram, doc);
+			final double score = tfIdfScorer.applyAsDouble(ngram, doc);
 			final int ngramOrder = ngram.size();
 			final double normalizer = ngramOrder + Math.log10(ngramOrder);
 			return score * normalizer;
@@ -68,14 +68,14 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 
 	private final NGramRowFactory<? extends R> rowFactory;
 
-	private final ToDoubleBiFunction<? super List<String>, ? super Entry<String, VisualizableReferent>> tfIdfCalculator;
+	private final ToDoubleBiFunction<? super List<String>, ? super Entry<String, VisualizableReferent>> tfIdfScorer;
 
 	public TfIdfKeywordVisualizationRowFactory(
-			final ToDoubleBiFunction<? super List<String>, ? super Entry<String, VisualizableReferent>> tfIdfCalculator,
+			final ToDoubleBiFunction<? super List<String>, ? super Entry<String, VisualizableReferent>> tfIdfScorer,
 			final long nbestRefs, final long nbestNgrams,
 			final Function<? super VisualizableReferent, ? extends V> refVisualizationFactory,
 			final NGramRowFactory<? extends R> rowFactory) {
-		this.tfIdfCalculator = tfIdfCalculator;
+		this.tfIdfScorer = tfIdfScorer;
 		this.nbestRefs = nbestRefs;
 		this.nbestNgrams = nbestNgrams;
 		this.refVisualizationFactory = refVisualizationFactory;
@@ -105,7 +105,7 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 
 	private DoubleStream calculateNgramScores(final Collection<List<String>> ngrams,
 			final Entry<String, VisualizableReferent> sessionRef) {
-		final DocumentTfIdfCalculator sessionNgramScorer = new DocumentTfIdfCalculator(sessionRef);
+		final DocumentTfIdfScorer sessionNgramScorer = new DocumentTfIdfScorer(sessionRef);
 		return ngrams.stream().mapToDouble(ngram -> {
 			return sessionNgramScorer.applyAsDouble(ngram);
 		});
@@ -118,7 +118,7 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 
 		// Create rows only for the n-best n-grams for the given
 		// referent
-		final DocumentTfIdfCalculator ngramScorer = new DocumentTfIdfCalculator(Pair.of(sessionName, ref));
+		final DocumentTfIdfScorer ngramScorer = new DocumentTfIdfScorer(Pair.of(sessionName, ref));
 		final Comparator<Object2IntMap.Entry<List<String>>> nbestNgramCountComparator = Comparator
 				.comparingDouble(ngramCount -> -ngramScorer.applyAsDouble(ngramCount.getKey()));
 		final Stream<Object2IntMap.Entry<List<String>>> nbestNgramCounts = refNgramCounts.getValue().object2IntEntrySet()
