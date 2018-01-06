@@ -388,6 +388,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 	/**
 	 * @see <a href= "http://stackoverflow.com/q/32721467/1391325">StackOverflow</a>
 	 * @param doc
+	 * @param outfilePath
 	 * @param outputStreamSupplier
 	 * @throws TranscoderException
 	 * @throws IOException
