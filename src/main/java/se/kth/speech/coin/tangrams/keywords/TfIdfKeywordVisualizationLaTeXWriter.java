@@ -19,17 +19,20 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.RoundingMode;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.BiConsumer;
@@ -264,6 +267,24 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(TfIdfKeywordVisualizationLaTeXWriter.class);
 
+	private static final ThreadLocal<NumberFormat> SCORE_FORMAT = new ThreadLocal<NumberFormat>() {
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.ThreadLocal#initialValue()
+		 */
+		@Override
+		protected NumberFormat initialValue() {
+			final NumberFormat result = NumberFormat.getNumberInstance(Locale.US);
+			result.setMinimumFractionDigits(3);
+			result.setMaximumFractionDigits(3);
+			result.setRoundingMode(RoundingMode.HALF_UP);
+			return result;
+		}
+
+	};
+
 	private static final List<BiConsumer<VisualizableReferent, SVGDocument>> SVG_DOC_POSTPROCESSORS = createSVGDocPostProcessors();
 
 	private static final Collector<CharSequence, ?, String> TABLE_COL_DELIM = Collectors.joining("\t&\t");
@@ -377,7 +398,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 	private static Stream<String> createNGramRowCells(final List<String> ngram, final int count, final double score) {
 		final String ngramRepr = ngram.stream().collect(TOKEN_JOINER);
-		return Stream.of(ngramRepr, Double.toString(score));
+		return Stream.of(ngramRepr, SCORE_FORMAT.get().format(score));
 	}
 
 	private static List<BiConsumer<VisualizableReferent, SVGDocument>> createSVGDocPostProcessors() {
