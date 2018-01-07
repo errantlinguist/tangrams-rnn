@@ -15,7 +15,6 @@
  */
 package se.kth.speech.coin.tangrams.keywords;
 
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -92,22 +91,13 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 			// After having sorted by session name, sort by a given referent's total score
 			final Map<VisualizableReferent, Object2IntMap<List<String>>> refNgramCounts = sessionRefNgramCounts
 					.getValue();
-			final ToDoubleFunction<Entry<VisualizableReferent, Object2IntMap<List<String>>>> inverseNgramCountScorer = entry -> -calculateNgramScores(
-					entry.getValue().keySet(), Pair.of(sessionName, entry.getKey())).average()
-							.orElse(Double.NEGATIVE_INFINITY);
+			final ToDoubleFunction<Entry<VisualizableReferent, Object2IntMap<List<String>>>> inverseNgramCountScorer = counts -> -scoreReferentLanguage(
+					sessionName, counts);
 			final Comparator<Entry<VisualizableReferent, Object2IntMap<List<String>>>> ngramScoreComparator = Comparator
 					.comparingDouble(inverseNgramCountScorer);
 			final Stream<Entry<VisualizableReferent, Object2IntMap<List<String>>>> nbestRefNgramCounts = refNgramCounts
 					.entrySet().stream().sorted(ngramScoreComparator).limit(nbestRefs);
 			return nbestRefNgramCounts.map(entry -> createRows(sessionName, entry));
-		});
-	}
-
-	private DoubleStream calculateNgramScores(final Collection<List<String>> ngrams,
-			final Entry<String, VisualizableReferent> sessionRef) {
-		final DocumentTfIdfScorer sessionNgramScorer = new DocumentTfIdfScorer(sessionRef);
-		return ngrams.stream().mapToDouble(ngram -> {
-			return sessionNgramScorer.applyAsDouble(ngram);
 		});
 	}
 
@@ -121,14 +111,23 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 		final DocumentTfIdfScorer ngramScorer = new DocumentTfIdfScorer(Pair.of(sessionName, ref));
 		final Comparator<Object2IntMap.Entry<List<String>>> nbestNgramCountComparator = Comparator
 				.comparingDouble(ngramCount -> -ngramScorer.applyAsDouble(ngramCount.getKey()));
-		final Stream<Object2IntMap.Entry<List<String>>> nbestNgramCounts = refNgramCounts.getValue().object2IntEntrySet()
-				.stream().sorted(nbestNgramCountComparator).limit(nbestNgrams);
+		final Stream<Object2IntMap.Entry<List<String>>> nbestNgramCounts = refNgramCounts.getValue()
+				.object2IntEntrySet().stream().sorted(nbestNgramCountComparator).limit(nbestNgrams);
 		final Stream<R> rows = nbestNgramCounts.map(ngramCount -> {
 			final List<String> ngram = ngramCount.getKey();
 			final int count = ngramCount.getIntValue();
 			return rowFactory.apply(ngram, count, ngramScorer.applyAsDouble(ngram));
 		});
 		return new ReferentNGramRowGrouping<>(sessionName, refViz, rows);
+	}
+
+	private double scoreReferentLanguage(final String sessionName,
+			final Entry<VisualizableReferent, Object2IntMap<List<String>>> refNgramCounts) {
+		final Entry<String, VisualizableReferent> sessionRef = Pair.of(sessionName, refNgramCounts.getKey());
+		final DocumentTfIdfScorer sessionNgramScorer = new DocumentTfIdfScorer(sessionRef);
+		final Object2IntMap<List<String>> ngramCounts = refNgramCounts.getValue();
+		final DoubleStream ngramScores = ngramCounts.keySet().stream().mapToDouble(sessionNgramScorer);
+		return ngramScores.max().orElse(Double.NEGATIVE_INFINITY);
 	}
 
 }
