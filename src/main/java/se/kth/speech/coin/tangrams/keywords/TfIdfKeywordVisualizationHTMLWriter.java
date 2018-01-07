@@ -163,9 +163,9 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 			}
 		};
 
-		private static final int DEFAULT_MAX_LENGTH = 4;
+		private static final int DEFAULT_MAX_LENGTH = 3;
 
-		private static final int DEFAULT_MIN_LENGTH = 2;
+		private static final int DEFAULT_MIN_LENGTH = 3;
 
 		private static final TfIdfScorer.TermFrequencyVariant DEFAULT_TF_VARIANT = TfIdfScorer.TermFrequencyVariant.NATURAL;
 
@@ -326,9 +326,10 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 						ngram, doc) -> {
 					final double tfIdfScore = tfIdfScorer.applyAsDouble(ngram, doc);
 					// LOGGER.info("TF-IDF score is {}.", tfIdfScore);
-					final double ngramProb = ngramLanguageScorer.applyAsDouble(ngram);
+//					final double ngramProb = ngramLanguageScorer.applyAsDouble(ngram);
 					// LOGGER.info("N-gram probability is {}.", ngramProb);
-					return tfIdfScore + Math.log10(ngramProb);
+//					return tfIdfScore + Math.log10(ngramProb);
+					return tfIdfScore;
 				};
 
 				final long nbestRefs = 3;
@@ -393,7 +394,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 
 	private static ToDoubleFunction<List<String>> createNGramLanguageScorer(final CommandLine cl,
 			final Map<?, ? extends Map<?, ? extends Object2IntMap<? extends List<String>>>> sessionRefNgramCounts) {
-		final ToDoubleFunction<List<String>> result;
+//		final ToDoubleFunction<List<String>> result;
 		// final File corpusDir = (File)
 		// cl.getParsedOptionValue(Parameter.CORPUS_DIR.optName);
 		// if (corpusDir == null) {
@@ -410,11 +411,11 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		// final Stream<List<String>> ngrams = corpusSentNgrams.flatMap(List::stream);
 		// sessionRefNgramCounts.values().stream().map(Map::values).map(Object2IntMap::object2IntEntrySet);
 		// ngramProbScorer = new ProbabilityScorer<>(ngrams);
-		result = new ProbabilityScorer<>(createNGramTotalCountMap(sessionRefNgramCounts));
-		LOGGER.info("Finished calculating n-gram probabilities after {} seconds.",
-				(System.currentTimeMillis() - readingStart) / 1000.0);
+//		result = new ProbabilityScorer<>(createNGramTotalCountMap(sessionRefNgramCounts));
+//		LOGGER.info("Finished calculating n-gram probabilities after {} seconds.",
+//				(System.currentTimeMillis() - readingStart) / 1000.0);
 		// }
-		return result;
+		return ngram -> 1.0;
 	}
 
 	private static Stream<ContainerTag> createNGramRowCells(final List<String> ngram, final int count,

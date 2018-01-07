@@ -54,8 +54,9 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 		public double applyAsDouble(final List<String> ngram) {
 			final double score = tfIdfScorer.applyAsDouble(ngram, doc);
 			final int ngramOrder = ngram.size();
-			final double normalizer = ngramOrder + Math.log10(ngramOrder);
-			return score * normalizer;
+//			final double normalizer = ngramOrder + Math.log10(ngramOrder);
+//			return score * normalizer;
+			return score;
 		}
 	}
 
