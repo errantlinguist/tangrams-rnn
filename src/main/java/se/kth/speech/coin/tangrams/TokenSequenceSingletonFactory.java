@@ -27,7 +27,7 @@ import se.kth.speech.HashedCollections;
 /**
  * This class is threadsafe.
  *
- * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
+ * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
  * @since Nov 24, 2017
  *
  */

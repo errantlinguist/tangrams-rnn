@@ -19,7 +19,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 
 /**
- * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
+ * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
  * @since Nov 25, 2017
  *
  */

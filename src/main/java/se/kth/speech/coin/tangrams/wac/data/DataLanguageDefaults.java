@@ -18,7 +18,7 @@ package se.kth.speech.coin.tangrams.wac.data;
 import java.util.Locale;
 
 /**
- * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
+ * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
  * @since 11 Aug 2017
  *
  */

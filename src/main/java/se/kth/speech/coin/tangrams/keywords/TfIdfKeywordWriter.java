@@ -57,7 +57,7 @@ import se.kth.speech.nlp.NGramFactory;
 import se.kth.speech.nlp.TfIdfScorer;
 
 /**
- * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
+ * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
  * @since Dec 1, 2017
  *
  */

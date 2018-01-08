@@ -52,7 +52,7 @@ import se.kth.speech.function.ThrowingSupplier;
 import weka.classifiers.functions.Logistic;
 
 /**
- * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
+ * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
  * @since 5 Dec 2017
  *
  */

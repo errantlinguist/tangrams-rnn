@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 import se.kth.speech.function.ThrowingSupplier;
 
 /**
- * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
+ * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
  * @since 1 Jun 2017
  *
  */

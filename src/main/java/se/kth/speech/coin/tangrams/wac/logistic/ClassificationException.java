@@ -16,7 +16,7 @@
 package se.kth.speech.coin.tangrams.wac.logistic;
 
 /**
- * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
+ * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
  * @since Nov 24, 2017
  *
  */

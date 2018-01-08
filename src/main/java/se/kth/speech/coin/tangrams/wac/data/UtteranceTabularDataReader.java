@@ -37,7 +37,7 @@ import se.kth.speech.Lists;
 import se.kth.speech.coin.tangrams.TokenSequenceSingletonFactory;
 
 /**
- * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
+ * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
  * @since Nov 23, 2017
  *
  */

@@ -49,7 +49,7 @@ import se.kth.speech.coin.tangrams.wac.logistic.WordProbabilityScorer.ReferentWo
 /**
  * Prints cross-validation results. Is thread-safe.
  *
- * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
+ * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
  * @since 2017-11-26
  *
  */

@@ -29,7 +29,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
  *
  * @param <O>
  *            The type of observations to probabilities for.
- * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
+ * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
  * @since Jan 7, 2018
  *
  */

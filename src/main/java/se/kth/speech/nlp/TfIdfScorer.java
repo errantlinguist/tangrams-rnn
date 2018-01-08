@@ -34,14 +34,14 @@ import se.kth.speech.HashedCollections;
  *            The class representing a document in which observations are found.
  * @param <O>
  *            The type of observations to calculate TF-IDF scores for.
- * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
+ * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
  * @since Dec 1, 2017
  *
  */
 public final class TfIdfScorer<O, D> implements ToDoubleBiFunction<O, D> {
 
 	/**
-	 * @author <a href="mailto:tcshore@kth.se">Todd Shore</a>
+	 * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
 	 * @since Dec 3, 2017
 	 * @see <a href="https://doi.org/10.1017%2FCBO9780511809071.007">Manning,
 	 *      Christopher D. et al (2008). <em>Introduction to Information
