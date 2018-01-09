@@ -329,7 +329,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 				// return tfIdfScore;
 				// };
 
-				final long nbestRefs = 20;
+				final long nbestRefs = Long.MAX_VALUE;
 				final long nbestNgrams = 3;
 				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs,
 						nbestNgrams);
