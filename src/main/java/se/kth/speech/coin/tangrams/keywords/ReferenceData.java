@@ -174,10 +174,11 @@ final class ReferenceData {
 	 *         coreference sequence length for any given entity.
 	 */
 	public double expectedCorefSeqLength() {
-//		final double result = coreferenceCount / (double) distinctEntityCount;
-//		assert Double.isFinite(result);
-//		assert result >= 0.0;
-//		return result;
+		// final double result = coreferenceCount / (double)
+		// distinctEntityCount;
+		// assert Double.isFinite(result);
+		// assert result >= 0.0;
+		// return result;
 		// TODO: re-implement: Not correct!
 		return 1.0;
 	}
@@ -189,37 +190,6 @@ final class ReferenceData {
 	public boolean isWouldNextReferentBeNew() {
 		return wouldNextReferentBeNew;
 	}
-
-	// /**
-	// *
-	// * @return The maximum likelihood of any given entity being referenced at
-	// * least once in the game.
-	// */
-	// public double maximumLikelihoodOfBeingReferent() {
-	// return maximumLikelihoodOfBeingReferent(newReferenceCount);
-	// }
-
-	// /**
-	// *
-	// * @param roundCount
-	// * The length of the game in rounds.
-	// * @return The maximum likelihood of any given entity being referenced at
-	// * least once in the game of a certain length.
-	// */
-	// public double maximumLikelihoodOfBeingReferent(final int roundCount) {
-	// final int eventSpaceSize = newReferentEventSpaceSize(roundCount);
-	//
-	// final double result;
-	// if (eventSpaceSize == 0L) {
-	// result = 1.0;
-	// } else {
-	// result = 1.0 / eventSpaceSize;
-	// assert Double.isFinite(result);
-	// assert result >= 0.0;
-	// assert result <= 1.0;
-	// }
-	// return result;
-	// }
 
 	public BigDecimal probabilityOfBeingCoreferentFromStart() {
 		BigDecimal result = BigDecimal.ZERO;
@@ -248,37 +218,6 @@ final class ReferenceData {
 	public boolean wereAllEntitiesReferents() {
 		return newReferenceCount >= distinctEntityCount;
 	}
-
-	// /**
-	// * @param roundOrdinality
-	// * The order in which the round occurred in the game.
-	// * @return The size of the event space for choosing a new referent for a
-	// * given round.
-	// *
-	// */
-	// private int newReferentEventSpaceSize(final int roundOrdinality) {
-	// return Math.max(newReferenceCount - roundOrdinality, 0);
-	// }
-
-	// /**
-	// * @return The size of the event space for choosing a new referent.
-	// *
-	// */
-	// private int newReferentEventSpaceSize() {
-	// int result = 0;
-	//
-	// int possibleNewReferentCount = distinctEntityCount;
-	// int newReferenceId = 0;
-	// do {
-	// // For each round, there is one less possible new referent
-	// result += possibleNewReferentCount;
-	// possibleNewReferentCount--;
-	// newReferenceId++;
-	// } while (possibleNewReferentCount > 0 && newReferenceId <
-	// newReferenceCount);
-	//
-	// return result;
-	// }
 
 	/**
 	 *
