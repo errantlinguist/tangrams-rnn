@@ -55,12 +55,15 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 		@Override
 		public double applyAsDouble(final List<String> ngram) {
 			final double score = tfIdfScorer.applyAsDouble(ngram, doc);
-//			final int ngramOrder = ngram.size();
-//			final double normalizer = ngramOrder + Math.log10(ngramOrder);
-//			return score * normalizer;
+			// final int ngramOrder = ngram.size();
+			// final double normalizer = ngramOrder + Math.log10(ngramOrder);
+			// return score * normalizer;
 			return score;
 		}
 	}
+
+	private static final Comparator<Entry<Session, Map<VisualizableReferent, DocumentObservationData<List<String>>>>> SESSION_DOC_OBS_DATA_NAME_COMPARATOR = Comparator
+			.comparing(entry -> entry.getKey().getName(), Session.getNameComparator());
 
 	private final long nbestNgrams;
 
@@ -88,7 +91,7 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 	public Stream<ReferentNGramRowGrouping<V, R>> apply(
 			final Map<Session, Map<VisualizableReferent, DocumentObservationData<List<String>>>> sessionDocObsData) {
 		final Stream<Entry<Session, Map<VisualizableReferent, DocumentObservationData<List<String>>>>> sortedSessionRefDocObsData = sessionDocObsData
-				.entrySet().stream().sorted(Comparator.comparing(entry -> entry.getKey().getName(), Session.getNameComparator()));
+				.entrySet().stream().sorted(SESSION_DOC_OBS_DATA_NAME_COMPARATOR);
 		return sortedSessionRefDocObsData.flatMap(sessionRefDocObsData -> {
 			final Session session = sessionRefDocObsData.getKey();
 			// After having sorted by session name, sort by a given referent's total score
@@ -108,15 +111,16 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 			final Entry<VisualizableReferent, DocumentObservationData<List<String>>> refDocObsData) {
 		final VisualizableReferent ref = refDocObsData.getKey();
 		final V refViz = refVisualizationFactory.apply(ref);
-		DocumentObservationData<List<String>> docObsData = refDocObsData.getValue();
-		Object2IntMap<List<String>> obsCounts = docObsData.getObservationCounts();
+		final DocumentObservationData<List<String>> docObsData = refDocObsData.getValue();
+		final Object2IntMap<List<String>> obsCounts = docObsData.getObservationCounts();
 
 		// Create rows only for the n-best n-grams for the given
 		// referent
 		final DocumentTfIdfScorer ngramScorer = new DocumentTfIdfScorer(Pair.of(session, ref));
-		final Comparator<Object2IntMap.Entry<List<String>>> nbestNgramCountComparator = Comparator
-				.comparingDouble(ngramCount -> -ngramScorer.applyAsDouble(ngramCount.getKey()) * ngramCount.getIntValue());
-		final Stream<Object2IntMap.Entry<List<String>>> nbestDocObsData = obsCounts.object2IntEntrySet().stream().sorted(nbestNgramCountComparator).limit(nbestNgrams);
+		final Comparator<Object2IntMap.Entry<List<String>>> nbestNgramCountComparator = Comparator.comparingDouble(
+				ngramCount -> -ngramScorer.applyAsDouble(ngramCount.getKey()) * ngramCount.getIntValue());
+		final Stream<Object2IntMap.Entry<List<String>>> nbestDocObsData = obsCounts.object2IntEntrySet().stream()
+				.sorted(nbestNgramCountComparator).limit(nbestNgrams);
 		final Stream<R> rows = nbestDocObsData.map(ngramCount -> {
 			final List<String> ngram = ngramCount.getKey();
 			final int count = ngramCount.getIntValue();
@@ -130,12 +134,14 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 		final Entry<Session, VisualizableReferent> sessionRef = Pair.of(session, refDocObsData.getKey());
 		final DocumentTfIdfScorer sessionNgramScorer = new DocumentTfIdfScorer(sessionRef);
 		final DocumentObservationData<List<String>> docObsData = refDocObsData.getValue();
-		final DoubleStream obsScores = docObsData.getObservationCounts().keySet().stream().mapToDouble(sessionNgramScorer);
-		
+		final DoubleStream obsScores = docObsData.getObservationCounts().keySet().stream()
+				.mapToDouble(sessionNgramScorer);
+
 		final OptionalDouble maxScore = obsScores.max();
 		final double result;
-		if (maxScore.isPresent()){
-			// Normalize the score of the observation (n-gram) by the number of times the document (referent) occurs in the data
+		if (maxScore.isPresent()) {
+			// Normalize the score of the observation (n-gram) by the number of times the
+			// document (referent) occurs in the data
 			result = maxScore.getAsDouble() / docObsData.getDocumentOccurrenceCount();
 		} else {
 			result = Double.NEGATIVE_INFINITY;
