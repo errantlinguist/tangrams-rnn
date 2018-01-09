@@ -19,7 +19,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.OptionalDouble;
 import java.util.function.Function;
 import java.util.function.ToDoubleBiFunction;
 import java.util.function.ToDoubleFunction;
@@ -27,7 +26,6 @@ import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.python.antlr.ast.Compare.comparators_descriptor;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import se.kth.speech.coin.tangrams.wac.data.Session;
@@ -63,6 +61,32 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 		}
 	}
 
+	private class NormalizedDocumentObservationScorer implements ToDoubleFunction<List<String>> {
+
+		private final int normalizer;
+
+		private final DocumentObservationScorer docObsScorer;
+
+		private NormalizedDocumentObservationScorer(final Entry<Session, VisualizableReferent> doc,
+				final DocumentObservationData<List<String>> docObsData) {
+			// Normalize the score of the observation (n-gram) by the number of times the
+			// document (referent) occurs in the data
+			this(doc, docObsData.getDocumentOccurrenceCount());
+		}
+
+		private NormalizedDocumentObservationScorer(final Entry<Session, VisualizableReferent> doc,
+				final int normalizer) {
+			docObsScorer = new DocumentObservationScorer(doc);
+			this.normalizer = normalizer;
+		}
+
+		@Override
+		public double applyAsDouble(final List<String> obs) {
+			final double score = docObsScorer.applyAsDouble(obs);
+			return score / normalizer;
+		}
+	}
+
 	private final long nbestNgrams;
 
 	private final long nbestRefs;
@@ -85,31 +109,6 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 		this.rowFactory = rowFactory;
 	}
 
-	private class NormalizedDocumentObservationScorer implements ToDoubleFunction<List<String>> {
-
-		private final int normalizer;
-
-		private final DocumentObservationScorer docObsScorer;
-
-		private NormalizedDocumentObservationScorer(final Entry<Session, VisualizableReferent> doc,
-				final int normalizer) {
-			docObsScorer = new DocumentObservationScorer(doc);
-			this.normalizer = normalizer;
-		}
-		
-		private NormalizedDocumentObservationScorer(final Entry<Session, VisualizableReferent> doc, DocumentObservationData<List<String>> docObsData) {
-			// Normalize the score of the observation (n-gram) by the number of times the
-			// document (referent) occurs in the data
-			this(doc, docObsData.getDocumentOccurrenceCount());
-		}
-
-		@Override
-		public double applyAsDouble(List<String> obs) {
-			double score = docObsScorer.applyAsDouble(obs);
-			return score / normalizer;
-		}
-	}
-
 	@Override
 	public Stream<ReferentNGramRowGrouping<V, R>> apply(
 			final Map<Entry<Session, VisualizableReferent>, DocumentObservationData<List<String>>> sessionDocObsData) {
@@ -122,7 +121,7 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 		});
 	}
 
-	private ReferentNGramRowGrouping<V, R> createRows(final Entry<Session,VisualizableReferent> sessionRef,
+	private ReferentNGramRowGrouping<V, R> createRows(final Entry<Session, VisualizableReferent> sessionRef,
 			final DocumentObservationData<List<String>> docObsData) {
 		final Session session = sessionRef.getKey();
 		final VisualizableReferent ref = sessionRef.getValue();
@@ -145,22 +144,17 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 	}
 
 	private double scoreReferentLanguage(
-			Entry<Entry<Session, VisualizableReferent>, DocumentObservationData<List<String>>> sessionRefDocObsData) {
+			final Entry<Entry<Session, VisualizableReferent>, DocumentObservationData<List<String>>> sessionRefDocObsData) {
 		return scoreReferentLanguage(sessionRefDocObsData.getKey(), sessionRefDocObsData.getValue());
 	}
 
 	private double scoreReferentLanguage(final Entry<Session, VisualizableReferent> sessionRef,
 			final DocumentObservationData<List<String>> docObsData) {
-		final NormalizedDocumentObservationScorer sessionNgramScorer = new NormalizedDocumentObservationScorer(sessionRef, docObsData);
+		final NormalizedDocumentObservationScorer sessionNgramScorer = new NormalizedDocumentObservationScorer(
+				sessionRef, docObsData);
 		final DoubleStream obsScores = docObsData.getObservationCounts().keySet().stream()
 				.mapToDouble(sessionNgramScorer);
 		return obsScores.max().orElse(Double.NEGATIVE_INFINITY);
-	}
-
-	private double scoreReferentLanguage(final Session session,
-			final Entry<VisualizableReferent, DocumentObservationData<List<String>>> refDocObsData) {
-		final Entry<Session, VisualizableReferent> sessionRef = Pair.of(session, refDocObsData.getKey());
-		return scoreReferentLanguage(sessionRef, refDocObsData.getValue());
 	}
 
 }
