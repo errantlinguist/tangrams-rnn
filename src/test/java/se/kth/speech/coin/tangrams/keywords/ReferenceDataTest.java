@@ -16,23 +16,41 @@
 package se.kth.speech.coin.tangrams.keywords;
 
 import java.math.BigDecimal;
+import java.util.Random;
 
 import org.junit.Assert;
-import org.junit.Test;
+import org.junit.experimental.theories.DataPoints;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.runner.RunWith;
 
 /**
  * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
  * @since Jan 9, 2018
  *
  */
+@RunWith(Theories.class)
 public final class ReferenceDataTest {
+
+	@DataPoints
+	public static final int[] VALUES;
+
+	static {
+		VALUES = new Random().ints().map(Math::abs).limit(10).toArray();
+	}
 
 	/**
 	 * Test method for
 	 * {@link se.kth.speech.coin.tangrams.keywords.ReferenceData#probabilityOfBeingCoreferentFromStart()}.
+	 *
+	 * @param roundCount
+	 *            The total number of rounds in the game.
+	 * @param distinctEntityCount
+	 *            The number of distinct entities (possible referents) in the
+	 *            game.
 	 */
-	@Test
-	public void testProbabilityOfBeingCoreferentFromStart() {
+	@Theory
+	public void testProbabilityOfBeingCoreferentFromStart(final int roundCount, final int distinctEntityCount) {
 		final ReferenceData data = new ReferenceData(2000, 5);
 		final BigDecimal prob = data.probabilityOfBeingCoreferentFromStart();
 		Assert.assertTrue("Probability is less than 0.", prob.compareTo(BigDecimal.ZERO) >= 0);
