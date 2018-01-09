@@ -315,7 +315,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		TABLE_COL_NAMES = Arrays
 				.asList(Stream.concat(TABLE_PREFIX_COL_NAMES.stream(), Stream.of("$n$-gram", "TF-IDF", "Count"))
 						.toArray(String[]::new));
-		TABLE_COL_DEFS = Arrays.asList("l", "c", "l", "l", "r", "r");
+		TABLE_COL_DEFS = Arrays.asList("l", "c", "r", "l", "r", "r");
 		assert TABLE_COL_DEFS.size() == TABLE_COL_NAMES
 				.size() : "Table column name list and definition list are not the same size.";
 	}
