@@ -358,6 +358,10 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		}
 	}
 
+	private static ContainerTag alignRight(final ContainerTag tag) {
+		return tag.attr("align", "right");
+	}
+
 	private static String createHTMLDocumentString(final ContainerTag html) {
 		final String result;
 		synchronized (Config.class) {
@@ -383,8 +387,8 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 	private static Stream<ContainerTag> createNGramRowCells(final List<String> ngram, final int count,
 			final double score) {
 		final String ngramRepr = ngram.stream().collect(TOKEN_JOINER);
-		return Stream.of(TagCreator.td(ngramRepr), TagCreator.td(Double.toString(score)),
-				TagCreator.td(Integer.toString(count)));
+		return Stream.of(TagCreator.td(TagCreator.em(ngramRepr)), alignRight(TagCreator.td(Double.toString(score))),
+				alignRight(TagCreator.td(Integer.toString(count))));
 	}
 
 	private static List<BiConsumer<VisualizableReferent, SVGDocument>> createSVGDocPostProcessors() {
@@ -465,11 +469,11 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		final Session session = refNgramRowGrouping.getSession();
 		final ContainerTag dyadCell = TagCreator.td(session.getName());
 		final List<Round> rounds = session.getRounds();
-		final ContainerTag roundCountCell = TagCreator.td(Integer.toString(rounds.size()));
+		final ContainerTag roundCountCell = alignRight(TagCreator.td(Integer.toString(rounds.size())));
 
-		final ContainerTag refCell = TagCreator.td(refNgramRowGrouping.getRefVizElem());
-		final ContainerTag refOccurrenceCountCell = TagCreator
-				.td(Integer.toString(refNgramRowGrouping.getDocumentOccurrenceCount()));
+		final ContainerTag refCell = TagCreator.td(refNgramRowGrouping.getRefVizElem()).attr("align", "center");
+		final ContainerTag refOccurrenceCountCell = alignRight(
+				TagCreator.td(Integer.toString(refNgramRowGrouping.getDocumentOccurrenceCount())));
 		final Stream<ContainerTag> prefixCells = rowspan(
 				Stream.of(dyadCell, roundCountCell, refCell, refOccurrenceCountCell), rowspan);
 		return TagCreator.tr(Stream.concat(prefixCells, ngramRowCells).toArray(ContainerTag[]::new));
