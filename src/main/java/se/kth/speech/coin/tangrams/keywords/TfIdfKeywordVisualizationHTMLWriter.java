@@ -259,8 +259,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 
 	private static final List<BiConsumer<VisualizableReferent, SVGDocument>> SVG_DOC_POSTPROCESSORS = createSVGDocPostProcessors();
 
-	private static final List<String> TABLE_COL_NAMES = Arrays.asList("Dyad", "Game rounds",
-			"Coref chain length upper bound", "Expected coref chain length", "Coref prob", "Image", "References",
+	private static final List<String> TABLE_COL_NAMES = Arrays.asList("Dyad", "Game rounds", "Image", "References",
 			"N-gram", "Score", "Count");
 
 	private static final String TOKEN_DELIMITER;
