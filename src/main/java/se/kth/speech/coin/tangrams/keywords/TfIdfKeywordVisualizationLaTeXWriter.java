@@ -64,6 +64,7 @@ import se.kth.speech.LaTeX;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
+import se.kth.speech.nlp.DocumentObservationData;
 import se.kth.speech.nlp.NGramFactory;
 import se.kth.speech.nlp.TfIdfScorer;
 import se.kth.speech.svg.SVGDocuments;
@@ -339,15 +340,15 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 				final Map<Referent, VisualizableReferent> vizRefs = SessionReferentNgramDataManager
 						.createVisualizableReferentMap(sessions);
-				final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts = new SessionReferentNgramDataManager(
+				final Map<String, Map<VisualizableReferent, DocumentObservationData<List<String>>>> sessionRefDocObsData = new SessionReferentNgramDataManager(
 						Parameter.createNgramFactory(cl), onlyInstructor).createSessionReferentNgramCountMap(sessions,
 								vizRefs);
-				final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> pairNgramCounts = SessionReferentNgramDataManager
-						.createSessionReferentPairNgramCountMap(sessionRefNgramCounts);
-				LOGGER.info("Calculating TF-IDF scores for {} session-referent pairs.", pairNgramCounts.size());
+				final Map<Entry<String, VisualizableReferent>, DocumentObservationData<List<String>>> pairDocObsData = SessionReferentNgramDataManager
+						.createSessionReferentPairNgramCountMap(sessionRefDocObsData);
+				LOGGER.info("Calculating TF-IDF scores for {} session-referent pairs.", pairDocObsData.size());
 				final long tfIdfScorerConstructionStart = System.currentTimeMillis();
 				final TfIdfScorer<List<String>, Entry<String, VisualizableReferent>> tfIdfScorer = TfIdfScorer
-						.create(pairNgramCounts, tfVariant);
+						.create(pairDocObsData, tfVariant);
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfScorerConstructionStart) / 1000.0);
 
@@ -363,7 +364,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 				LOGGER.info("Writing rows.");
 				final long writeStart = System.currentTimeMillis();
-				final int rowsWritten = keywordWriter.write(sessionRefNgramCounts);
+				final int rowsWritten = keywordWriter.write(sessionRefDocObsData);
 				LOGGER.info("Wrote {} row(s) in {} seconds.", rowsWritten,
 						(System.currentTimeMillis() - writeStart) / 1000.0);
 			}
@@ -386,7 +387,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 	}
 
 	private static Stream<String> createHeaderLines() {
-		final List<String> colHeaders = Arrays.asList("Dyad", "Referent", "$n$-gram", "Score");
+		final List<String> colHeaders = Arrays.asList("Dyad", "Referent", "Reference count", "$n$-gram", "Score");
 		final String colHeaderRow = colHeaders.stream().collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
 		return Stream.of("\\begin{tabular}{|l l l l|}", "\\hline%", colHeaderRow, "\\hline%");
 	}
@@ -453,10 +454,10 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				ngramRowFactory);
 	}
 
-	public int write(final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts)
+	public int write(final Map<String, Map<VisualizableReferent, DocumentObservationData<List<String>>>> sessionRefDocObsData)
 			throws IOException {
 		final Stream<ReferentNGramRowGrouping<Path, Stream<String>>> refNgramRows = rowFactory
-				.apply(sessionRefNgramCounts);
+				.apply(sessionRefDocObsData);
 		final String[] rows = refNgramRows.map(this::createReferentNGramRows).flatMap(List::stream)
 				.toArray(String[]::new);
 
@@ -473,12 +474,12 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		return rows.length;
 	}
 
-	private String createFirstReferentNGramRow(final String sessionName, final Path refVizElem,
+	private String createFirstReferentNGramRow(final ReferentNGramRowGrouping<Path, Stream<String>> refNgramRowGrouping,
 			final Stream<String> ngramRowCells, final int rowspan) {
-		final Path relOutfilePath = outdir.relativize(refVizElem);
+		final Path relOutfilePath = outdir.relativize(refNgramRowGrouping.getRefVizElem());
 		LOGGER.debug("Creating LaTeX include statement for path \"{}\".", relOutfilePath);
 		final String refVizIncludeStr = createGraphicsIncludeStatement(relOutfilePath, rowspan);
-		final Stream<String> prefixCells = Stream.of(sessionName, refVizIncludeStr);
+		final Stream<String> prefixCells = Stream.of(refNgramRowGrouping.getSessionName(), refVizIncludeStr, Integer.toString(refNgramRowGrouping.getDocumentOccurrenceCount()));
 		return Stream.concat(prefixCells, ngramRowCells).collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
 	}
 
@@ -499,8 +500,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		final List<String> result = new ArrayList<>(ngramRowCells.size());
 		final Iterator<Stream<String>> ngramRowCellIter = ngramRowCells.iterator();
 		if (ngramRowCellIter.hasNext()) {
-			result.add(createFirstReferentNGramRow(refNgramRowGrouping.getSessionName(),
-					refNgramRowGrouping.getRefVizElem(), ngramRowCellIter.next(), rowspan));
+			result.add(createFirstReferentNGramRow(refNgramRowGrouping, ngramRowCellIter.next(), rowspan));
 			while (ngramRowCellIter.hasNext()) {
 				result.add(createNextReferentNGramRow(ngramRowCellIter.next()));
 			}

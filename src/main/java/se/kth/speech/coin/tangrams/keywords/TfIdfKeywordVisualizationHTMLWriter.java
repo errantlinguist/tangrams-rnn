@@ -74,6 +74,7 @@ import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.function.ThrowingSupplier;
+import se.kth.speech.nlp.DocumentObservationData;
 import se.kth.speech.nlp.NGramFactory;
 import se.kth.speech.nlp.TfIdfScorer;
 import se.kth.speech.svg.SVGDocuments;
@@ -138,8 +139,8 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		OUTPATH("o") {
 			@Override
 			public Option get() {
-				return Option.builder(optName).longOpt("outpath").desc(
-						"The file to write the results to; If this option is not supplied, the standard output stream will be used.")
+				return Option.builder(optName).longOpt("outpath")
+						.desc("The file to write the results to; If this option is not supplied, the standard output stream will be used.")
 						.hasArg().argName("path").type(File.class).build();
 			}
 		},
@@ -309,28 +310,32 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 				final NGramFactory ngramFactory = Parameter.createNgramFactory(cl);
 				final Map<Referent, VisualizableReferent> vizRefs = SessionReferentNgramDataManager
 						.createVisualizableReferentMap(sessions);
-				final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts = new SessionReferentNgramDataManager(
+				final Map<String, Map<VisualizableReferent, DocumentObservationData<List<String>>>> sessionRefDocObsData = new SessionReferentNgramDataManager(
 						ngramFactory, onlyInstructor).createSessionReferentNgramCountMap(sessions, vizRefs);
-				final Map<Entry<String, VisualizableReferent>, Object2IntMap<List<String>>> pairNgramCounts = SessionReferentNgramDataManager
-						.createSessionReferentPairNgramCountMap(sessionRefNgramCounts);
-				LOGGER.info("Calculating TF-IDF scores for {} session-referent pairs.", pairNgramCounts.size());
+				final Map<Entry<String, VisualizableReferent>, DocumentObservationData<List<String>>> pairDocObsData = SessionReferentNgramDataManager
+						.createSessionReferentPairNgramCountMap(sessionRefDocObsData);
+				LOGGER.info("Calculating TF-IDF scores for {} session-referent pairs.", pairDocObsData.size());
 				final long tfIdfScorerConstructionStart = System.currentTimeMillis();
 				final TfIdfScorer<List<String>, Entry<String, VisualizableReferent>> tfIdfScorer = TfIdfScorer
-						.create(pairNgramCounts, tfVariant);
+						.create(pairDocObsData, tfVariant);
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfScorerConstructionStart) / 1000.0);
 
-				final ToDoubleFunction<List<String>> ngramLanguageScorer = createNGramLanguageScorer(cl,
-						sessionRefNgramCounts);
-				final ToDoubleBiFunction<List<String>, Entry<String, VisualizableReferent>> rescoredTfIdfScorer = (
-						ngram, doc) -> {
-					final double tfIdfScore = tfIdfScorer.applyAsDouble(ngram, doc);
-					// LOGGER.info("TF-IDF score is {}.", tfIdfScore);
-//					final double ngramProb = ngramLanguageScorer.applyAsDouble(ngram);
-					// LOGGER.info("N-gram probability is {}.", ngramProb);
-//					return tfIdfScore + Math.log10(ngramProb);
-					return tfIdfScore;
-				};
+				// final ToDoubleFunction<List<String>> ngramLanguageScorer =
+				// createNGramLanguageScorer(cl,
+				// sessionRefDocObsData);
+				// final ToDoubleBiFunction<List<String>, Entry<String,
+				// VisualizableReferent>> rescoredTfIdfScorer = (
+				// ngram, doc) -> {
+				// final double tfIdfScore = tfIdfScorer.applyAsDouble(ngram,
+				// doc);
+				// // LOGGER.info("TF-IDF score is {}.", tfIdfScore);
+				//// final double ngramProb =
+				// ngramLanguageScorer.applyAsDouble(ngram);
+				// // LOGGER.info("N-gram probability is {}.", ngramProb);
+				//// return tfIdfScore + Math.log10(ngramProb);
+				// return tfIdfScore;
+				// };
 
 				final long nbestRefs = 3;
 				final long nbestNgrams = 3;
@@ -341,9 +346,9 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 				LOGGER.info("Writing rows.");
 				final long writeStart = System.currentTimeMillis();
 				try (final TfIdfKeywordVisualizationHTMLWriter keywordWriter = new TfIdfKeywordVisualizationHTMLWriter(
-						new BufferedWriter(new OutputStreamWriter(outStreamGetter.get())), rescoredTfIdfScorer,
-						nbestRefs, nbestNgrams, imgResDir)) {
-					rowsWritten = keywordWriter.write(sessionRefNgramCounts);
+						new BufferedWriter(new OutputStreamWriter(outStreamGetter.get())), tfIdfScorer, nbestRefs,
+						nbestNgrams, imgResDir)) {
+					rowsWritten = keywordWriter.write(sessionRefDocObsData);
 				}
 				LOGGER.info("Wrote {} row(s) in {} seconds.", rowsWritten,
 						(System.currentTimeMillis() - writeStart) / 1000.0);
@@ -362,11 +367,14 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		}
 	}
 
-	private static ContainerTag createFirstReferentNGramRow(final String sessionName, final UnescapedText refVizElem,
+	private static ContainerTag createFirstReferentNGramRow(
+			ReferentNGramRowGrouping<UnescapedText, Stream<ContainerTag>> refNgramRowGrouping,
 			final Stream<ContainerTag> ngramRowCells, final int rowspan) {
-		final ContainerTag dyadCell = TagCreator.td(sessionName).attr("rowspan", rowspan);
-		final ContainerTag refCell = TagCreator.td(refVizElem).attr("rowspan", rowspan);
-		final Stream<ContainerTag> prefixCells = Stream.of(dyadCell, refCell);
+		final ContainerTag dyadCell = TagCreator.td(refNgramRowGrouping.getSessionName()).attr("rowspan", rowspan);
+		final ContainerTag refCell = TagCreator.td(refNgramRowGrouping.getRefVizElem()).attr("rowspan", rowspan);
+		final ContainerTag refOccurrenceCountCell = TagCreator
+				.td(Integer.toString(refNgramRowGrouping.getDocumentOccurrenceCount())).attr("rowspan", rowspan);
+		final Stream<ContainerTag> prefixCells = Stream.of(dyadCell, refCell, refOccurrenceCountCell);
 		return TagCreator.tr(Stream.concat(prefixCells, ngramRowCells).toArray(ContainerTag[]::new));
 	}
 
@@ -393,8 +401,8 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 	}
 
 	private static ToDoubleFunction<List<String>> createNGramLanguageScorer(final CommandLine cl,
-			final Map<?, ? extends Map<?, ? extends Object2IntMap<? extends List<String>>>> sessionRefNgramCounts) {
-//		final ToDoubleFunction<List<String>> result;
+			final Map<?, ? extends Map<?, ? extends Object2IntMap<? extends List<String>>>> sessionRefDocObsData) {
+		// final ToDoubleFunction<List<String>> result;
 		// final File corpusDir = (File)
 		// cl.getParsedOptionValue(Parameter.CORPUS_DIR.optName);
 		// if (corpusDir == null) {
@@ -406,14 +414,18 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		// BrownCorpusReading.readPlainSentences(corpusDir.toPath());
 		// final Stream<List<List<String>>> corpusSentNgrams =
 		// corpusSents.map(ngramFactory);
-		// This converts all the sentence n-grams into one stream, which is okay at this
+		// This converts all the sentence n-grams into one stream, which is okay
+		// at this
 		// point
-		// final Stream<List<String>> ngrams = corpusSentNgrams.flatMap(List::stream);
-		// sessionRefNgramCounts.values().stream().map(Map::values).map(Object2IntMap::object2IntEntrySet);
+		// final Stream<List<String>> ngrams =
+		// corpusSentNgrams.flatMap(List::stream);
+		// sessionRefDocObsData.values().stream().map(Map::values).map(Object2IntMap::object2IntEntrySet);
 		// ngramProbScorer = new ProbabilityScorer<>(ngrams);
-//		result = new ProbabilityScorer<>(createNGramTotalCountMap(sessionRefNgramCounts));
-//		LOGGER.info("Finished calculating n-gram probabilities after {} seconds.",
-//				(System.currentTimeMillis() - readingStart) / 1000.0);
+		// result = new
+		// ProbabilityScorer<>(createNGramTotalCountMap(sessionRefDocObsData));
+		// LOGGER.info("Finished calculating n-gram probabilities after {}
+		// seconds.",
+		// (System.currentTimeMillis() - readingStart) / 1000.0);
 		// }
 		return ngram -> 1.0;
 	}
@@ -426,12 +438,13 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 	}
 
 	private static Object2IntMap<List<String>> createNGramTotalCountMap(
-			final Map<?, ? extends Map<?, ? extends Object2IntMap<? extends List<String>>>> sessionRefNgramCounts) {
+			final Map<?, ? extends Map<?, ? extends DocumentObservationData<? extends List<String>>>> sessionRefDocObsData) {
 		final Object2IntOpenHashMap<List<String>> result = new Object2IntOpenHashMap<>();
-		final Stream<Object2IntMap<? extends List<String>>> refNgramCounts = sessionRefNgramCounts.values().stream()
-				.map(Map::values).flatMap(Collection::stream);
-		final Stream<Object2IntMap.Entry<? extends List<String>>> ngramCounts = refNgramCounts
-				.map(Object2IntMap::object2IntEntrySet).flatMap(ObjectSet::stream);
+		final Stream<DocumentObservationData<? extends List<String>>> refDocObsData = sessionRefDocObsData.values()
+				.stream().map(Map::values).flatMap(Collection::stream);
+		final Stream<Object2IntMap.Entry<? extends List<String>>> ngramCounts = refDocObsData
+				.map(DocumentObservationData::getObservationCounts).map(Object2IntMap::object2IntEntrySet)
+				.flatMap(ObjectSet::stream);
 		ngramCounts.forEach(ngramCount -> incrementCount(ngramCount.getKey(), ngramCount.getIntValue(), result));
 		return result;
 	}
@@ -446,8 +459,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		final List<ContainerTag> result = new ArrayList<>(ngramRowCells.size());
 		final Iterator<Stream<ContainerTag>> ngramRowCellIter = ngramRowCells.iterator();
 		if (ngramRowCellIter.hasNext()) {
-			result.add(createFirstReferentNGramRow(refNgramRowGrouping.getSessionName(),
-					refNgramRowGrouping.getRefVizElem(), ngramRowCellIter.next(), rowspan));
+			result.add(createFirstReferentNGramRow(refNgramRowGrouping, ngramRowCellIter.next(), rowspan));
 			while (ngramRowCellIter.hasNext()) {
 				result.add(createNextReferentNGramRow(ngramRowCellIter.next()));
 			}
@@ -503,15 +515,17 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		writer.flush();
 	}
 
-	public int write(final Map<String, Map<VisualizableReferent, Object2IntMap<List<String>>>> sessionRefNgramCounts)
+	public int write(
+			final Map<String, Map<VisualizableReferent, DocumentObservationData<List<String>>>> sessionRefDocObsData)
 			throws IOException {
 		final Stream<ReferentNGramRowGrouping<UnescapedText, Stream<ContainerTag>>> refNgramRows = refNgramRowFactory
-				.apply(sessionRefNgramCounts);
+				.apply(sessionRefDocObsData);
 		final ContainerTag[] rows = refNgramRows.map(TfIdfKeywordVisualizationHTMLWriter::createReferentNGramRows)
 				.flatMap(List::stream).toArray(ContainerTag[]::new);
 
-		final ContainerTag thead = TagCreator.thead(TagCreator.tr(TagCreator.th("Dyad"), TagCreator.th("Image"),
-				TagCreator.th("N-gram"), TagCreator.th("Score"), TagCreator.th("Count")));
+		final ContainerTag thead = TagCreator
+				.thead(TagCreator.tr(TagCreator.th("Dyad"), TagCreator.th("Image"), TagCreator.th("Reference count"),
+						TagCreator.th("N-gram"), TagCreator.th("Score"), TagCreator.th("Count")));
 		final ContainerTag tbody = TagCreator.tbody(rows);
 		final ContainerTag table = TagCreator.table(thead, tbody);
 		final ContainerTag html = TagCreator.html(createHTMLHeadTag(), TagCreator.body(table));

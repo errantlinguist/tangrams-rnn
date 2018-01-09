@@ -25,7 +25,6 @@ import it.unimi.dsi.fastutil.doubles.DoubleCollection;
 import it.unimi.dsi.fastutil.doubles.DoubleIterable;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import se.kth.speech.HashedCollections;
 
@@ -66,12 +65,12 @@ public final class TfIdfScorer<O, D> implements ToDoubleBiFunction<O, D> {
 	private static final int DEFAULT_INITIAL_WORD_MAP_CAPACITY = 1000;
 
 	public static <O, D> TfIdfScorer<O, D> create(
-			final Map<? extends D, ? extends Object2IntMap<? extends O>> docObservationCounts) {
+			final Map<? extends D, ? extends DocumentObservationData<? extends O>> docObservationCounts) {
 		return create(docObservationCounts, TermFrequencyVariant.NATURAL);
 	}
 
 	public static <O, D> TfIdfScorer<O, D> create(
-			final Map<? extends D, ? extends Object2IntMap<? extends O>> docObservationCounts,
+			final Map<? extends D, ? extends DocumentObservationData<? extends O>> docObservationCounts,
 			final TermFrequencyVariant tfVariant) {
 		final int docCount = docObservationCounts.size();
 		final int initialDocSetCapcity = HashedCollections.capacity(docCount);
@@ -79,19 +78,19 @@ public final class TfIdfScorer<O, D> implements ToDoubleBiFunction<O, D> {
 				docObservationCounts.size());
 		final Object2ObjectOpenHashMap<O, Set<D>> observationDocs = new Object2ObjectOpenHashMap<>(
 				DEFAULT_INITIAL_WORD_MAP_CAPACITY);
-		for (final Entry<? extends D, ? extends Object2IntMap<? extends O>> entry : docObservationCounts.entrySet()) {
+		for (final Entry<? extends D, ? extends DocumentObservationData<? extends O>> entry : docObservationCounts.entrySet()) {
 			final D doc = entry.getKey();
-			final Object2DoubleMap<O> docTokenCounts = observationCountsPerDoc.computeIfAbsent(doc, key -> {
+			final Object2DoubleMap<O> obsCountsForThisDoc = observationCountsPerDoc.computeIfAbsent(doc, key -> {
 				final Object2DoubleOpenHashMap<O> counts = new Object2DoubleOpenHashMap<>(
 						DEFAULT_INITIAL_WORD_MAP_CAPACITY);
 				counts.defaultReturnValue(0.0);
 				return counts;
 			});
-			final Object2IntMap<? extends O> observationCounts = entry.getValue();
-			observationCounts.object2IntEntrySet().forEach(observationCount -> {
+			final DocumentObservationData<? extends O> docObsCounts = entry.getValue();
+			docObsCounts.getObservationCounts().object2IntEntrySet().forEach(observationCount -> {
 				final O observation = observationCount.getKey();
 				final int count = observationCount.getIntValue();
-				incrementCount(observation, count, docTokenCounts);
+				incrementCount(observation, count, obsCountsForThisDoc);
 				observationDocs.computeIfAbsent(observation, key -> new HashSet<>(initialDocSetCapcity)).add(doc);
 			});
 		}

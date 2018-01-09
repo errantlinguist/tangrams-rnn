@@ -47,12 +47,12 @@ import org.apache.commons.csv.CSVPrinter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import se.kth.speech.coin.tangrams.CLIParameters;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.coin.tangrams.wac.logistic.Weighted;
 import se.kth.speech.function.ThrowingSupplier;
+import se.kth.speech.nlp.DocumentObservationData;
 import se.kth.speech.nlp.NGramFactory;
 import se.kth.speech.nlp.TfIdfScorer;
 
@@ -221,12 +221,12 @@ public final class TfIdfKeywordWriter implements Closeable, Flushable {
 				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
 				LOGGER.info("Only use instructor language? {}", onlyInstructor);
 
-				final Map<String, Object2IntMap<List<String>>> sessionNgramCounts = new SessionReferentNgramDataManager(
+				final Map<String, DocumentObservationData<List<String>>> sessionDocObsData = new SessionReferentNgramDataManager(
 						Parameter.createNgramFactory(cl), onlyInstructor).createSessionNgramCountMap(sessions);
 
 				LOGGER.info("Calculating TF-IDF scores.");
 				final long tfIdfScorerConstructionStart = System.currentTimeMillis();
-				final TfIdfScorer<List<String>, String> tfIdfScorer = TfIdfScorer.create(sessionNgramCounts,
+				final TfIdfScorer<List<String>, String> tfIdfScorer = TfIdfScorer.create(sessionDocObsData,
 						tfVariant);
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfScorerConstructionStart) / 1000.0);
@@ -236,7 +236,7 @@ public final class TfIdfKeywordWriter implements Closeable, Flushable {
 				int rowsWritten = 0;
 				try (final TfIdfKeywordWriter keywordWriter = new TfIdfKeywordWriter(
 						CSVFormat.TDF.withHeader(COL_HEADERS).print(outStreamGetter.get()), tfIdfScorer)) {
-					rowsWritten = keywordWriter.write(sessionNgramCounts);
+					rowsWritten = keywordWriter.write(sessionDocObsData);
 				}
 				LOGGER.info("Wrote {} row(s) in {} seconds.", rowsWritten,
 						(System.currentTimeMillis() - writeStart) / 1000.0);
@@ -296,17 +296,17 @@ public final class TfIdfKeywordWriter implements Closeable, Flushable {
 		printer.flush();
 	}
 
-	public int write(final Map<String, Object2IntMap<List<String>>> sessionNgramCounts) throws IOException {
+	public int write(final Map<String, DocumentObservationData<List<String>>> sessionDocObsData) throws IOException {
 		int result = 0;
 
-		final List<Entry<String, ? extends Object2IntMap<List<String>>>> sortedEntries = new ArrayList<>(
-				sessionNgramCounts.entrySet());
+		final List<Entry<String, ? extends DocumentObservationData<List<String>>>> sortedEntries = new ArrayList<>(
+				sessionDocObsData.entrySet());
 		sortedEntries.sort(Comparator.comparing(entry -> entry.getKey(), Session.getNameComparator()));
-		for (final Entry<String, ? extends Object2IntMap<List<String>>> entry : sortedEntries) {
+		for (final Entry<String, ? extends DocumentObservationData<List<String>>> entry : sortedEntries) {
 			final String sessionName = entry.getKey();
-			final Object2IntMap<List<String>> ngramCounts = entry.getValue();
+			final DocumentObservationData<List<String>> docObsData = entry.getValue();
 			final ToDoubleFunction<List<String>> ngramScorer = word -> tfidfCalculator.applyAsDouble(word, sessionName);
-			final Stream<Weighted<List<String>>> scoredNgrams = ngramCounts.object2IntEntrySet().stream()
+			final Stream<Weighted<List<String>>> scoredNgrams = docObsData.getObservationCounts().object2IntEntrySet().stream()
 					.map(ngramCount -> {
 						final List<String> ngram = ngramCount.getKey();
 						final double score = ngramScorer.applyAsDouble(ngram);
