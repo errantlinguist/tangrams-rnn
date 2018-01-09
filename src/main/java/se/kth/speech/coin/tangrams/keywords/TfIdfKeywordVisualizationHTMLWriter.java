@@ -404,7 +404,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 	}
 
 	private static Stream<ContainerTag> rowspan(final Stream<ContainerTag> tags, final int rowspan) {
-		return rowspan < 1 ? tags : tags.map(tag -> rowspan(tag, rowspan));
+		return rowspan < 2 ? tags : tags.map(tag -> rowspan(tag, rowspan));
 	}
 
 	private final TfIdfKeywordVisualizationRowFactory<UnescapedText, Stream<ContainerTag>> refNgramRowFactory;
