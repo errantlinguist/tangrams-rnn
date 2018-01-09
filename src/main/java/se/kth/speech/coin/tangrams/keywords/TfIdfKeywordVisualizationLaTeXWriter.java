@@ -274,8 +274,8 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		@Override
 		protected NumberFormat initialValue() {
 			final NumberFormat result = NumberFormat.getNumberInstance(Locale.US);
-			result.setMinimumFractionDigits(3);
-			result.setMaximumFractionDigits(3);
+			result.setMinimumFractionDigits(2);
+			result.setMaximumFractionDigits(2);
 			result.setRoundingMode(RoundingMode.HALF_UP);
 			return result;
 		}
@@ -313,7 +313,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 	static {
 		TABLE_PREFIX_COL_NAMES = Arrays.asList("Dyad", "$r$", "$\\lvert C^{r} \\rvert$");
 		TABLE_COL_NAMES = Arrays
-				.asList(Stream.concat(TABLE_PREFIX_COL_NAMES.stream(), Stream.of("$n$-gram", "TF-IDF", "Count"))
+				.asList(Stream.concat(TABLE_PREFIX_COL_NAMES.stream(), Stream.of("$n$-gram", "Score", "Ct."))
 						.toArray(String[]::new));
 		TABLE_COL_DEFS = Arrays.asList("l", "c", "r", "l", "r", "r");
 		assert TABLE_COL_DEFS.size() == TABLE_COL_NAMES
