@@ -15,6 +15,7 @@
  */
 package se.kth.speech.coin.tangrams.wac.data;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -23,31 +24,37 @@ public final class Utterance implements Comparable<Utterance> {
 	private static final Comparator<Utterance> NATURAL_COMPARATOR = Comparator.comparingDouble(Utterance::getStartTime)
 			.thenComparingDouble(Utterance::getEndTime);
 
-	private final List<String> tokens;
+	private final float endTime;
+
+	private final int hashCode;
+
+	private final boolean isInstructor;
 
 	private final List<String> referringTokens;
 
 	private final String speakerId;
 
-	private final boolean isInstructor;
-
 	private final float startTime;
 
-	private final float endTime;
+	private final List<String> tokens;
 
-	public Utterance(final float startTime, final float endTime, final String speakerId, final boolean isInstructor, // NO_UCD (use default)
+	public Utterance(final float startTime, final float endTime, final String speakerId, final boolean isInstructor, // NO_UCD
+																														// (use
+																														// default)
 			final List<String> tokens, final List<String> referringTokens) {
 		this.speakerId = speakerId;
 		this.isInstructor = isInstructor;
 		this.startTime = startTime;
 		this.endTime = endTime;
-		this.tokens = tokens;
-		this.referringTokens = referringTokens;
+		this.tokens = Collections.unmodifiableList(tokens);
+		this.referringTokens = Collections.unmodifiableList(referringTokens);
+
+		hashCode = calculateHashCode();
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Comparable#compareTo(java.lang.Object)
 	 */
 	@Override
@@ -113,7 +120,7 @@ public final class Utterance implements Comparable<Utterance> {
 	}
 
 	/**
-	 * @return the referringTokens
+	 * @return the referringTokens (unmodifiable view)
 	 */
 	public List<String> getReferringTokens() {
 		return referringTokens;
@@ -134,7 +141,7 @@ public final class Utterance implements Comparable<Utterance> {
 	}
 
 	/**
-	 * @return the tokens
+	 * @return the tokens (unmodifiable view)
 	 */
 	public List<String> getTokens() {
 		return tokens;
@@ -147,15 +154,7 @@ public final class Utterance implements Comparable<Utterance> {
 	 */
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + Float.floatToIntBits(endTime);
-		result = prime * result + (isInstructor ? 1231 : 1237);
-		result = prime * result + (speakerId == null ? 0 : speakerId.hashCode());
-		result = prime * result + (referringTokens == null ? 0 : referringTokens.hashCode());
-		result = prime * result + Float.floatToIntBits(startTime);
-		result = prime * result + (tokens == null ? 0 : tokens.hashCode());
-		return result;
+		return hashCode;
 	}
 
 	/**
@@ -196,6 +195,18 @@ public final class Utterance implements Comparable<Utterance> {
 		builder.append(referringTokens);
 		builder.append("]");
 		return builder.toString();
+	}
+
+	private int calculateHashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + Float.floatToIntBits(endTime);
+		result = prime * result + (isInstructor ? 1231 : 1237);
+		result = prime * result + (speakerId == null ? 0 : speakerId.hashCode());
+		result = prime * result + (referringTokens == null ? 0 : referringTokens.hashCode());
+		result = prime * result + Float.floatToIntBits(startTime);
+		result = prime * result + (tokens == null ? 0 : tokens.hashCode());
+		return result;
 	}
 
 }
