@@ -63,9 +63,9 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 
 	private class NormalizedDocumentObservationScorer implements ToDoubleFunction<List<String>> {
 
-		private final int normalizer;
-
 		private final DocumentObservationScorer docObsScorer;
+
+		private final int normalizer;
 
 		private NormalizedDocumentObservationScorer(final Entry<Session, VisualizableReferent> doc,
 				final DocumentObservationData<List<String>> docObsData) {
@@ -86,6 +86,9 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 			return score / normalizer;
 		}
 	}
+
+	private static final Comparator<Entry<Entry<Session, VisualizableReferent>, DocumentObservationData<List<String>>>> SESSION_DOC_OBS_DATA_NAME_COMPARATOR = Comparator
+			.comparing(entry -> entry.getKey().getKey().getName(), Session.getNameComparator());
 
 	private final long nbestNgrams;
 
@@ -112,9 +115,10 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 	@Override
 	public Stream<ReferentNGramRowGrouping<V, R>> apply(
 			final Map<Entry<Session, VisualizableReferent>, DocumentObservationData<List<String>>> sessionDocObsData) {
-		final Stream<Entry<Entry<Session, VisualizableReferent>, DocumentObservationData<List<String>>>> sortedSessionRefDocObsData = sessionDocObsData
+		final Stream<Entry<Entry<Session, VisualizableReferent>, DocumentObservationData<List<String>>>> nbestSessionRefDocObsData = sessionDocObsData
 				.entrySet().stream().sorted(Comparator.comparingDouble(this::scoreReferentLanguage)).limit(nbestRefs);
-		return sortedSessionRefDocObsData.map(sessionRefDocObsData -> {
+		// Once the n-best results have been chosen, re-sort by session name
+		return nbestSessionRefDocObsData.sorted(SESSION_DOC_OBS_DATA_NAME_COMPARATOR).map(sessionRefDocObsData -> {
 			final Entry<Session, VisualizableReferent> sessionRef = sessionRefDocObsData.getKey();
 			final DocumentObservationData<List<String>> docObsData = sessionRefDocObsData.getValue();
 			return createRows(sessionRef, docObsData);
