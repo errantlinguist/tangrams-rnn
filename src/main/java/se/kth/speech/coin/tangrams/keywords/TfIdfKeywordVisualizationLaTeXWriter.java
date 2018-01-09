@@ -258,8 +258,6 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 	}
 
-	private static final String IMAGE_HEIGHT = "3.5ex";
-
 	private static final String LINE_DELIM;
 
 	private static final Collector<CharSequence, ?, String> LINE_JOINER;
@@ -363,14 +361,15 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfScorerConstructionStart) / 1000.0);
 
-				LOGGER.info("Will include images using a height of \"{}\".", IMAGE_HEIGHT);
+				final String imgHeight = "3.5ex";
+				LOGGER.info("Will include images using a height of \"{}\".", imgHeight);
 
 				final long nbestRefs = 20;
 				final long nbestNgrams = 2;
 				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs,
 						nbestNgrams);
 				final TfIdfKeywordVisualizationLaTeXWriter keywordWriter = new TfIdfKeywordVisualizationLaTeXWriter(
-						outdir, tfIdfScorer, nbestRefs, nbestNgrams, imgResDir, IMAGE_HEIGHT);
+						outdir, tfIdfScorer, nbestRefs, nbestNgrams, imgResDir, imgHeight);
 
 				LOGGER.info("Writing rows.");
 				final long writeStart = System.currentTimeMillis();
