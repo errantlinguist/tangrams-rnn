@@ -312,22 +312,6 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfScorerConstructionStart) / 1000.0);
 
-				// final ToDoubleFunction<List<String>> ngramLanguageScorer =
-				// createNGramLanguageScorer(cl,
-				// sessionRefDocObsData);
-				// final ToDoubleBiFunction<List<String>, Entry<String,
-				// VisualizableReferent>> rescoredTfIdfScorer = (
-				// ngram, doc) -> {
-				// final double tfIdfScore = tfIdfScorer.applyAsDouble(ngram,
-				// doc);
-				// // LOGGER.info("TF-IDF score is {}.", tfIdfScore);
-				//// final double ngramProb =
-				// ngramLanguageScorer.applyAsDouble(ngram);
-				// // LOGGER.info("N-gram probability is {}.", ngramProb);
-				//// return tfIdfScore + Math.log10(ngramProb);
-				// return tfIdfScore;
-				// };
-
 				final long nbestRefs = Long.MAX_VALUE;
 				final long nbestNgrams = 3;
 				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs,
