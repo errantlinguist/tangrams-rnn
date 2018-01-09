@@ -15,6 +15,7 @@
  */
 package se.kth.speech.coin.tangrams.wac.data;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -57,13 +58,18 @@ public final class Session {
 		return NAME_COMPARATOR;
 	}
 
+	private final int hashCode;
+
 	private final String name;
 
 	private final List<Round> rounds;
 
-	public Session(final String name, final List<Round> rounds) { // NO_UCD (use default)
+	public Session(final String name, final List<Round> rounds) { // NO_UCD (use
+																	// default)
 		this.name = name;
-		this.rounds = rounds;
+		this.rounds = Collections.unmodifiableList(rounds);
+
+		hashCode = calculateHashCode();
 	}
 
 	/*
@@ -108,7 +114,7 @@ public final class Session {
 	}
 
 	/**
-	 * @return the rounds
+	 * @return the rounds (unmodifiable view)
 	 */
 	public List<Round> getRounds() {
 		return rounds;
@@ -121,11 +127,7 @@ public final class Session {
 	 */
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + (name == null ? 0 : name.hashCode());
-		result = prime * result + (rounds == null ? 0 : rounds.hashCode());
-		return result;
+		return hashCode;
 	}
 
 	/*
@@ -142,6 +144,14 @@ public final class Session {
 		builder.append(rounds);
 		builder.append("]");
 		return builder.toString();
+	}
+
+	private int calculateHashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + (name == null ? 0 : name.hashCode());
+		result = prime * result + (rounds == null ? 0 : rounds.hashCode());
+		return result;
 	}
 
 }
