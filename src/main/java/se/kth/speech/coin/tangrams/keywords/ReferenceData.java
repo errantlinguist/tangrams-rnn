@@ -298,7 +298,10 @@ final class ReferenceData {
 		// https://www.freemathhelp.com/forum/threads/97857-Probability-of-rolling-at-least-one-6-in-3-tries?s=827f028210ba1b9932421b0684f60089&p=398294&viewfull=1#post398294
 		final BigDecimal otherEventProb = new BigDecimal(distinctEntityCount - 1)
 				.divide(new BigDecimal(distinctEntityCount));
-		return BigDecimal.ONE.subtract(otherEventProb.pow(corefRoundCount));
+		final BigDecimal result = BigDecimal.ONE.subtract(otherEventProb.pow(corefRoundCount));
+		assert result.compareTo(BigDecimal.ZERO) >= 0;
+		assert result.compareTo(BigDecimal.ONE) <= 1;
+		return result;
 	}
 
 }
