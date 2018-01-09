@@ -312,8 +312,8 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfScorerConstructionStart) / 1000.0);
 
-				final long nbestRefs = Long.MAX_VALUE;
-				final long nbestNgrams = 3;
+				final long nbestRefs = 20;
+				final long nbestNgrams = 2;
 				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs,
 						nbestNgrams);
 
