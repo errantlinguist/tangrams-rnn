@@ -38,7 +38,7 @@ import se.kth.speech.nlp.DocumentObservationData;
  *
  */
 public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
-		Function<Map<String, Map<VisualizableReferent, DocumentObservationData<List<String>>>>, Stream<ReferentNGramRowGrouping<V, R>>> {
+		Function<Map<Session, Map<VisualizableReferent, DocumentObservationData<List<String>>>>, Stream<ReferentNGramRowGrouping<V, R>>> {
 
 	public interface NGramRowFactory<R> {
 		R apply(final List<String> ngram, final int count, final double score);
@@ -46,9 +46,9 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 
 	private class DocumentTfIdfScorer implements ToDoubleFunction<List<String>> {
 
-		private final Entry<String, VisualizableReferent> doc;
+		private final Entry<Session, VisualizableReferent> doc;
 
-		private DocumentTfIdfScorer(final Entry<String, VisualizableReferent> doc) {
+		private DocumentTfIdfScorer(final Entry<Session, VisualizableReferent> doc) {
 			this.doc = doc;
 		}
 
@@ -70,10 +70,10 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 
 	private final NGramRowFactory<? extends R> rowFactory;
 
-	private final ToDoubleBiFunction<? super List<String>, ? super Entry<String, VisualizableReferent>> tfIdfScorer;
+	private final ToDoubleBiFunction<? super List<String>, ? super Entry<Session, VisualizableReferent>> tfIdfScorer;
 
 	public TfIdfKeywordVisualizationRowFactory(
-			final ToDoubleBiFunction<? super List<String>, ? super Entry<String, VisualizableReferent>> tfIdfScorer,
+			final ToDoubleBiFunction<? super List<String>, ? super Entry<Session, VisualizableReferent>> tfIdfScorer,
 			final long nbestRefs, final long nbestNgrams,
 			final Function<? super VisualizableReferent, ? extends V> refVisualizationFactory,
 			final NGramRowFactory<? extends R> rowFactory) {
@@ -86,25 +86,25 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 
 	@Override
 	public Stream<ReferentNGramRowGrouping<V, R>> apply(
-			final Map<String, Map<VisualizableReferent, DocumentObservationData<List<String>>>> sessionDocObsData) {
-		final Stream<Entry<String, Map<VisualizableReferent, DocumentObservationData<List<String>>>>> sortedSessionRefDocObsData = sessionDocObsData
-				.entrySet().stream().sorted(Comparator.comparing(entry -> entry.getKey(), Session.getNameComparator()));
+			final Map<Session, Map<VisualizableReferent, DocumentObservationData<List<String>>>> sessionDocObsData) {
+		final Stream<Entry<Session, Map<VisualizableReferent, DocumentObservationData<List<String>>>>> sortedSessionRefDocObsData = sessionDocObsData
+				.entrySet().stream().sorted(Comparator.comparing(entry -> entry.getKey().getName(), Session.getNameComparator()));
 		return sortedSessionRefDocObsData.flatMap(sessionRefDocObsData -> {
-			final String sessionName = sessionRefDocObsData.getKey();
+			final Session session = sessionRefDocObsData.getKey();
 			// After having sorted by session name, sort by a given referent's total score
 			final Map<VisualizableReferent, DocumentObservationData<List<String>>> refDocObsData = sessionRefDocObsData
 					.getValue();
 			final ToDoubleFunction<Entry<VisualizableReferent, DocumentObservationData<List<String>>>> inverseNgramCountScorer = counts -> -scoreReferentLanguage(
-					sessionName, counts);
+					session, counts);
 			final Comparator<Entry<VisualizableReferent, DocumentObservationData<List<String>>>> ngramScoreComparator = Comparator
 					.comparingDouble(inverseNgramCountScorer);
 			final Stream<Entry<VisualizableReferent, DocumentObservationData<List<String>>>> nbestRefDocObsData = refDocObsData
 					.entrySet().stream().sorted(ngramScoreComparator).limit(nbestRefs);
-			return nbestRefDocObsData.map(entry -> createRows(sessionName, entry));
+			return nbestRefDocObsData.map(entry -> createRows(session, entry));
 		});
 	}
 
-	private ReferentNGramRowGrouping<V, R> createRows(final String sessionName,
+	private ReferentNGramRowGrouping<V, R> createRows(final Session session,
 			final Entry<VisualizableReferent, DocumentObservationData<List<String>>> refDocObsData) {
 		final VisualizableReferent ref = refDocObsData.getKey();
 		final V refViz = refVisualizationFactory.apply(ref);
@@ -113,7 +113,7 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 
 		// Create rows only for the n-best n-grams for the given
 		// referent
-		final DocumentTfIdfScorer ngramScorer = new DocumentTfIdfScorer(Pair.of(sessionName, ref));
+		final DocumentTfIdfScorer ngramScorer = new DocumentTfIdfScorer(Pair.of(session, ref));
 		final Comparator<Object2IntMap.Entry<List<String>>> nbestNgramCountComparator = Comparator
 				.comparingDouble(ngramCount -> -ngramScorer.applyAsDouble(ngramCount.getKey()) * ngramCount.getIntValue());
 		final Stream<Object2IntMap.Entry<List<String>>> nbestDocObsData = obsCounts.object2IntEntrySet().stream().sorted(nbestNgramCountComparator).limit(nbestNgrams);
@@ -122,12 +122,12 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 			final int count = ngramCount.getIntValue();
 			return rowFactory.apply(ngram, count, ngramScorer.applyAsDouble(ngram));
 		});
-		return new ReferentNGramRowGrouping<>(sessionName, refViz, docObsData.getDocumentOccurrenceCount(), rows);
+		return new ReferentNGramRowGrouping<>(session, refViz, docObsData.getDocumentOccurrenceCount(), rows);
 	}
 
-	private double scoreReferentLanguage(final String sessionName,
+	private double scoreReferentLanguage(final Session session,
 			final Entry<VisualizableReferent, DocumentObservationData<List<String>>> refDocObsData) {
-		final Entry<String, VisualizableReferent> sessionRef = Pair.of(sessionName, refDocObsData.getKey());
+		final Entry<Session, VisualizableReferent> sessionRef = Pair.of(session, refDocObsData.getKey());
 		final DocumentTfIdfScorer sessionNgramScorer = new DocumentTfIdfScorer(sessionRef);
 		final DocumentObservationData<List<String>> docObsData = refDocObsData.getValue();
 		final DoubleStream obsScores = docObsData.getObservationCounts().keySet().stream().mapToDouble(sessionNgramScorer);

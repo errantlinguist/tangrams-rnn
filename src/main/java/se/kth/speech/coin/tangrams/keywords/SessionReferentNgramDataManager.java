@@ -43,7 +43,7 @@ import se.kth.speech.nlp.DocumentObservationData;
  *
  */
 final class SessionReferentNgramDataManager {
-	
+
 	private static final int EST_UNIQUE_REFS_PER_SESSION = 50;
 
 	private static Stream<Referent> getTargetRefs(final Round round) {
@@ -56,17 +56,27 @@ final class SessionReferentNgramDataManager {
 		assert oldValue == oldValue2;
 	}
 
-	static Map<Entry<String, VisualizableReferent>, DocumentObservationData<List<String>>> createSessionReferentPairNgramCountMap(
-			final Map<String, Map<VisualizableReferent, DocumentObservationData<List<String>>>> sessionRefNgramCounts) {
-		final Map<Entry<String, VisualizableReferent>, DocumentObservationData<List<String>>> result = new HashMap<>(
-				HashedCollections.capacity(sessionRefNgramCounts.size() * EST_UNIQUE_REFS_PER_SESSION));
-		sessionRefNgramCounts.forEach((sessionName, refNgramCounts) -> {
-			refNgramCounts.forEach((ref, ngramCounts) -> {
-				final Entry<String, VisualizableReferent> pair = Pair.of(sessionName, ref);
+	/**
+	 * Creates a map of <code>docGroup</code>&mdash;<code>doc</code> pairs to
+	 * the observation counts for the given pair.
+	 *
+	 * @param groupDocObsCounts
+	 *            A mapping of <code>docGroup</code> objects, each of which is
+	 *            mapped to a mapping of <code>doc</code> &rarr;
+	 *            <code>observationCounts</code> maps.
+	 * @return A new {@link Map} of <code>docGroup</code>&mdash;<code>doc</code>
+	 *         pairs mapped to a map of observation counts for the given pair.
+	 */
+	static <G, O> Map<Entry<G, VisualizableReferent>, DocumentObservationData<O>> createGroupDocumentPairObservationCountMap(
+			final Map<? extends G, Map<VisualizableReferent, DocumentObservationData<O>>> groupDocObsCounts) {
+		final Map<Entry<G, VisualizableReferent>, DocumentObservationData<O>> result = new HashMap<>();
+		groupDocObsCounts.forEach((docGrouping, docObsCounts) -> {
+			docObsCounts.forEach((doc, ngramCounts) -> {
+				final Entry<G, VisualizableReferent> pair = Pair.of(docGrouping, doc);
 				result.put(pair, ngramCounts);
 			});
 		});
-		assert result.size() >= sessionRefNgramCounts.size();
+		assert result.size() >= groupDocObsCounts.size();
 		return result;
 	}
 
@@ -76,9 +86,9 @@ final class SessionReferentNgramDataManager {
 		return refs.distinct().collect(Collectors.toMap(Function.identity(), VisualizableReferent::fetch));
 	}
 
-	private final Predicate<Utterance> uttFilter;
-
 	private final Function<? super List<String>, ? extends List<? extends List<String>>> ngramFactory;
+
+	private final Predicate<Utterance> uttFilter;
 
 	SessionReferentNgramDataManager(
 			final Function<? super List<String>, ? extends List<? extends List<String>>> ngramFactory,
@@ -107,12 +117,11 @@ final class SessionReferentNgramDataManager {
 		return session.getRounds().stream().flatMap(this::createNgrams);
 	}
 
-	Map<String, DocumentObservationData<List<String>>> createSessionNgramCountMap(final Collection<Session> sessions) {
-		final Map<String, DocumentObservationData<List<String>>> result = new HashMap<>(
+	Map<Session, DocumentObservationData<List<String>>> createSessionNgramCountMap(final Collection<Session> sessions) {
+		final Map<Session, DocumentObservationData<List<String>>> result = new HashMap<>(
 				HashedCollections.capacity(sessions.size()));
 		sessions.forEach(session -> {
-			final String sessionName = session.getName();
-			final DocumentObservationData<List<String>> ngramCounts = result.computeIfAbsent(sessionName,
+			final DocumentObservationData<List<String>> ngramCounts = result.computeIfAbsent(session,
 					key -> new DocumentObservationData<>());
 			ngramCounts.incrementDocumentOccurrenceCount();
 			createNgrams(session).forEach(ngram -> ngramCounts.incrementObservationCount(ngram));
@@ -120,23 +129,24 @@ final class SessionReferentNgramDataManager {
 		return result;
 	}
 
-	Map<String, Map<VisualizableReferent, DocumentObservationData<List<String>>>> createSessionReferentNgramCountMap(
+	Map<Session, Map<VisualizableReferent, DocumentObservationData<List<String>>>> createSessionReferentNgramCountMap(
 			final Collection<Session> sessions, final Map<Referent, VisualizableReferent> vizRefs) {
 		final int refNgramCountMapInitialCapacity = HashedCollections.capacity(EST_UNIQUE_REFS_PER_SESSION);
-		final Map<String, Map<VisualizableReferent, DocumentObservationData<List<String>>>> result = sessions.stream()
-				.collect(Collectors.toMap(Session::getName, session -> new HashMap<>(refNgramCountMapInitialCapacity)));
+		final Map<Session, Map<VisualizableReferent, DocumentObservationData<List<String>>>> result = sessions.stream()
+				.collect(Collectors.toMap(Function.identity(),
+						session -> new HashMap<>(refNgramCountMapInitialCapacity)));
 
 		sessions.forEach(session -> {
-			final String sessionName = session.getName();
-			final Map<VisualizableReferent, DocumentObservationData<List<String>>> refNgramCounts = result.get(sessionName);
+			final Map<VisualizableReferent, DocumentObservationData<List<String>>> refNgramCounts = result
+					.get(session);
 
 			session.getRounds().forEach(round -> {
 				// Use the same n-gram list for each referent
 				final Object2IntMap<List<String>> ngramCounts = createNgramCountMap(round);
 
 				getTargetRefs(round).map(vizRefs::get).forEach(vizRef -> {
-					final DocumentObservationData<List<String>> extantNgramCounts = refNgramCounts.computeIfAbsent(vizRef,
-							key -> new DocumentObservationData<>());
+					final DocumentObservationData<List<String>> extantNgramCounts = refNgramCounts
+							.computeIfAbsent(vizRef, key -> new DocumentObservationData<>());
 					extantNgramCounts.incrementDocumentOccurrenceCount();
 					extantNgramCounts.addObservationCounts(ngramCounts);
 				});

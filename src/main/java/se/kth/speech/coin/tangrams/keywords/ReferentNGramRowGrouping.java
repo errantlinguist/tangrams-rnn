@@ -17,6 +17,8 @@ package se.kth.speech.coin.tangrams.keywords;
 
 import java.util.stream.Stream;
 
+import se.kth.speech.coin.tangrams.wac.data.Session;
+
 /**
  * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
  * @since 5 Jan 2018
@@ -30,11 +32,11 @@ final class ReferentNGramRowGrouping<V, R> {
 
 	private final V refVizElem;
 
-	private final String sessionName;
+	private final Session session;
 
-	ReferentNGramRowGrouping(final String sessionName, final V refVizElem, final int documentOccurrenceCount,
+	ReferentNGramRowGrouping(final Session session, final V refVizElem, final int documentOccurrenceCount,
 			final Stream<R> ngramRows) {
-		this.sessionName = sessionName;
+		this.session = session;
 		this.refVizElem = refVizElem;
 		this.documentOccurrenceCount = documentOccurrenceCount;
 		this.ngramRows = ngramRows;
@@ -62,10 +64,10 @@ final class ReferentNGramRowGrouping<V, R> {
 	}
 
 	/**
-	 * @return the sessionName
+	 * @return the session
 	 */
-	String getSessionName() {
-		return sessionName;
+	Session getSession() {
+		return session;
 	}
 
 }

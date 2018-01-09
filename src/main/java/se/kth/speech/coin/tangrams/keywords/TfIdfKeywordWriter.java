@@ -221,12 +221,12 @@ public final class TfIdfKeywordWriter implements Closeable, Flushable {
 				final boolean onlyInstructor = cl.hasOption(Parameter.ONLY_INSTRUCTOR.optName);
 				LOGGER.info("Only use instructor language? {}", onlyInstructor);
 
-				final Map<String, DocumentObservationData<List<String>>> sessionDocObsData = new SessionReferentNgramDataManager(
+				final Map<Session, DocumentObservationData<List<String>>> sessionDocObsData = new SessionReferentNgramDataManager(
 						Parameter.createNgramFactory(cl), onlyInstructor).createSessionNgramCountMap(sessions);
 
 				LOGGER.info("Calculating TF-IDF scores.");
 				final long tfIdfScorerConstructionStart = System.currentTimeMillis();
-				final TfIdfScorer<List<String>, String> tfIdfScorer = TfIdfScorer.create(sessionDocObsData,
+				final TfIdfScorer<List<String>, Session> tfIdfScorer = TfIdfScorer.create(sessionDocObsData,
 						tfVariant);
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfScorerConstructionStart) / 1000.0);
@@ -255,11 +255,11 @@ public final class TfIdfKeywordWriter implements Closeable, Flushable {
 		}
 	}
 
-	private static Stream<String> createRow(final String sessionName, final Weighted<List<String>> scoredNgram) {
+	private static Stream<String> createRow(final Session session, final Weighted<List<String>> scoredNgram) {
 		final List<String> ngram = scoredNgram.getWrapped();
 		final double weight = scoredNgram.getWeight();
 		final String ngramRepr = ngram.stream().collect(TOKEN_JOINER);
-		return Stream.of(sessionName, ngramRepr, weight, ngram.size(), normalizeWeight(scoredNgram))
+		return Stream.of(session.getName(), ngramRepr, weight, ngram.size(), normalizeWeight(scoredNgram))
 				.map(Object::toString);
 	}
 
@@ -279,9 +279,9 @@ public final class TfIdfKeywordWriter implements Closeable, Flushable {
 
 	private final CSVPrinter printer;
 
-	private final TfIdfScorer<List<String>, String> tfidfCalculator;
+	private final TfIdfScorer<List<String>, Session> tfidfCalculator;
 
-	public TfIdfKeywordWriter(final CSVPrinter printer, final TfIdfScorer<List<String>, String> tfidfCalculator) {
+	public TfIdfKeywordWriter(final CSVPrinter printer, final TfIdfScorer<List<String>, Session> tfidfCalculator) {
 		this.printer = printer;
 		this.tfidfCalculator = tfidfCalculator;
 	}
@@ -296,16 +296,16 @@ public final class TfIdfKeywordWriter implements Closeable, Flushable {
 		printer.flush();
 	}
 
-	public int write(final Map<String, DocumentObservationData<List<String>>> sessionDocObsData) throws IOException {
+	public int write(final Map<Session, DocumentObservationData<List<String>>> sessionDocObsData) throws IOException {
 		int result = 0;
 
-		final List<Entry<String, ? extends DocumentObservationData<List<String>>>> sortedEntries = new ArrayList<>(
+		final List<Entry<Session, ? extends DocumentObservationData<List<String>>>> sortedEntries = new ArrayList<>(
 				sessionDocObsData.entrySet());
-		sortedEntries.sort(Comparator.comparing(entry -> entry.getKey(), Session.getNameComparator()));
-		for (final Entry<String, ? extends DocumentObservationData<List<String>>> entry : sortedEntries) {
-			final String sessionName = entry.getKey();
+		sortedEntries.sort(Comparator.comparing(entry -> entry.getKey().getName(), Session.getNameComparator()));
+		for (final Entry<Session, ? extends DocumentObservationData<List<String>>> entry : sortedEntries) {
+			final Session session = entry.getKey();
 			final DocumentObservationData<List<String>> docObsData = entry.getValue();
-			final ToDoubleFunction<List<String>> ngramScorer = word -> tfidfCalculator.applyAsDouble(word, sessionName);
+			final ToDoubleFunction<List<String>> ngramScorer = word -> tfidfCalculator.applyAsDouble(word, session);
 			final Stream<Weighted<List<String>>> scoredNgrams = docObsData.getObservationCounts().object2IntEntrySet().stream()
 					.map(ngramCount -> {
 						final List<String> ngram = ngramCount.getKey();
@@ -315,7 +315,7 @@ public final class TfIdfKeywordWriter implements Closeable, Flushable {
 					}).sorted(SCORED_NGRAM_COMPARATOR);
 
 			final Stream<Stream<String>> cellValues = scoredNgrams
-					.map(scoredNgram -> createRow(sessionName, scoredNgram));
+					.map(scoredNgram -> createRow(session, scoredNgram));
 			final List<String[]> rows = Arrays
 					.asList(cellValues.map(stream -> stream.toArray(String[]::new)).toArray(String[][]::new));
 			printer.printRecords(rows);

@@ -24,14 +24,17 @@ import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.math.RoundingMode;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.BiConsumer;
@@ -71,6 +74,7 @@ import j2html.tags.ContainerTag;
 import j2html.tags.UnescapedText;
 import se.kth.speech.coin.tangrams.CLIParameters;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
+import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.function.ThrowingSupplier;
@@ -267,9 +271,31 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		}
 	}
 
+	private static final ThreadLocal<NumberFormat> DECIMAL_FORMAT = new ThreadLocal<NumberFormat>() {
+
+		/*
+		 * (non-Javadoc)
+		 *
+		 * @see java.lang.ThreadLocal#initialValue()
+		 */
+		@Override
+		protected NumberFormat initialValue() {
+			final NumberFormat result = NumberFormat.getNumberInstance(Locale.US);
+			result.setMinimumFractionDigits(3);
+			result.setMaximumFractionDigits(3);
+			result.setRoundingMode(RoundingMode.HALF_UP);
+			return result;
+		}
+
+	};
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(TfIdfKeywordVisualizationHTMLWriter.class);
 
 	private static final List<BiConsumer<VisualizableReferent, SVGDocument>> SVG_DOC_POSTPROCESSORS = createSVGDocPostProcessors();
+
+	private static final List<String> TABLE_COL_NAMES = Arrays.asList("Dyad", "Game rounds",
+			"Coref chain length upper bound", "Expected coref chain length", "Coref prob", "Image", "References",
+			"N-gram", "Score", "Count");
 
 	private static final String TOKEN_DELIMITER;
 
@@ -310,13 +336,13 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 				final NGramFactory ngramFactory = Parameter.createNgramFactory(cl);
 				final Map<Referent, VisualizableReferent> vizRefs = SessionReferentNgramDataManager
 						.createVisualizableReferentMap(sessions);
-				final Map<String, Map<VisualizableReferent, DocumentObservationData<List<String>>>> sessionRefDocObsData = new SessionReferentNgramDataManager(
+				final Map<Session, Map<VisualizableReferent, DocumentObservationData<List<String>>>> sessionRefDocObsData = new SessionReferentNgramDataManager(
 						ngramFactory, onlyInstructor).createSessionReferentNgramCountMap(sessions, vizRefs);
-				final Map<Entry<String, VisualizableReferent>, DocumentObservationData<List<String>>> pairDocObsData = SessionReferentNgramDataManager
-						.createSessionReferentPairNgramCountMap(sessionRefDocObsData);
+				final Map<Entry<Session, VisualizableReferent>, DocumentObservationData<List<String>>> pairDocObsData = SessionReferentNgramDataManager
+						.createGroupDocumentPairObservationCountMap(sessionRefDocObsData);
 				LOGGER.info("Calculating TF-IDF scores for {} session-referent pairs.", pairDocObsData.size());
 				final long tfIdfScorerConstructionStart = System.currentTimeMillis();
-				final TfIdfScorer<List<String>, Entry<String, VisualizableReferent>> tfIdfScorer = TfIdfScorer
+				final TfIdfScorer<List<String>, Entry<Session, VisualizableReferent>> tfIdfScorer = TfIdfScorer
 						.create(pairDocObsData, tfVariant);
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfScorerConstructionStart) / 1000.0);
@@ -365,17 +391,6 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 			System.out.println(String.format("An error occurred while parsing the command-line arguments: %s", e));
 			Parameter.printHelp();
 		}
-	}
-
-	private static ContainerTag createFirstReferentNGramRow(
-			ReferentNGramRowGrouping<UnescapedText, Stream<ContainerTag>> refNgramRowGrouping,
-			final Stream<ContainerTag> ngramRowCells, final int rowspan) {
-		final ContainerTag dyadCell = TagCreator.td(refNgramRowGrouping.getSessionName()).attr("rowspan", rowspan);
-		final ContainerTag refCell = TagCreator.td(refNgramRowGrouping.getRefVizElem()).attr("rowspan", rowspan);
-		final ContainerTag refOccurrenceCountCell = TagCreator
-				.td(Integer.toString(refNgramRowGrouping.getDocumentOccurrenceCount())).attr("rowspan", rowspan);
-		final Stream<ContainerTag> prefixCells = Stream.of(dyadCell, refCell, refOccurrenceCountCell);
-		return TagCreator.tr(Stream.concat(prefixCells, ngramRowCells).toArray(ContainerTag[]::new));
 	}
 
 	private static String createHTMLDocumentString(final ContainerTag html) {
@@ -449,28 +464,14 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		return result;
 	}
 
-	private static List<ContainerTag> createReferentNGramRows(
-			final ReferentNGramRowGrouping<UnescapedText, Stream<ContainerTag>> refNgramRowGrouping) {
-		@SuppressWarnings("unchecked")
-		final List<Stream<ContainerTag>> ngramRowCells = Arrays
-				.asList(refNgramRowGrouping.getNgramRows().toArray(Stream[]::new));
-		final int rowspan = ngramRowCells.size();
-
-		final List<ContainerTag> result = new ArrayList<>(ngramRowCells.size());
-		final Iterator<Stream<ContainerTag>> ngramRowCellIter = ngramRowCells.iterator();
-		if (ngramRowCellIter.hasNext()) {
-			result.add(createFirstReferentNGramRow(refNgramRowGrouping, ngramRowCellIter.next(), rowspan));
-			while (ngramRowCellIter.hasNext()) {
-				result.add(createNextReferentNGramRow(ngramRowCellIter.next()));
-			}
-		}
-		return result;
-	}
-
 	private static List<BiConsumer<VisualizableReferent, SVGDocument>> createSVGDocPostProcessors() {
 		final BiConsumer<VisualizableReferent, SVGDocument> resizer = (ref, svgDoc) -> SVGDocuments
 				.setSize(svgDoc.getRootElement(), "100%", "5em");
 		return Arrays.asList(resizer);
+	}
+
+	private static ContainerTag createTableColumnHeaderRow() {
+		return TagCreator.tr(TABLE_COL_NAMES.stream().map(TagCreator::th).toArray(ContainerTag[]::new));
 	}
 
 	private static <K> void incrementCount(final K key, final int addend, final Object2IntMap<? super K> counts) {
@@ -479,12 +480,16 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		assert oldValue == augend;
 	}
 
+	private static ContainerTag rowspan(final ContainerTag tag, final int rowspan) {
+		return tag.attr("rowspan", rowspan);
+	}
+
 	private final TfIdfKeywordVisualizationRowFactory<UnescapedText, Stream<ContainerTag>> refNgramRowFactory;
 
 	private final Writer writer;
 
 	public TfIdfKeywordVisualizationHTMLWriter(final Writer writer,
-			final ToDoubleBiFunction<? super List<String>, ? super Entry<String, VisualizableReferent>> tfIdfScorer,
+			final ToDoubleBiFunction<? super List<String>, ? super Entry<Session, VisualizableReferent>> tfIdfScorer,
 			final long nbestRefs, final long nbestNgrams, final Path imgResDir) {
 		this.writer = writer;
 
@@ -516,22 +521,64 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 	}
 
 	public int write(
-			final Map<String, Map<VisualizableReferent, DocumentObservationData<List<String>>>> sessionRefDocObsData)
+			final Map<Session, Map<VisualizableReferent, DocumentObservationData<List<String>>>> sessionRefDocObsData)
 			throws IOException {
 		final Stream<ReferentNGramRowGrouping<UnescapedText, Stream<ContainerTag>>> refNgramRows = refNgramRowFactory
 				.apply(sessionRefDocObsData);
-		final ContainerTag[] rows = refNgramRows.map(TfIdfKeywordVisualizationHTMLWriter::createReferentNGramRows)
-				.flatMap(List::stream).toArray(ContainerTag[]::new);
+		final ContainerTag[] rows = refNgramRows.map(this::createReferentNGramRows).flatMap(List::stream)
+				.toArray(ContainerTag[]::new);
 
-		final ContainerTag thead = TagCreator
-				.thead(TagCreator.tr(TagCreator.th("Dyad"), TagCreator.th("Image"), TagCreator.th("Reference count"),
-						TagCreator.th("N-gram"), TagCreator.th("Score"), TagCreator.th("Count")));
+		final ContainerTag thead = TagCreator.thead(createTableColumnHeaderRow());
 		final ContainerTag tbody = TagCreator.tbody(rows);
 		final ContainerTag table = TagCreator.table(thead, tbody);
 		final ContainerTag html = TagCreator.html(createHTMLHeadTag(), TagCreator.body(table));
 		final String docStr = createHTMLDocumentString(html);
 		writer.write(docStr);
 		return rows.length;
+	}
+
+	private ContainerTag createFirstReferentNGramRow(
+			final ReferentNGramRowGrouping<UnescapedText, Stream<ContainerTag>> refNgramRowGrouping,
+			final Stream<ContainerTag> ngramRowCells, final int rowspan) {
+		final Session session = refNgramRowGrouping.getSession();
+		final ContainerTag dyadCell = TagCreator.td(session.getName());
+		final List<Round> rounds = session.getRounds();
+		final ContainerTag roundCountCell = TagCreator.td(Integer.toString(rounds.size()));
+		final ReferenceData refData = new ReferenceData(rounds);
+		final ContainerTag maxPossibleCorefLengthCell = TagCreator
+				.td(Long.toString(refData.coreferenceChainLengthUpperBound()));
+		// ContainerTag referenceMaxLikelihoodCell =
+		// TagCreator.td(Double.toString(refData.maximumLikelihoodOfBeingReferent()));
+		final ContainerTag expectedCorefSeqLengthCell = TagCreator
+				.td(Double.toString(refData.expectedCorefSeqLength()));
+		final ContainerTag corefProbCell = TagCreator
+				.td(DECIMAL_FORMAT.get().format(refData.probabilityOfBeingCoreferentFromStart()));
+
+		final ContainerTag refCell = TagCreator.td(refNgramRowGrouping.getRefVizElem());
+		final ContainerTag refOccurrenceCountCell = TagCreator
+				.td(Integer.toString(refNgramRowGrouping.getDocumentOccurrenceCount()));
+		final Stream<ContainerTag> prefixCells = Stream.of(dyadCell, roundCountCell, maxPossibleCorefLengthCell,
+				expectedCorefSeqLengthCell, corefProbCell, refCell, refOccurrenceCountCell)
+				.map(cell -> rowspan(cell, rowspan));
+		return TagCreator.tr(Stream.concat(prefixCells, ngramRowCells).toArray(ContainerTag[]::new));
+	}
+
+	private List<ContainerTag> createReferentNGramRows(
+			final ReferentNGramRowGrouping<UnescapedText, Stream<ContainerTag>> refNgramRowGrouping) {
+		@SuppressWarnings("unchecked")
+		final List<Stream<ContainerTag>> ngramRowCells = Arrays
+				.asList(refNgramRowGrouping.getNgramRows().toArray(Stream[]::new));
+		final int rowspan = ngramRowCells.size();
+
+		final List<ContainerTag> result = new ArrayList<>(ngramRowCells.size());
+		final Iterator<Stream<ContainerTag>> ngramRowCellIter = ngramRowCells.iterator();
+		if (ngramRowCellIter.hasNext()) {
+			result.add(createFirstReferentNGramRow(refNgramRowGrouping, ngramRowCellIter.next(), rowspan));
+			while (ngramRowCellIter.hasNext()) {
+				result.add(createNextReferentNGramRow(ngramRowCellIter.next()));
+			}
+		}
+		return result;
 	}
 
 }

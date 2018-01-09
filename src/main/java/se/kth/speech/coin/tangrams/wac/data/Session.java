@@ -129,7 +129,7 @@ public final class Session {
 	public int hashCode() {
 		return hashCode;
 	}
-
+	
 	/*
 	 * (non-Javadoc)
 	 *
@@ -153,5 +153,6 @@ public final class Session {
 		result = prime * result + (rounds == null ? 0 : rounds.hashCode());
 		return result;
 	}
+
 
 }
