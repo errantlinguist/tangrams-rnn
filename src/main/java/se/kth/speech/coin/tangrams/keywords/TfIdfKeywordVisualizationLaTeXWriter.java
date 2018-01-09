@@ -363,7 +363,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 				LOGGER.info("Writing rows.");
 				final long writeStart = System.currentTimeMillis();
-				final int rowsWritten = keywordWriter.write(sessionRefDocObsData);
+				final int rowsWritten = keywordWriter.write(pairDocObsData);
 				LOGGER.info("Wrote {} row(s) in {} seconds.", rowsWritten,
 						(System.currentTimeMillis() - writeStart) / 1000.0);
 			}
@@ -455,7 +455,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 	}
 
 	public int write(
-			final Map<Session, Map<VisualizableReferent, DocumentObservationData<List<String>>>> sessionRefDocObsData)
+			final Map<Entry<Session, VisualizableReferent>, DocumentObservationData<List<String>>> sessionRefDocObsData)
 			throws IOException {
 		final Stream<ReferentNGramRowGrouping<Path, Stream<String>>> refNgramRows = rowFactory
 				.apply(sessionRefDocObsData);

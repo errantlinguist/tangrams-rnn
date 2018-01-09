@@ -363,7 +363,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 				// return tfIdfScore;
 				// };
 
-				final long nbestRefs = 3;
+				final long nbestRefs = 20;
 				final long nbestNgrams = 3;
 				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs,
 						nbestNgrams);
@@ -374,7 +374,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 				try (final TfIdfKeywordVisualizationHTMLWriter keywordWriter = new TfIdfKeywordVisualizationHTMLWriter(
 						new BufferedWriter(new OutputStreamWriter(outStreamGetter.get())), tfIdfScorer, nbestRefs,
 						nbestNgrams, imgResDir)) {
-					rowsWritten = keywordWriter.write(sessionRefDocObsData);
+					rowsWritten = keywordWriter.write(pairDocObsData);
 				}
 				LOGGER.info("Wrote {} row(s) in {} seconds.", rowsWritten,
 						(System.currentTimeMillis() - writeStart) / 1000.0);
@@ -521,7 +521,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 	}
 
 	public int write(
-			final Map<Session, Map<VisualizableReferent, DocumentObservationData<List<String>>>> sessionRefDocObsData)
+			final Map<Entry<Session,VisualizableReferent>, DocumentObservationData<List<String>>> sessionRefDocObsData)
 			throws IOException {
 		final Stream<ReferentNGramRowGrouping<UnescapedText, Stream<ContainerTag>>> refNgramRows = refNgramRowFactory
 				.apply(sessionRefDocObsData);
