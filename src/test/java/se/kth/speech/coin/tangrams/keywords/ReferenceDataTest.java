@@ -33,7 +33,7 @@ public final class ReferenceDataTest {
 	 */
 	@Test
 	public void testProbabilityOfBeingCoreferentFromStart() {
-		final ReferenceData data = new ReferenceData(2000, 50);
+		final ReferenceData data = new ReferenceData(2000, 5);
 		final BigDecimal prob = data.probabilityOfBeingCoreferentFromStart();
 		Assert.assertTrue("Probability is less than 0.", prob.compareTo(BigDecimal.ZERO) >= 0);
 		Assert.assertTrue("Probability is greater than 1.", prob.compareTo(BigDecimal.ONE) <= 0);
