@@ -311,7 +311,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 	}
 
 	static {
-		TABLE_PREFIX_COL_NAMES = Arrays.asList("Dyad", "Entity", "References");
+		TABLE_PREFIX_COL_NAMES = Arrays.asList("Dyad", "$r$", "$\\lvert C^{r} \\rvert$");
 		TABLE_COL_NAMES = Arrays
 				.asList(Stream.concat(TABLE_PREFIX_COL_NAMES.stream(), Stream.of("$n$-gram", "TF-IDF", "Count"))
 						.toArray(String[]::new));
