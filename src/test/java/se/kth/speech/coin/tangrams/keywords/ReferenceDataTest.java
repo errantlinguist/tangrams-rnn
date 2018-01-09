@@ -20,7 +20,6 @@ import java.math.BigDecimal;
 import org.junit.Assert;
 import org.junit.Test;
 
-
 /**
  * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
  * @since Jan 9, 2018
@@ -29,12 +28,13 @@ import org.junit.Test;
 public final class ReferenceDataTest {
 
 	/**
-	 * Test method for {@link se.kth.speech.coin.tangrams.keywords.ReferenceData#probabilityOfBeingCoreferentFromStart()}.
+	 * Test method for
+	 * {@link se.kth.speech.coin.tangrams.keywords.ReferenceData#probabilityOfBeingCoreferentFromStart()}.
 	 */
 	@Test
 	public void testProbabilityOfBeingCoreferentFromStart() {
-		ReferenceData data = new ReferenceData(2000, 50);
-		BigDecimal prob = data.probabilityOfBeingCoreferentFromStart();
+		final ReferenceData data = new ReferenceData(2000, 50);
+		final BigDecimal prob = data.probabilityOfBeingCoreferentFromStart();
 		Assert.assertTrue("Probability is less than 0.", prob.compareTo(BigDecimal.ZERO) >= 0);
 		Assert.assertTrue("Probability is greater than 1.", prob.compareTo(BigDecimal.ONE) <= 0);
 	}
