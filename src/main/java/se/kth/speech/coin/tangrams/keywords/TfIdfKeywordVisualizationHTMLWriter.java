@@ -364,7 +364,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 				// };
 
 				final long nbestRefs = 20;
-				final long nbestNgrams = 3;
+				final long nbestNgrams = 1;
 				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs,
 						nbestNgrams);
 
