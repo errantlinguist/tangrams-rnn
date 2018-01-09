@@ -143,8 +143,8 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		OUTPATH("o") {
 			@Override
 			public Option get() {
-				return Option.builder(optName).longOpt("outpath")
-						.desc("The file to write the results to; If this option is not supplied, the standard output stream will be used.")
+				return Option.builder(optName).longOpt("outpath").desc(
+						"The file to write the results to; If this option is not supplied, the standard output stream will be used.")
 						.hasArg().argName("path").type(File.class).build();
 			}
 		},
@@ -521,7 +521,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 	}
 
 	public int write(
-			final Map<Entry<Session,VisualizableReferent>, DocumentObservationData<List<String>>> sessionRefDocObsData)
+			final Map<Entry<Session, VisualizableReferent>, DocumentObservationData<List<String>>> sessionRefDocObsData)
 			throws IOException {
 		final Stream<ReferentNGramRowGrouping<UnescapedText, Stream<ContainerTag>>> refNgramRows = refNgramRowFactory
 				.apply(sessionRefDocObsData);
