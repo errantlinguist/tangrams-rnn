@@ -393,14 +393,14 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 	}
 
 	private static Stream<String> createFooterLines() {
-		return Stream.of("\\hline%", "\\end{tabular}");
+		return Stream.of("\t\\hline%", "\\end{tabular}");
 	}
 
 	private static Stream<String> createHeaderLines() {
-		final String colHeaderRow = TABLE_COL_NAMES.stream().collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
 		final String tablEnvPrefix = TABLE_COL_DEFS.stream()
 				.collect(Collectors.joining(" ", "\\begin{tabular}[h]{|", "|}"));
-		return Stream.of(tablEnvPrefix, "\\hline%", colHeaderRow, "\\hline%");
+		final String colHeaderRow = "\t" + TABLE_COL_NAMES.stream().collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
+		return Stream.of(tablEnvPrefix, "\t\\hline%", colHeaderRow, "\t\\hline%");
 	}
 
 	private static String createNextReferentNGramRow(final Stream<String> ngramRowCells) {
@@ -549,9 +549,9 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		final List<String> result = new ArrayList<>(ngramRowCells.size());
 		final Iterator<Stream<String>> ngramRowCellIter = ngramRowCells.iterator();
 		if (ngramRowCellIter.hasNext()) {
-			result.add(createFirstReferentNGramRow(refNgramRowGrouping, ngramRowCellIter.next(), rowspan));
+			result.add("\t" + createFirstReferentNGramRow(refNgramRowGrouping, ngramRowCellIter.next(), rowspan));
 			while (ngramRowCellIter.hasNext()) {
-				result.add(createNextReferentNGramRow(ngramRowCellIter.next()));
+				result.add("\t" + createNextReferentNGramRow(ngramRowCellIter.next()));
 			}
 		}
 		return result;
