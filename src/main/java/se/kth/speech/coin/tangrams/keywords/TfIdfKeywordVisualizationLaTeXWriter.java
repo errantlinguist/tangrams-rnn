@@ -427,14 +427,16 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		return "$" + Integer.toString(value) + "$";
 	}
 
-	private static Stream<String> rowspan(final Stream<String> cells, final int rowspan) {
-		return rowspan < 1 ? cells : cells.map(cell -> rowspan(cell, rowspan));
-	}
-
 	private static String rowspan(final String cell, final int rowspan) {
-		final String prefix = String.format("\\multirow{%d}{*}{", rowspan);
-		final String suffix = "}";
-		return prefix + cell + suffix;
+		final String result;
+		if (rowspan < 2) {
+			result = cell;
+		} else {
+			final String prefix = String.format("\\multirow{%d}{*}{", rowspan);
+			final String suffix = "}";
+			result = prefix + cell + suffix;
+		}
+		return result;
 	}
 
 	/**
@@ -513,8 +515,8 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		LOGGER.debug("Creating LaTeX include statement for path \"{}\".", relOutfilePath);
 		final String refVizIncludeStr = createGraphicsIncludeStatement(relOutfilePath);
 		final int refCounts = refNgramRowGrouping.getDocumentOccurrenceCount();
-		final Stream<String> prefixCells = rowspan(
-				Stream.of(session.getName(), mathMode(rounds.size()), refVizIncludeStr, mathMode(refCounts)), rowspan);
+		final Stream<String> prefixCells = Stream.of(session.getName(), mathMode(rounds.size()),
+				rowspan(refVizIncludeStr, rowspan), mathMode(refCounts));
 		return Stream.concat(prefixCells, ngramRowCells).collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
 	}
 
