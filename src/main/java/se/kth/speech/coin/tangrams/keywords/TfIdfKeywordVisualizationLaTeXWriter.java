@@ -19,6 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
@@ -439,6 +440,18 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		return result;
 	}
 
+	private static String tryMathMode(final String value) {
+		String result = value;
+		try {
+			new BigDecimal(result);
+			result = "$" + result + "$";
+		} catch (final NumberFormatException e) {
+			// Just use the original string
+		}
+		return result;
+
+	}
+
 	/**
 	 * @see <a href= "http://stackoverflow.com/q/32721467/1391325">StackOverflow</a>
 	 * @param doc
@@ -515,7 +528,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		LOGGER.debug("Creating LaTeX include statement for path \"{}\".", relOutfilePath);
 		final String refVizIncludeStr = createGraphicsIncludeStatement(relOutfilePath);
 		final int refCounts = refNgramRowGrouping.getDocumentOccurrenceCount();
-		final Stream<String> prefixCells = Stream.of(session.getName(), mathMode(rounds.size()),
+		final Stream<String> prefixCells = Stream.of(tryMathMode(session.getName()), mathMode(rounds.size()),
 				rowspan(refVizIncludeStr, rowspan), mathMode(refCounts));
 		return Stream.concat(prefixCells, ngramRowCells).collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
 	}
