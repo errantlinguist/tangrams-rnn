@@ -399,7 +399,12 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 	}
 
 	private static ContainerTag rowspan(final ContainerTag tag, final int rowspan) {
+		assert rowspan > 1;
 		return tag.attr("rowspan", rowspan);
+	}
+
+	private static Stream<ContainerTag> rowspan(final Stream<ContainerTag> tags, final int rowspan) {
+		return rowspan < 1 ? tags : tags.map(tag -> rowspan(tag, rowspan));
 	}
 
 	private final TfIdfKeywordVisualizationRowFactory<UnescapedText, Stream<ContainerTag>> refNgramRowFactory;
@@ -466,8 +471,8 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		final ContainerTag refCell = TagCreator.td(refNgramRowGrouping.getRefVizElem());
 		final ContainerTag refOccurrenceCountCell = TagCreator
 				.td(Integer.toString(refNgramRowGrouping.getDocumentOccurrenceCount()));
-		final Stream<ContainerTag> prefixCells = Stream.of(dyadCell, roundCountCell, refCell, refOccurrenceCountCell)
-				.map(cell -> rowspan(cell, rowspan));
+		final Stream<ContainerTag> prefixCells = rowspan(
+				Stream.of(dyadCell, roundCountCell, refCell, refOccurrenceCountCell), rowspan);
 		return TagCreator.tr(Stream.concat(prefixCells, ngramRowCells).toArray(ContainerTag[]::new));
 	}
 
