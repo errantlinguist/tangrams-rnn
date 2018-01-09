@@ -24,24 +24,20 @@ import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.math.RoundingMode;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToDoubleBiFunction;
-import java.util.function.ToDoubleFunction;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -65,9 +61,6 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 import org.w3c.dom.svg.SVGDocument;
 
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import it.unimi.dsi.fastutil.objects.ObjectSet;
 import j2html.Config;
 import j2html.TagCreator;
 import j2html.tags.ContainerTag;
@@ -91,15 +84,6 @@ import se.kth.speech.svg.SVGDocuments;
 public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flushable {
 
 	private enum Parameter implements Supplier<Option> {
-		// CORPUS_DIR("c") {
-		// @Override
-		// public Option get() {
-		// return Option.builder(optName).longOpt("corpus-dir")
-		// .desc("The directory to language-model corpus data
-		// from.").hasArg().argName("path")
-		// .type(File.class).build();
-		// }
-		// },
 		HELP("?") {
 			@Override
 			public Option get() {
@@ -271,24 +255,6 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		}
 	}
 
-	private static final ThreadLocal<NumberFormat> DECIMAL_FORMAT = new ThreadLocal<NumberFormat>() {
-
-		/*
-		 * (non-Javadoc)
-		 *
-		 * @see java.lang.ThreadLocal#initialValue()
-		 */
-		@Override
-		protected NumberFormat initialValue() {
-			final NumberFormat result = NumberFormat.getNumberInstance(Locale.US);
-			result.setMinimumFractionDigits(3);
-			result.setMaximumFractionDigits(3);
-			result.setRoundingMode(RoundingMode.HALF_UP);
-			return result;
-		}
-
-	};
-
 	private static final Logger LOGGER = LoggerFactory.getLogger(TfIdfKeywordVisualizationHTMLWriter.class);
 
 	private static final List<BiConsumer<VisualizableReferent, SVGDocument>> SVG_DOC_POSTPROCESSORS = createSVGDocPostProcessors();
@@ -415,53 +381,11 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		return TagCreator.tr(ngramRowCells.toArray(ContainerTag[]::new));
 	}
 
-	private static ToDoubleFunction<List<String>> createNGramLanguageScorer(final CommandLine cl,
-			final Map<?, ? extends Map<?, ? extends Object2IntMap<? extends List<String>>>> sessionRefDocObsData) {
-		// final ToDoubleFunction<List<String>> result;
-		// final File corpusDir = (File)
-		// cl.getParsedOptionValue(Parameter.CORPUS_DIR.optName);
-		// if (corpusDir == null) {
-		// ngramProbScorer = ngram -> 1.0;
-		// } else {
-		// LOGGER.info("Reading corpus data from \"{}\".", corpusDir);
-		final long readingStart = System.currentTimeMillis();
-		// final Stream<List<String>> corpusSents =
-		// BrownCorpusReading.readPlainSentences(corpusDir.toPath());
-		// final Stream<List<List<String>>> corpusSentNgrams =
-		// corpusSents.map(ngramFactory);
-		// This converts all the sentence n-grams into one stream, which is okay
-		// at this
-		// point
-		// final Stream<List<String>> ngrams =
-		// corpusSentNgrams.flatMap(List::stream);
-		// sessionRefDocObsData.values().stream().map(Map::values).map(Object2IntMap::object2IntEntrySet);
-		// ngramProbScorer = new ProbabilityScorer<>(ngrams);
-		// result = new
-		// ProbabilityScorer<>(createNGramTotalCountMap(sessionRefDocObsData));
-		// LOGGER.info("Finished calculating n-gram probabilities after {}
-		// seconds.",
-		// (System.currentTimeMillis() - readingStart) / 1000.0);
-		// }
-		return ngram -> 1.0;
-	}
-
 	private static Stream<ContainerTag> createNGramRowCells(final List<String> ngram, final int count,
 			final double score) {
 		final String ngramRepr = ngram.stream().collect(TOKEN_JOINER);
 		return Stream.of(TagCreator.td(ngramRepr), TagCreator.td(Double.toString(score)),
 				TagCreator.td(Integer.toString(count)));
-	}
-
-	private static Object2IntMap<List<String>> createNGramTotalCountMap(
-			final Map<?, ? extends Map<?, ? extends DocumentObservationData<? extends List<String>>>> sessionRefDocObsData) {
-		final Object2IntOpenHashMap<List<String>> result = new Object2IntOpenHashMap<>();
-		final Stream<DocumentObservationData<? extends List<String>>> refDocObsData = sessionRefDocObsData.values()
-				.stream().map(Map::values).flatMap(Collection::stream);
-		final Stream<Object2IntMap.Entry<? extends List<String>>> ngramCounts = refDocObsData
-				.map(DocumentObservationData::getObservationCounts).map(Object2IntMap::object2IntEntrySet)
-				.flatMap(ObjectSet::stream);
-		ngramCounts.forEach(ngramCount -> incrementCount(ngramCount.getKey(), ngramCount.getIntValue(), result));
-		return result;
 	}
 
 	private static List<BiConsumer<VisualizableReferent, SVGDocument>> createSVGDocPostProcessors() {
@@ -472,12 +396,6 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 
 	private static ContainerTag createTableColumnHeaderRow() {
 		return TagCreator.tr(TABLE_COL_NAMES.stream().map(TagCreator::th).toArray(ContainerTag[]::new));
-	}
-
-	private static <K> void incrementCount(final K key, final int addend, final Object2IntMap<? super K> counts) {
-		final int augend = counts.getInt(key);
-		final int oldValue = counts.put(key, augend + addend);
-		assert oldValue == augend;
 	}
 
 	private static ContainerTag rowspan(final ContainerTag tag, final int rowspan) {
@@ -544,21 +462,11 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		final ContainerTag dyadCell = TagCreator.td(session.getName());
 		final List<Round> rounds = session.getRounds();
 		final ContainerTag roundCountCell = TagCreator.td(Integer.toString(rounds.size()));
-		final ReferenceData refData = new ReferenceData(rounds);
-		final ContainerTag maxPossibleCorefLengthCell = TagCreator
-				.td(Long.toString(refData.coreferenceChainLengthUpperBound()));
-		// ContainerTag referenceMaxLikelihoodCell =
-		// TagCreator.td(Double.toString(refData.maximumLikelihoodOfBeingReferent()));
-		final ContainerTag expectedCorefSeqLengthCell = TagCreator
-				.td(Double.toString(refData.expectedCorefSeqLength()));
-		final ContainerTag corefProbCell = TagCreator
-				.td(DECIMAL_FORMAT.get().format(refData.probabilityOfBeingCoreferentFromStart()));
 
 		final ContainerTag refCell = TagCreator.td(refNgramRowGrouping.getRefVizElem());
 		final ContainerTag refOccurrenceCountCell = TagCreator
 				.td(Integer.toString(refNgramRowGrouping.getDocumentOccurrenceCount()));
-		final Stream<ContainerTag> prefixCells = Stream.of(dyadCell, roundCountCell, maxPossibleCorefLengthCell,
-				expectedCorefSeqLengthCell, corefProbCell, refCell, refOccurrenceCountCell)
+		final Stream<ContainerTag> prefixCells = Stream.of(dyadCell, roundCountCell, refCell, refOccurrenceCountCell)
 				.map(cell -> rowspan(cell, rowspan));
 		return TagCreator.tr(Stream.concat(prefixCells, ngramRowCells).toArray(ContainerTag[]::new));
 	}
