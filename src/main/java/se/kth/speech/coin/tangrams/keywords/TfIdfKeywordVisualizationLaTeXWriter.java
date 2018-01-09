@@ -61,6 +61,7 @@ import org.w3c.dom.svg.SVGDocument;
 
 import se.kth.speech.LaTeX;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
+import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.nlp.DocumentObservationData;
@@ -257,10 +258,6 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 	}
 
-	private static final String FOOTER;
-
-	private static final String HEADER;
-
 	private static final String LINE_DELIM;
 
 	private static final Collector<CharSequence, ?, String> LINE_JOINER;
@@ -287,7 +284,13 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 	private static final List<BiConsumer<VisualizableReferent, SVGDocument>> SVG_DOC_POSTPROCESSORS = createSVGDocPostProcessors();
 
+	private static final List<String> TABLE_COL_DEFS;
+
 	private static final Collector<CharSequence, ?, String> TABLE_COL_DELIM = Collectors.joining("\t&\t");
+
+	private static final List<String> TABLE_COL_NAMES;
+
+	private static final List<String> TABLE_PREFIX_COL_NAMES;
 
 	private static final String TABLE_ROW_DELIM = " \\\\";
 
@@ -300,13 +303,21 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 	static {
 		LINE_DELIM = System.lineSeparator();
 		LINE_JOINER = Collectors.joining(LINE_DELIM);
-		HEADER = createHeaderLines().collect(LINE_JOINER);
-		FOOTER = createFooterLines().collect(LINE_JOINER);
 	}
 
 	static {
 		TOKEN_DELIMITER = " ";
 		TOKEN_JOINER = Collectors.joining(TOKEN_DELIMITER, "\\lingform{", "}");
+	}
+
+	static {
+		TABLE_PREFIX_COL_NAMES = Arrays.asList("Dyad", "Game rounds", "Entity", "References");
+		TABLE_COL_NAMES = Arrays
+				.asList(Stream.concat(TABLE_PREFIX_COL_NAMES.stream(), Stream.of("$n$-gram", "TF-IDF", "Count"))
+						.toArray(String[]::new));
+		TABLE_COL_DEFS = Arrays.asList("l", "r", "l", "r", "l", "r", "r");
+		assert TABLE_COL_DEFS.size() == TABLE_COL_NAMES
+				.size() : "Table column name list and definition list are not the same size.";
 	}
 
 	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD
@@ -354,8 +365,8 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				final String imgHeight = "2ex";
 				LOGGER.info("Will include images using a height of \"{}\".", imgHeight);
 
-				final long nbestRefs = 1;
-				final long nbestNgrams = 1;
+				final long nbestRefs = 20;
+				final long nbestNgrams = 2;
 				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs,
 						nbestNgrams);
 				final TfIdfKeywordVisualizationLaTeXWriter keywordWriter = new TfIdfKeywordVisualizationLaTeXWriter(
@@ -386,19 +397,20 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 	}
 
 	private static Stream<String> createHeaderLines() {
-		final List<String> colHeaders = Arrays.asList("Dyad", "Referent", "Reference count", "$n$-gram", "Score");
-		final String colHeaderRow = colHeaders.stream().collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
-		return Stream.of("\\begin{tabular}{|l l l l|}", "\\hline%", colHeaderRow, "\\hline%");
+		final String colHeaderRow = TABLE_COL_NAMES.stream().collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
+		final String tablEnvPrefix = TABLE_COL_DEFS.stream()
+				.collect(Collectors.joining(" ", "\\begin{tabular}[h]{|", "|}"));
+		return Stream.of(tablEnvPrefix, "\\hline%", colHeaderRow, "\\hline%");
 	}
 
 	private static String createNextReferentNGramRow(final Stream<String> ngramRowCells) {
-		final Stream<String> prefixCells = Stream.of("", "");
+		final Stream<String> prefixCells = Stream.generate(() -> "").limit(TABLE_PREFIX_COL_NAMES.size());
 		return Stream.concat(prefixCells, ngramRowCells).collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
 	}
 
 	private static Stream<String> createNGramRowCells(final List<String> ngram, final int count, final double score) {
 		final String ngramRepr = ngram.stream().collect(TOKEN_JOINER);
-		return Stream.of(ngramRepr, SCORE_FORMAT.get().format(score));
+		return Stream.of(ngramRepr, mathMode(score), mathMode(count));
 	}
 
 	private static List<BiConsumer<VisualizableReferent, SVGDocument>> createSVGDocPostProcessors() {
@@ -407,9 +419,26 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		return Arrays.asList(resizer);
 	}
 
+	private static String mathMode(final double value) {
+		return "$" + SCORE_FORMAT.get().format(value) + "$";
+	}
+
+	private static String mathMode(final int value) {
+		return "$" + Integer.toString(value) + "$";
+	}
+
+	private static Stream<String> rowspan(final Stream<String> cells, final int rowspan) {
+		return rowspan < 1 ? cells : cells.map(cell -> rowspan(cell, rowspan));
+	}
+
+	private static String rowspan(final String cell, final int rowspan) {
+		final String prefix = String.format("\\multirow{%d}{*}{", rowspan);
+		final String suffix = "}";
+		return prefix + cell + suffix;
+	}
+
 	/**
-	 * @see <a href=
-	 *      "http://stackoverflow.com/q/32721467/1391325">StackOverflow</a>
+	 * @see <a href= "http://stackoverflow.com/q/32721467/1391325">StackOverflow</a>
 	 * @param doc
 	 * @param outfilePath
 	 * @throws TranscoderException
@@ -463,9 +492,9 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				.toArray(String[]::new);
 
 		final Stream.Builder<String> fileLineStreamBuilder = Stream.builder();
-		fileLineStreamBuilder.accept(HEADER);
+		fileLineStreamBuilder.accept(createHeaderLines().collect(LINE_JOINER));
 		Arrays.stream(rows).forEach(fileLineStreamBuilder);
-		fileLineStreamBuilder.accept(FOOTER);
+		fileLineStreamBuilder.accept(createFooterLines().collect(LINE_JOINER));
 		final Stream<String> fileLines = fileLineStreamBuilder.build();
 
 		final Path latexFilePath = outdir.resolve("tf-idf.tex");
@@ -477,18 +506,22 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 	private String createFirstReferentNGramRow(final ReferentNGramRowGrouping<Path, Stream<String>> refNgramRowGrouping,
 			final Stream<String> ngramRowCells, final int rowspan) {
+		final Session session = refNgramRowGrouping.getSession();
+		final List<Round> rounds = session.getRounds();
+
 		final Path relOutfilePath = outdir.relativize(refNgramRowGrouping.getRefVizElem());
 		LOGGER.debug("Creating LaTeX include statement for path \"{}\".", relOutfilePath);
-		final String refVizIncludeStr = createGraphicsIncludeStatement(relOutfilePath, rowspan);
-		final Stream<String> prefixCells = Stream.of(refNgramRowGrouping.getSession().getName(), refVizIncludeStr,
-				Integer.toString(refNgramRowGrouping.getDocumentOccurrenceCount()));
+		final String refVizIncludeStr = createGraphicsIncludeStatement(relOutfilePath);
+		final int refCounts = refNgramRowGrouping.getDocumentOccurrenceCount();
+		final Stream<String> prefixCells = rowspan(
+				Stream.of(session.getName(), mathMode(rounds.size()), refVizIncludeStr, mathMode(refCounts)), rowspan);
 		return Stream.concat(prefixCells, ngramRowCells).collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
 	}
 
-	private String createGraphicsIncludeStatement(final Path outfilePath, final int rowspan) {
-		final String prefix = String.format("\\multirow{%d}{*}{\\includegraphics[height=%s]{", rowspan, imgHeight);
+	private String createGraphicsIncludeStatement(final Path outfilePath) {
+		final String prefix = String.format("\\includegraphics[height=%s]{", imgHeight);
 		final String pathStr = LaTeX.escapeReservedCharacters(outfilePath.toString());
-		final String suffix = "}}";
+		final String suffix = "}";
 		return prefix + pathStr + suffix;
 	}
 
