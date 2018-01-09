@@ -359,7 +359,7 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 	}
 
 	private static ContainerTag alignRight(final ContainerTag tag) {
-		return tag.attr("align", "right");
+		return tag.attr("style", "text-align: right;");
 	}
 
 	private static String createHTMLDocumentString(final ContainerTag html) {
@@ -471,7 +471,8 @@ public final class TfIdfKeywordVisualizationHTMLWriter implements Closeable, Flu
 		final List<Round> rounds = session.getRounds();
 		final ContainerTag roundCountCell = alignRight(TagCreator.td(Integer.toString(rounds.size())));
 
-		final ContainerTag refCell = TagCreator.td(refNgramRowGrouping.getRefVizElem()).attr("align", "center");
+		final ContainerTag refCell = TagCreator.td(refNgramRowGrouping.getRefVizElem()).attr("style",
+				"text-align: center;");
 		final ContainerTag refOccurrenceCountCell = alignRight(
 				TagCreator.td(Integer.toString(refNgramRowGrouping.getDocumentOccurrenceCount())));
 		final Stream<ContainerTag> prefixCells = rowspan(
