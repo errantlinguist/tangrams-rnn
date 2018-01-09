@@ -361,7 +361,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfScorerConstructionStart) / 1000.0);
 
-				final String imgHeight = "3.5ex";
+				final String imgHeight = "3.75ex";
 				LOGGER.info("Will include images using a height of \"{}\".", imgHeight);
 
 				final long nbestRefs = 20;
