@@ -183,7 +183,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 					maxLengthValue = minLengthValue > DEFAULT_MAX_LENGTH ? minLengthValue : DEFAULT_MAX_LENGTH;
 				} else {
 					maxLengthValue = maxLength.intValue();
-					if (maxLengthValue > minLengthValue) {
+					if (maxLengthValue < minLengthValue) {
 						throw new ParseException("Maximum n-gram length is less than the minimum.");
 					}
 				}
