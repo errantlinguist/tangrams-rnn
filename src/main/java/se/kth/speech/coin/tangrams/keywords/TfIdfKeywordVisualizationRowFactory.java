@@ -53,11 +53,7 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 
 		@Override
 		public double applyAsDouble(final List<String> obs) {
-			final double score = tfIdfScorer.applyAsDouble(obs, doc);
-			// final int ngramOrder = ngram.size();
-			// final double normalizer = ngramOrder + Math.log10(ngramOrder);
-			// return score * normalizer;
-			return score;
+			return tfIdfScorer.applyAsDouble(obs, doc);
 		}
 	}
 
@@ -65,17 +61,17 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 
 		private final DocumentObservationScorer docObsScorer;
 
-		private final int normalizer;
+		private final double normalizer;
 
 		private NormalizedDocumentObservationScorer(final Entry<Session, VisualizableReferent> doc,
 				final DocumentObservationData<List<String>> docObsData) {
 			// Normalize the score of the observation (n-gram) by the number of times the
 			// document (referent) occurs in the data
-			this(doc, docObsData.getDocumentOccurrenceCount());
+			this(doc, createNormalizer(docObsData.getDocumentOccurrenceCount()));
 		}
 
 		private NormalizedDocumentObservationScorer(final Entry<Session, VisualizableReferent> doc,
-				final int normalizer) {
+				final double normalizer) {
 			docObsScorer = new DocumentObservationScorer(doc);
 			this.normalizer = normalizer;
 		}
@@ -83,12 +79,19 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 		@Override
 		public double applyAsDouble(final List<String> obs) {
 			final double score = docObsScorer.applyAsDouble(obs);
-			return score / normalizer;
+			return score * normalizer;
 		}
 	}
 
 	private static final Comparator<Entry<Entry<Session, VisualizableReferent>, DocumentObservationData<List<String>>>> SESSION_DOC_OBS_DATA_NAME_COMPARATOR = Comparator
 			.comparing(entry -> entry.getKey().getKey().getName(), Session.getNameComparator());
+
+	private static double createNormalizer(final int docOccurenceCount) {
+//		final double product = docOccurenceCount * 0.1;
+		return docOccurenceCount + Math.log(docOccurenceCount);
+//		return 1.0 / docOccurenceCount;
+		
+	}
 
 	private final long nbestNgrams;
 
@@ -116,7 +119,10 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 	public Stream<ReferentNGramRowGrouping<V, R>> apply(
 			final Map<Entry<Session, VisualizableReferent>, DocumentObservationData<List<String>>> sessionDocObsData) {
 		final Stream<Entry<Entry<Session, VisualizableReferent>, DocumentObservationData<List<String>>>> nbestSessionRefDocObsData = sessionDocObsData
-				.entrySet().stream().sorted(Comparator.comparingDouble(sessionRefDocObsData -> -scoreReferentLanguage(sessionRefDocObsData))).limit(nbestRefs);
+				.entrySet().stream()
+				.sorted(Comparator
+						.comparingDouble(sessionRefDocObsData -> -scoreReferentLanguage(sessionRefDocObsData)))
+				.limit(nbestRefs);
 		// Once the n-best results have been chosen, re-sort by session name
 		return nbestSessionRefDocObsData.sorted(SESSION_DOC_OBS_DATA_NAME_COMPARATOR).map(sessionRefDocObsData -> {
 			final Entry<Session, VisualizableReferent> sessionRef = sessionRefDocObsData.getKey();
