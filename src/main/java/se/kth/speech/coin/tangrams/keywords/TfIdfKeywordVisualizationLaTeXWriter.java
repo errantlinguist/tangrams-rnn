@@ -258,6 +258,8 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 	}
 
+	private static final String IMAGE_HEIGHT = "3.5ex";
+
 	private static final String LINE_DELIM;
 
 	private static final Collector<CharSequence, ?, String> LINE_JOINER;
@@ -312,9 +314,8 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 
 	static {
 		TABLE_PREFIX_COL_NAMES = Arrays.asList("Dyad", "$r$", "$\\lvert C^{r} \\rvert$");
-		TABLE_COL_NAMES = Arrays
-				.asList(Stream.concat(TABLE_PREFIX_COL_NAMES.stream(), Stream.of("$n$-gram", "Score", "Ct."))
-						.toArray(String[]::new));
+		TABLE_COL_NAMES = Arrays.asList(Stream
+				.concat(TABLE_PREFIX_COL_NAMES.stream(), Stream.of("$n$-gram", "Score", "Ct.")).toArray(String[]::new));
 		TABLE_COL_DEFS = Arrays.asList("l", "c", "r", "l", "r", "r");
 		assert TABLE_COL_DEFS.size() == TABLE_COL_NAMES
 				.size() : "Table column name list and definition list are not the same size.";
@@ -362,15 +363,14 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfScorerConstructionStart) / 1000.0);
 
-				final String imgHeight = "2ex";
-				LOGGER.info("Will include images using a height of \"{}\".", imgHeight);
+				LOGGER.info("Will include images using a height of \"{}\".", IMAGE_HEIGHT);
 
 				final long nbestRefs = 20;
 				final long nbestNgrams = 2;
 				LOGGER.info("Printing {} best referents and {} n-grams for each referent for each dyad.", nbestRefs,
 						nbestNgrams);
 				final TfIdfKeywordVisualizationLaTeXWriter keywordWriter = new TfIdfKeywordVisualizationLaTeXWriter(
-						outdir, tfIdfScorer, nbestRefs, nbestNgrams, imgResDir, imgHeight);
+						outdir, tfIdfScorer, nbestRefs, nbestNgrams, imgResDir, IMAGE_HEIGHT);
 
 				LOGGER.info("Writing rows.");
 				final long writeStart = System.currentTimeMillis();
@@ -521,14 +521,14 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 	private String createFirstReferentNGramRow(final ReferentNGramRowGrouping<Path, Stream<String>> refNgramRowGrouping,
 			final Stream<String> ngramRowCells, final int rowspan) {
 		final Session session = refNgramRowGrouping.getSession();
-//		final List<Round> rounds = session.getRounds();
+		// final List<Round> rounds = session.getRounds();
 
 		final Path relOutfilePath = outdir.relativize(refNgramRowGrouping.getRefVizElem());
 		LOGGER.debug("Creating LaTeX include statement for path \"{}\".", relOutfilePath);
 		final String refVizIncludeStr = createGraphicsIncludeStatement(relOutfilePath);
 		final int refCounts = refNgramRowGrouping.getDocumentOccurrenceCount();
-		final Stream<String> prefixCells = Stream.of(tryMathMode(session.getName()),
-				rowspan(refVizIncludeStr, rowspan), mathMode(refCounts));
+		final Stream<String> prefixCells = Stream.of(tryMathMode(session.getName()), rowspan(refVizIncludeStr, rowspan),
+				mathMode(refCounts));
 		return Stream.concat(prefixCells, ngramRowCells).collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
 	}
 
