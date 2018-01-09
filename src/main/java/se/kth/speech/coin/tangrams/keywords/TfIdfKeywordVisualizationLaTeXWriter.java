@@ -62,7 +62,6 @@ import org.w3c.dom.svg.SVGDocument;
 
 import se.kth.speech.LaTeX;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
-import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.nlp.DocumentObservationData;
@@ -312,11 +311,11 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 	}
 
 	static {
-		TABLE_PREFIX_COL_NAMES = Arrays.asList("Dyad", "Rnds.", "Entity", "References");
+		TABLE_PREFIX_COL_NAMES = Arrays.asList("Dyad", "Entity", "References");
 		TABLE_COL_NAMES = Arrays
 				.asList(Stream.concat(TABLE_PREFIX_COL_NAMES.stream(), Stream.of("$n$-gram", "TF-IDF", "Count"))
 						.toArray(String[]::new));
-		TABLE_COL_DEFS = Arrays.asList("l", "r", "c", "l", "l", "r", "r");
+		TABLE_COL_DEFS = Arrays.asList("l", "c", "l", "l", "r", "r");
 		assert TABLE_COL_DEFS.size() == TABLE_COL_NAMES
 				.size() : "Table column name list and definition list are not the same size.";
 	}
@@ -522,13 +521,13 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 	private String createFirstReferentNGramRow(final ReferentNGramRowGrouping<Path, Stream<String>> refNgramRowGrouping,
 			final Stream<String> ngramRowCells, final int rowspan) {
 		final Session session = refNgramRowGrouping.getSession();
-		final List<Round> rounds = session.getRounds();
+//		final List<Round> rounds = session.getRounds();
 
 		final Path relOutfilePath = outdir.relativize(refNgramRowGrouping.getRefVizElem());
 		LOGGER.debug("Creating LaTeX include statement for path \"{}\".", relOutfilePath);
 		final String refVizIncludeStr = createGraphicsIncludeStatement(relOutfilePath);
 		final int refCounts = refNgramRowGrouping.getDocumentOccurrenceCount();
-		final Stream<String> prefixCells = Stream.of(tryMathMode(session.getName()), mathMode(rounds.size()),
+		final Stream<String> prefixCells = Stream.of(tryMathMode(session.getName()),
 				rowspan(refVizIncludeStr, rowspan), mathMode(refCounts));
 		return Stream.concat(prefixCells, ngramRowCells).collect(TABLE_COL_DELIM) + TABLE_ROW_DELIM;
 	}
