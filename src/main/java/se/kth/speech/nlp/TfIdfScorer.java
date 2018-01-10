@@ -65,8 +65,8 @@ public final class TfIdfScorer<O, D> implements ToDoubleBiFunction<O, D> {
 		 * Raw counts of a given term <em>t</em> in a given document <em>d</em>
 		 * <em>tf(t,d)</em> = <em>f</em><sub><em>t,d</em></sub>.
 		 *
-		 * @see <a href="https://doi.org/10.1108/00220410410560573">Karen Sp&auml;rck
-		 *      Jones (1972). &ldquo;A statistical interpretation of term specificity
+		 * @see <a href="https://doi.org/10.1108/00220410410560573">Sp&auml;rck Jones,
+		 *      Karen (1972). &ldquo;A statistical interpretation of term specificity
 		 *      and its application in retrieval&rdquo;. <em>Journal of
 		 *      Documentation</em> 28(1), pp.&nbsp;11&ndash;21</a>
 		 */
@@ -224,8 +224,8 @@ public final class TfIdfScorer<O, D> implements ToDoubleBiFunction<O, D> {
 	 * @return The natural term frequency for the given observation during the given
 	 *         document.
 	 *
-	 * @see <a href="https://doi.org/10.1108/00220410410560573">Karen Sp&auml;rck
-	 *      Jones (1972). &ldquo;A statistical interpretation of term specificity
+	 * @see <a href="https://doi.org/10.1108/00220410410560573">Sp&auml;rck Jones,
+	 *      Karen (1972). &ldquo;A statistical interpretation of term specificity
 	 *      and its application in retrieval&rdquo;. <em>Journal of
 	 *      Documentation</em> 28(1), pp.&nbsp;11&ndash;21</a>
 	 */
