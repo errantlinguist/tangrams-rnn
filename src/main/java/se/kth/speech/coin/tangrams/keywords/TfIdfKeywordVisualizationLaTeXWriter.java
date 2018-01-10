@@ -314,7 +314,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 		TABLE_PREFIX_COL_NAMES = Arrays.asList("$d$", "$r$", "$\\lvert C^{r} \\rvert$");
 		TABLE_COL_NAMES = Arrays.asList(Stream
 				.concat(TABLE_PREFIX_COL_NAMES.stream(), Stream.of("Trigram $g$", "$tfidf$", "$tf$")).toArray(String[]::new));
-		TABLE_COL_DEFS = Arrays.asList("l", "c", "r", "l", "r", "r");
+		TABLE_COL_DEFS = Arrays.asList("l", "@{\\hspace{0.5em}}c@{\\hspace{0.5em}}", "r", "l", "r", "r");
 		assert TABLE_COL_DEFS.size() == TABLE_COL_NAMES
 				.size() : "Table column name list and definition list are not the same size.";
 	}
@@ -361,7 +361,7 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 				LOGGER.info("Finished calculating TF-IDF scores after {} seconds.",
 						(System.currentTimeMillis() - tfIdfScorerConstructionStart) / 1000.0);
 
-				final String imgHeight = "3.75ex";
+				final String imgHeight = "4.5ex";
 				LOGGER.info("Will include images using a height of \"{}\".", imgHeight);
 
 				final long nbestRefs = 20;
