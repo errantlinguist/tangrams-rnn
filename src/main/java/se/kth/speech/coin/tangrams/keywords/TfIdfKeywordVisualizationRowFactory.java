@@ -142,7 +142,7 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 		// referent
 		final DocumentObservationScorer ngramScorer = new DocumentObservationScorer(Pair.of(session, ref));
 		final Comparator<Object2IntMap.Entry<List<String>>> nbestNgramCountComparator = Comparator.comparingDouble(
-				ngramCount -> -ngramScorer.applyAsDouble(ngramCount.getKey()) * ngramCount.getIntValue());
+				ngramCount -> -ngramScorer.applyAsDouble(ngramCount.getKey()));
 		final Stream<Object2IntMap.Entry<List<String>>> nbestDocObsData = obsCounts.object2IntEntrySet().stream()
 				.sorted(nbestNgramCountComparator).limit(nbestNgrams);
 		final Stream<R> rows = nbestDocObsData.map(ngramCount -> {
