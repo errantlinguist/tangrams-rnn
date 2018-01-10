@@ -311,9 +311,9 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 	}
 
 	static {
-		TABLE_PREFIX_COL_NAMES = Arrays.asList("Dyad", "$r$", "$\\lvert C^{r} \\rvert$");
+		TABLE_PREFIX_COL_NAMES = Arrays.asList("$d$", "$r$", "$\\lvert C^{r} \\rvert$");
 		TABLE_COL_NAMES = Arrays.asList(Stream
-				.concat(TABLE_PREFIX_COL_NAMES.stream(), Stream.of("$n$-gram", "Score", "Ct.")).toArray(String[]::new));
+				.concat(TABLE_PREFIX_COL_NAMES.stream(), Stream.of("Trigram $g$", "$tfidf$", "$tf$")).toArray(String[]::new));
 		TABLE_COL_DEFS = Arrays.asList("l", "c", "r", "l", "r", "r");
 		assert TABLE_COL_DEFS.size() == TABLE_COL_NAMES
 				.size() : "Table column name list and definition list are not the same size.";
