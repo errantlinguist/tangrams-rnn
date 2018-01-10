@@ -53,11 +53,22 @@ public final class TfIdfScorer<O, D> implements ToDoubleBiFunction<O, D> {
 		 * max<sub><em>t&prime;</em> &isin; <em>d</em></sub>
 		 * <em>f</em><sub><em>t&prime;,d</em></sub>)
 		 *
+		 * @see <a href=
+		 *      "http://dx.doi.org/10.1002/(SICI)1097-4571(199006)41:4<288::AID-ASI8>3.0.CO;2-H">Salton,
+		 *      Gerard and Buckley, Chris (1990). &ldquo;Improving Retrieval Performance
+		 *      by Relevance Feedback&rdquo;. <em>Journal of the American Society for
+		 *      Information Science</em> 41(4), pp.&nbsp;288&ndash;297</a>
+		 *
 		 */
 		AUGMENTED,
 		/**
 		 * Raw counts of a given term <em>t</em> in a given document <em>d</em>
 		 * <em>tf(t,d)</em> = <em>f</em><sub><em>t,d</em></sub>.
+		 *
+		 * @see <a href="https://doi.org/10.1108/00220410410560573">Karen Sp&auml;rck
+		 *      Jones (1972). &ldquo;A statistical interpretation of term specificity
+		 *      and its application in retrieval&rdquo;. <em>Journal of
+		 *      Documentation</em> 28(1), pp.&nbsp;11&ndash;21</a>
 		 */
 		NATURAL
 	}
@@ -78,7 +89,8 @@ public final class TfIdfScorer<O, D> implements ToDoubleBiFunction<O, D> {
 				docObservationCounts.size());
 		final Object2ObjectOpenHashMap<O, Set<D>> observationDocs = new Object2ObjectOpenHashMap<>(
 				DEFAULT_INITIAL_WORD_MAP_CAPACITY);
-		for (final Entry<? extends D, ? extends DocumentObservationData<? extends O>> entry : docObservationCounts.entrySet()) {
+		for (final Entry<? extends D, ? extends DocumentObservationData<? extends O>> entry : docObservationCounts
+				.entrySet()) {
 			final D doc = entry.getKey();
 			final Object2DoubleMap<O> obsCountsForThisDoc = observationCountsPerDoc.computeIfAbsent(doc, key -> {
 				final Object2DoubleOpenHashMap<O> counts = new Object2DoubleOpenHashMap<>(
@@ -149,6 +161,12 @@ public final class TfIdfScorer<O, D> implements ToDoubleBiFunction<O, D> {
 	 *            The document in which the given observation was found.
 	 * @return The augmented term frequency for the given observation during the
 	 *         given document.
+	 *
+	 * @see <a href=
+	 *      "http://dx.doi.org/10.1002/(SICI)1097-4571(199006)41:4<288::AID-ASI8>3.0.CO;2-H">Salton,
+	 *      Gerard and Buckley, Chris (1990). &ldquo;Improving Retrieval Performance
+	 *      by Relevance Feedback&rdquo;. <em>Journal of the American Society for
+	 *      Information Science</em> 41(4), pp.&nbsp;288&ndash;297</a>
 	 */
 	private double augmentedTf(final O observation, final D doc) {
 		final Object2DoubleMap<O> docWordCounts = observationCountsPerDoc.get(doc);
@@ -205,6 +223,11 @@ public final class TfIdfScorer<O, D> implements ToDoubleBiFunction<O, D> {
 	 *            The document in which the given observation was found.
 	 * @return The natural term frequency for the given observation during the given
 	 *         document.
+	 *
+	 * @see <a href="https://doi.org/10.1108/00220410410560573">Karen Sp&auml;rck
+	 *      Jones (1972). &ldquo;A statistical interpretation of term specificity
+	 *      and its application in retrieval&rdquo;. <em>Journal of
+	 *      Documentation</em> 28(1), pp.&nbsp;11&ndash;21</a>
 	 */
 	private double naturalTf(final O observation, final D doc) {
 		final Map<O, Double> docWordCounts = observationCountsPerDoc.get(doc);
