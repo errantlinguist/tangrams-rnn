@@ -47,7 +47,7 @@ import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.coin.tangrams.wac.logistic.WordProbabilityScorer.ReferentWordScore;
 
 /**
- * Prints cross-validation results. Is thread-safe.
+ * Trains words-as-classifiers model and prints cross-validation results. Is thread-safe.
  *
  * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
  * @since 2017-11-26

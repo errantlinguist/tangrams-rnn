@@ -53,6 +53,9 @@ import se.kth.speech.coin.tangrams.CLIParameters;
 import se.kth.speech.function.ThrowingSupplier;
 
 /**
+ * Extracts coreference sequences of a given uniform length from files created
+ * by {@link WordProbabilityScoreTablularDataWriter}.
+ * 
  * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
  * @since 5 Dec 2017
  *
@@ -255,7 +258,7 @@ public final class WordProbabiltyScoreSequenceWriter {
 		private void setScore(double score) {
 			this.score = score;
 		}
-		
+
 		/**
 		 * @param isTarget
 		 *            the isTarget to set
@@ -363,8 +366,9 @@ public final class WordProbabiltyScoreSequenceWriter {
 
 	private static final String COL_DELIM = "\t";
 
-	private static final String[] COL_HEADERS =  new String[] {"CROSS_VALIDATION_ITER", "DYAD", "UTT_START_TIME", "UTT_END_TIME", "SPLIT_SEQ_NO", "TOKEN_SEQ_ORDINALITY", "WORD", "IS_INSTRUCTOR",
-					"IS_OOV", "ENTITY", "IS_TARGET", "PROBABILITY"};
+	private static final String[] COL_HEADERS = new String[] { "CROSS_VALIDATION_ITER", "DYAD", "UTT_START_TIME",
+			"UTT_END_TIME", "SPLIT_SEQ_NO", "TOKEN_SEQ_ORDINALITY", "WORD", "IS_INSTRUCTOR", "IS_OOV", "ENTITY",
+			"IS_TARGET", "PROBABILITY" };
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(WordProbabiltyScoreSequenceWriter.class);
 
@@ -473,7 +477,7 @@ public final class WordProbabiltyScoreSequenceWriter {
 				UniqueTokenSequenceKey key = entry.getKey();
 				ReferentTokenSequences seqs = entry.getValue();
 				writePaddedSequences(key, seqs, printer);
-			}	
+			}
 		}
 		LOGGER.info("Finished writing.");
 	}
@@ -502,7 +506,8 @@ public final class WordProbabiltyScoreSequenceWriter {
 		return result;
 	}
 
-	private void writePaddedSequences(UniqueTokenSequenceKey key, ReferentTokenSequences seqs, CSVPrinter printer) throws IOException {
+	private void writePaddedSequences(UniqueTokenSequenceKey key, ReferentTokenSequences seqs, CSVPrinter printer)
+			throws IOException {
 		ListIterator<List<SequenceDatapoint>> refTokSeqIter = seqs.refTokenRows.listIterator();
 		do {
 			final List<SequenceDatapoint> seq = refTokSeqIter.next();
@@ -512,7 +517,11 @@ public final class WordProbabiltyScoreSequenceWriter {
 				final int windowStartIdx = windowEndIdx - seqLen;
 				final List<SequenceDatapoint> splitSeq = createPaddedSequence(seq, windowStartIdx, windowEndIdx);
 				for (SequenceDatapoint datapoint : splitSeq) {
-					final Stream<String> rowCells = Stream.of(key.cvId, key.dyad, key.uttStart, key.uttEnd, splitSeqNo, datapoint.getTokSeqOrdinality(), datapoint.getWord(), datapoint.isInstructor(), datapoint.isOov(), refId, datapoint.isTarget(), datapoint.getScore()).map(Object::toString);
+					final Stream<String> rowCells = Stream
+							.of(key.cvId, key.dyad, key.uttStart, key.uttEnd, splitSeqNo,
+									datapoint.getTokSeqOrdinality(), datapoint.getWord(), datapoint.isInstructor(),
+									datapoint.isOov(), refId, datapoint.isTarget(), datapoint.getScore())
+							.map(Object::toString);
 					printer.printRecord((Iterable<String>) rowCells::iterator);
 				}
 				splitSeqNo++;
