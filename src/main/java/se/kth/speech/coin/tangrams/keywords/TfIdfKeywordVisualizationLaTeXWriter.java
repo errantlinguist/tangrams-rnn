@@ -156,9 +156,9 @@ public final class TfIdfKeywordVisualizationLaTeXWriter {
 			}
 		};
 
-		private static final int DEFAULT_MAX_LENGTH = 4;
+		private static final int DEFAULT_MAX_LENGTH = 3;
 
-		private static final int DEFAULT_MIN_LENGTH = 2;
+		private static final int DEFAULT_MIN_LENGTH = 3;
 
 		private static final TfIdfScorer.TermFrequencyVariant DEFAULT_TF_VARIANT = TfIdfScorer.TermFrequencyVariant.NATURAL;
 
