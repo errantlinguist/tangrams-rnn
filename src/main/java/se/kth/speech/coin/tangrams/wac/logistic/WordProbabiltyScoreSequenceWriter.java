@@ -76,7 +76,7 @@ public final class WordProbabiltyScoreSequenceWriter {
 		OUTPATH("o") {
 			@Override
 			public Option get() {
-				return Option.builder(optName).longOpt("outdir").desc("The file to write the results to.").hasArg()
+				return Option.builder(optName).longOpt("outfile").desc("The file to write the results to.").hasArg()
 						.argName("path").type(File.class).build();
 			}
 		},
