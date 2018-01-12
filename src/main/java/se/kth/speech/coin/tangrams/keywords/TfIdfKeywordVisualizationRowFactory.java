@@ -87,10 +87,11 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 			.comparing(entry -> entry.getKey().getKey().getName(), Session.getNameComparator());
 
 	private static double createNormalizer(final int docOccurenceCount) {
-//		final double product = docOccurenceCount * 0.1;
-		return docOccurenceCount + Math.log(docOccurenceCount);
-//		return 1.0 / docOccurenceCount;
-		
+		// final double product = docOccurenceCount * 0.1;
+		// return docOccurenceCount + Math.log(docOccurenceCount);
+		return 1.0 + Math.log(docOccurenceCount);
+		// return 1.0 / docOccurenceCount;
+
 	}
 
 	private final long nbestNgrams;
@@ -141,8 +142,8 @@ public final class TfIdfKeywordVisualizationRowFactory<V, R> implements
 		// Create rows only for the n-best n-grams for the given
 		// referent
 		final DocumentObservationScorer ngramScorer = new DocumentObservationScorer(Pair.of(session, ref));
-		final Comparator<Object2IntMap.Entry<List<String>>> nbestNgramCountComparator = Comparator.comparingDouble(
-				ngramCount -> -ngramScorer.applyAsDouble(ngramCount.getKey()));
+		final Comparator<Object2IntMap.Entry<List<String>>> nbestNgramCountComparator = Comparator
+				.comparingDouble(ngramCount -> -ngramScorer.applyAsDouble(ngramCount.getKey()));
 		final Stream<Object2IntMap.Entry<List<String>>> nbestDocObsData = obsCounts.object2IntEntrySet().stream()
 				.sorted(nbestNgramCountComparator).limit(nbestNgrams);
 		final Stream<R> rows = nbestDocObsData.map(ngramCount -> {
