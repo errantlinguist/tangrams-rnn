@@ -17,6 +17,7 @@ package se.kth.speech.coin.tangrams.wac.logistic;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -42,12 +43,15 @@ import org.apache.commons.csv.CSVPrinter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import se.kth.speech.coin.tangrams.CLIParameters;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.coin.tangrams.wac.logistic.WordProbabilityScorer.ReferentWordScore;
+import se.kth.speech.function.ThrowingSupplier;
 
 /**
- * Trains words-as-classifiers model and prints cross-validation results. Is thread-safe.
+ * Trains words-as-classifiers model and prints cross-validation results. Is
+ * thread-safe.
  *
  * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
  * @since 2017-11-26
@@ -69,6 +73,14 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 				return Option.builder(optName).longOpt("referring-tokens")
 						.desc("The file to read utterance referring-language mappings from.").hasArg().argName("path")
 						.type(File.class).required().build();
+			}
+		},
+		OUTFILE("o") {
+			@Override
+			public Option get() {
+				return Option.builder(optName).longOpt("outfile")
+						.desc("The path to write the results file to.").hasArg().argName("path").type(File.class)
+						.required().build();
 			}
 		};
 
@@ -106,20 +118,24 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 				// NOTE: No need to explicitly shut down common pool
 				LOGGER.info("Will run cross-validation using a(n) {} instance with a parallelism level of {}.",
 						executor.getClass().getSimpleName(), executor.getParallelism());
-				final WordProbabilityScoreTablularDataWriter resultWriter = new WordProbabilityScoreTablularDataWriter(
-						System.out);
-				final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
-				final Function<LogisticModel, Function<SessionSet, Stream<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>>>> evaluatorFactory = model -> model
-						.createWordProbabilityScorer();
-				final CrossValidator<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> crossValidator = new CrossValidator<>(
-						modelParams, modelFactory, evaluatorFactory, executor);
-				crossValidator.crossValidate(set, evalResult -> {
-					try {
-						resultWriter.accept(evalResult);
-					} catch (final IOException e) {
-						throw new UncheckedIOException(e);
-					}
-				});
+				final ThrowingSupplier<PrintStream, IOException> outStreamSupplier = CLIParameters
+						.parseOutpath((File) cl.getParsedOptionValue(Parameter.OUTFILE.optName));
+				try (PrintStream outStream = outStreamSupplier.get()) {
+					final WordProbabilityScoreTablularDataWriter resultWriter = new WordProbabilityScoreTablularDataWriter(
+							outStream);
+					final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
+					final Function<LogisticModel, Function<SessionSet, Stream<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>>>> evaluatorFactory = model -> model
+							.createWordProbabilityScorer();
+					final CrossValidator<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> crossValidator = new CrossValidator<>(
+							modelParams, modelFactory, evaluatorFactory, executor);
+					crossValidator.crossValidate(set, evalResult -> {
+						try {
+							resultWriter.accept(evalResult);
+						} catch (final IOException e) {
+							throw new UncheckedIOException(e);
+						}
+					});
+				}
 				LOGGER.info("Finished writing results of cross-validation.");
 			}
 		}
@@ -159,7 +175,8 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 
 	private final Lock writeLock;
 
-	private WordProbabilityScoreTablularDataWriter(final CSVPrinter printer, final List<WordProbabilityScoreDatum> dataToWrite) {
+	private WordProbabilityScoreTablularDataWriter(final CSVPrinter printer,
+			final List<WordProbabilityScoreDatum> dataToWrite) {
 		this.printer = printer;
 		this.dataToWrite = dataToWrite;
 		writeLock = new ReentrantLock();
@@ -169,7 +186,8 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		this(out, createDefaultDataToWriteList());
 	}
 
-	WordProbabilityScoreTablularDataWriter(final Appendable out, final List<WordProbabilityScoreDatum> dataToWrite) throws IOException {
+	WordProbabilityScoreTablularDataWriter(final Appendable out, final List<WordProbabilityScoreDatum> dataToWrite)
+			throws IOException {
 		this(FORMAT.print(out), dataToWrite);
 	}
 
@@ -179,8 +197,8 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 		final RoundEvaluationResult<ReferentWordScore[]> evalResult = input.getEvalResult();
 		final WordProbabilityScorer.ReferentWordScore[] refWordScores = evalResult.getClassificationResult();
 		for (final ReferentWordScore refWordScore : refWordScores) {
-			final List<String> row = Arrays.asList(dataToWrite.stream()
-					.map(datum -> datum.apply(input, refWordScore)).toArray(String[]::new));
+			final List<String> row = Arrays
+					.asList(dataToWrite.stream().map(datum -> datum.apply(input, refWordScore)).toArray(String[]::new));
 			writeLock.lock();
 			try {
 				printer.printRecord(row);
