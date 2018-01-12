@@ -67,20 +67,20 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 				return Option.builder(optName).longOpt("help").desc("Prints this message.").build();
 			}
 		},
-		REFERRING_TOKENS("t") {
-			@Override
-			public Option get() {
-				return Option.builder(optName).longOpt("referring-tokens")
-						.desc("The file to read utterance referring-language mappings from.").hasArg().argName("path")
-						.type(File.class).required().build();
-			}
-		},
 		OUTFILE("o") {
 			@Override
 			public Option get() {
 				return Option.builder(optName).longOpt("outfile")
 						.desc("The path to write the results file to.").hasArg().argName("path").type(File.class)
 						.required().build();
+			}
+		},
+		REFERRING_TOKENS("t") {
+			@Override
+			public Option get() {
+				return Option.builder(optName).longOpt("referring-tokens")
+						.desc("The file to read utterance referring-language mappings from.").hasArg().argName("path")
+						.type(File.class).required().build();
 			}
 		};
 
@@ -94,9 +94,9 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 
 	private static final CSVFormat FORMAT = CSVFormat.TDF.withHeader(WordProbabilityScoreDatum.class);
 
-	private static final Options OPTIONS = createOptions();
-
 	private static final Logger LOGGER = LoggerFactory.getLogger(WordProbabilityScoreTablularDataWriter.class);
+
+	private static final Options OPTIONS = createOptions();
 
 	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD
 		// (use
