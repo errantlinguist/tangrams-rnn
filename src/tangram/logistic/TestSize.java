@@ -16,7 +16,7 @@ public class TestSize {
 		LogisticModel model = new LogisticModel();
 		model.train(set);
 		
-		List<String> wlist = Arrays.asList(new String[]{"large", "big", "small"});
+		List<String> wlist = Arrays.asList(new String[]{"large", "big", "small", "smallest"});
 		
 		PrintWriter pw = new PrintWriter("size.html");
 		

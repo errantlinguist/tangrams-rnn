@@ -1,18 +1,18 @@
 package tangram.data;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 import com.beust.jcommander.Parameter;
 
+
 public class Round {
 
+	public Session session;
 	public Integer n;
 	public List<Utterance> utts = new ArrayList<>();
 	public List<Referent> referents = new ArrayList<>();
 	public Referent target;
+	public double weight = 1d;
 	
 	static Random random = new Random(5);
 	
@@ -23,6 +23,17 @@ public class Round {
 		for (String word : getWords()) {
 			if (word.equals(hasWord)) {
 				return true;
+			}
+		}
+		return false;
+	} 
+	
+	public boolean hasBigram(String hasWord) {
+		String[] bigram = hasWord.split(" ");
+		for (Utterance utt : utts) {
+			for (int i = 0; i < utt.fullText.length-1; i++) {
+				if (utt.fullText[i].equalsIgnoreCase(bigram[0]) && utt.fullText[i+1].equalsIgnoreCase(bigram[1]))
+					return true;
 			}
 		}
 		return false;
@@ -60,13 +71,18 @@ public class Round {
 		return list;
 	}
 
-	public String prettyDialog() {
+	public Collection<String> getUniqueWords() {
+		HashSet<String> words = new HashSet<String>();
+		words.addAll(getWords());
+		return words;
+	}
+
+	public String prettyDialog(boolean newline) {
 		StringBuilder sb = new StringBuilder();
 		for (Utterance utt : utts) {
-			sb.append(utt.speaker + ": ");
-			for (String word : utt.fullText) {
-				sb.append(word + " ");
-			}
+			sb.append(utt.prettyString());
+			if (newline)
+				sb.append("\n");
 		}
 		return sb.toString();
 	}
@@ -85,5 +101,33 @@ public class Round {
 		}
 		return false;
 	}
+
+	public int getWordCount() {
+		int i = 0;
+		for (Utterance utt : utts) 
+			i += utt.fullText.length;
+		return i;
+	}
+
+	public Referent[] getRandomNonTargets() {
+		List<Referent> list = new ArrayList<>(referents);
+		list.remove(target);
+		list.sort(new Comparator<Referent>() {
+			@Override
+			public int compare(Referent o1, Referent o2) {
+				return (random.nextDouble() < 0.5) ? -1 : 1; 
+			}
+		});
+		return list.toArray(new Referent[0]);
+	}
+
+	public int getNormalizedTextWordCount() {
+		int wordCount = 0;
+		for (Utterance utt : utts) {
+			wordCount += utt.getNormalizedWords().size();
+		}
+		return wordCount;
+	}
+
 	
 }
