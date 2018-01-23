@@ -3,8 +3,6 @@ package tangram.logistic;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.List;
-
 import tangram.data.*;
 
 public class AnalyzeVocabulary {

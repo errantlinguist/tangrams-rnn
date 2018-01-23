@@ -13,7 +13,6 @@ import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.util.ModelSerializer;
 import org.nd4j.linalg.api.ndarray.INDArray;
 
-import tangram.data.Parameters;
 import tangram.data.Referent;
 import tangram.data.Round;
 import tangram.data.Session;
@@ -22,7 +21,6 @@ import tangram.data.Utterance;
 import tangram.logistic.LogisticModel;
 import tangram.logistic.Result;
 import tangram.rnn.WordEncoder;
-import weka.core.Instance;
 
 public class TestRank {
 	

@@ -4,8 +4,6 @@ import java.io.File;
 import java.util.*;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
-import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
-
 import tangram.data.*;
 
 public class WordStats {

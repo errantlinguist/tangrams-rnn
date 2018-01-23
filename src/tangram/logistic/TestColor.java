@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import tangram.data.*;
-import weka.classifiers.functions.Logistic;
 
 public class TestColor {
 

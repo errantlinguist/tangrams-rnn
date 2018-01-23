@@ -2,13 +2,9 @@ package tangram.logistic;
 
 import java.awt.Color;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.PrintWriter;
-import java.util.Map;
 
 import tangram.data.*;
-import tangram.rnn.WordEncoder;
-import tangram.rnn.weights.RnnModel;
 
 public class TestDialog {
 

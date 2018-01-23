@@ -1,14 +1,9 @@
 package tangram.logistic;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
-import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
-
-import com.beust.jcommander.Parameter;
 
 import tangram.data.Parameters;
 import tangram.data.Referent;
@@ -16,7 +11,6 @@ import tangram.data.Round;
 import tangram.data.RoundSet;
 import tangram.data.Session;
 import tangram.data.SessionSet;
-import tangram.data.Utterance;
 import tangram.data.Vocabulary;
 import weka.classifiers.functions.Logistic;
 import weka.core.*;

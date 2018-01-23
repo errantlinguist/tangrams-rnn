@@ -4,12 +4,9 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.util.Locale;
 
-import org.apache.commons.codec.language.bm.Lang;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.util.ModelSerializer;
 import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.factory.Nd4j;
-
 import tangram.data.*;
 import tangram.logistic.LogisticModel;
 import tangram.logistic.TestDialog;
