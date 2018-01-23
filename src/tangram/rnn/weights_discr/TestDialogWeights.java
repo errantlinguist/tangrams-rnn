@@ -36,6 +36,10 @@ public class TestDialogWeights {
 					for (String word : utt.getNormalizedWords()) {
 						double rnnscore = output.getDouble(i++, 0, 0);
 						double score = logisticModel.score(word, round.target);
+						if (word.equals("red")) {
+							System.out.println(rnnscore);
+							System.out.println(round.prettyDialog(true));
+						}
 						pw.println(String.format(Locale.US, "<span style=\"color:%s\">%s</span> (%.2f) ", TestDialog.getHTMLColorString(score), word, rnnscore));
 					}
 					pw.println("</div>");
