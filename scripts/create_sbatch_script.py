@@ -13,8 +13,6 @@ import argparse
 import datetime
 import posixpath
 import sys
-from enum import Enum, unique
-from typing import Callable
 
 __DEFAULT_ACCOUNT = "2018-1"
 __DEFAULT_TIME = "8:00:00"
