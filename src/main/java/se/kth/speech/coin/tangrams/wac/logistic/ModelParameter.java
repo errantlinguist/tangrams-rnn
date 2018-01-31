@@ -181,31 +181,6 @@ public enum ModelParameter {
 		protected Object parseValue(final String input) {
 			return Boolean.valueOf(input);
 		}
-
-	},
-	/**
-	 * Weight score by classifiers' predictive power; This should be a
-	 * {@link Boolean}.
-	 */
-	WEIGHT_BY_POWER("wp", false) {
-		@Override
-		public Option.Builder createCLIOptionBuilder() {
-			return Option.builder(getOptName()).longOpt("weight-by-power")
-					.desc("Weight score by classifier predictive power.");
-		}
-
-		@Override
-		protected Object parseValue(final CommandLine cl) {
-			return parseFlag(cl);
-		}
-
-		/**
-		 * @return A {@link Boolean} value.
-		 */
-		@Override
-		protected Object parseValue(final String input) {
-			return Boolean.valueOf(input);
-		}
 	};
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ModelParameter.class);
@@ -258,9 +233,7 @@ public enum ModelParameter {
 	 *            The {@code CommandLine} instance to parse values from.
 	 * @return A new {@link Map} of training parameters.
 	 */
-	public static Map<ModelParameter, Object> createParamValueMap(final CommandLine cl) { // NO_UCD
-																							// (use
-																							// default)
+	public static Map<ModelParameter, Object> createParamValueMap(final CommandLine cl) { // NO_UCD (use default)
 		final Map<ModelParameter, Object> result = new EnumMap<>(ModelParameter.class);
 		final ModelParameter[] params = ModelParameter.values();
 		for (final ModelParameter param : params) {
