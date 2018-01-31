@@ -123,7 +123,7 @@ def __create_argparser(current_time: datetime.datetime) -> argparse.ArgumentPars
 	result.add_argument("-r", "--reflang", default="Data/utt-referring-tokens-lemma.tsv",
 						metavar="FILENAME",
 						help="The path of the referring-language file to read relative to the project root.")
-	result.add_argument("-m", "--model-params", default="Data/model-params.tsv",
+	result.add_argument("-m", "--model-params", default="Data/training-data/model-params.tsv",
 						dest="model_params",
 						metavar="FILENAME",
 						help="The path of the model-parameters file to read relative to the project root.")
