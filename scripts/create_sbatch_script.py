@@ -20,52 +20,6 @@ __DEFAULT_ACCOUNT = "2018-1"
 __DEFAULT_TIME = "8:00:00"
 __DEFAULT_HEAPSIZE = "10g"
 
-
-def _create_default_project_dirpath(user: str) -> str:
-	return "/cfs/klemming/nobackup/{first_initial}/{user}/tangrams-restricted".format(first_initial=user[0],
-																					  user=user)
-
-
-def __create_default_job_name(current_time: datetime.datetime) -> str:
-	return "tangrams-" + str(current_time.timestamp())
-
-
-def __create_argparser(current_time: datetime.datetime) -> argparse.ArgumentParser:
-	default_job_name = __create_default_job_name(current_time)
-	result = argparse.ArgumentParser(
-		description="Creates a script for submitting to Slurm to run cross-validation tests.")
-	result.add_argument("user", metavar="USER",
-						help="The system username to use for running the batch script.")
-	result.add_argument("-j", "--job-name", dest="job_name", metavar="JOBNAME", default=default_job_name,
-						help="Specify a name for the job allocation. The specified name will appear along with the job id number when querying running jobs on the system.")
-	result.add_argument("-a", "--account", metavar="ACCOUNT", default=__DEFAULT_ACCOUNT,
-						help="Charge resources used by this job to specified account.")
-	result.add_argument("-t", "--time", metavar="TIME", default=__DEFAULT_TIME,
-						help="Set a limit on the total run time of the job allocation.")
-	result.add_argument("-p", "--heap", metavar="HEAPSIZE", default=__DEFAULT_HEAPSIZE,
-						help="Set a limit on the total run time of the job allocation.")
-	result.add_argument("-d", "--project-dir", dest="project_dir", metavar="DIRPATH",
-						help="The project root directory.")
-	result.add_argument("-i", "--indir", default="Data",
-						metavar="DIRPATH",
-						help="The path of the directory containing the session data to use for cross-validation relative to the project root.")
-	result.add_argument("-o", "--outdir", default="output",
-						metavar="DIRPATH",
-						help="The path of the directory to write the cross-validation results to relative to the project root.")
-	result.add_argument("-r", "--reflang", default="Data/utt-referring-tokens-lemma.tsv",
-						metavar="FILENAME",
-						help="The path of the referring-language file to read relative to the project root.")
-	result.add_argument("-m", "--model-params", default="Data/model-params.tsv",
-						dest="model_params",
-						metavar="FILENAME",
-						help="The path of the model-parameters file to read relative to the project root.")
-	result.add_argument("-c", "--classpath-jar",
-						dest="classpath_jar", default="tangrams-wac-0.0.1-SNAPSHOT-jar-with-dependencies.jar",
-						metavar="PATH",
-						help="The path of the JAR file to run relative to the project root.")
-	return result
-
-
 SCRIPT_FORMAT_STR = """#!/bin/bash -l
 # The -l above is required to get the full environment with modules
 
@@ -133,6 +87,51 @@ echo "Will use heap space size of ${{HEAP_SIZE}}."
 
 java -server -Xmx${{HEAP_SIZE}} -jar "${{CLASSPATH_JARFILE}}" "${{INPATH}}" -t "${{REFLANG_FILE}}" -p "${{PARAMS_FILE}}" -o "${{OUTDIR}}" > "${{STD_OUTFILE}}" 2> "${{ERR_OUTFILE}}"
 """
+
+
+def _create_default_project_dirpath(user: str) -> str:
+	return "/cfs/klemming/nobackup/{first_initial}/{user}/tangrams-restricted".format(first_initial=user[0],
+																					  user=user)
+
+
+def __create_default_job_name(current_time: datetime.datetime) -> str:
+	return "tangrams-" + str(current_time.timestamp())
+
+
+def __create_argparser(current_time: datetime.datetime) -> argparse.ArgumentParser:
+	default_job_name = __create_default_job_name(current_time)
+	result = argparse.ArgumentParser(
+		description="Creates a script for submitting to Slurm to run cross-validation tests.")
+	result.add_argument("user", metavar="USER",
+						help="The system username to use for running the batch script.")
+	result.add_argument("-j", "--job-name", dest="job_name", metavar="JOBNAME", default=default_job_name,
+						help="Specify a name for the job allocation. The specified name will appear along with the job id number when querying running jobs on the system.")
+	result.add_argument("-a", "--account", metavar="ACCOUNT", default=__DEFAULT_ACCOUNT,
+						help="Charge resources used by this job to specified account.")
+	result.add_argument("-t", "--time", metavar="TIME", default=__DEFAULT_TIME,
+						help="Set a limit on the total run time of the job allocation.")
+	result.add_argument("-p", "--heap", metavar="HEAPSIZE", default=__DEFAULT_HEAPSIZE,
+						help="Set a limit on the total run time of the job allocation.")
+	result.add_argument("-d", "--project-dir", dest="project_dir", metavar="DIRPATH",
+						help="The project root directory.")
+	result.add_argument("-i", "--indir", default="Data",
+						metavar="DIRPATH",
+						help="The path of the directory containing the session data to use for cross-validation relative to the project root.")
+	result.add_argument("-o", "--outdir", default="output",
+						metavar="DIRPATH",
+						help="The path of the directory to write the cross-validation results to relative to the project root.")
+	result.add_argument("-r", "--reflang", default="Data/utt-referring-tokens-lemma.tsv",
+						metavar="FILENAME",
+						help="The path of the referring-language file to read relative to the project root.")
+	result.add_argument("-m", "--model-params", default="Data/model-params.tsv",
+						dest="model_params",
+						metavar="FILENAME",
+						help="The path of the model-parameters file to read relative to the project root.")
+	result.add_argument("-c", "--classpath-jar",
+						dest="classpath_jar", default="tangrams-wac-0.0.1-SNAPSHOT-jar-with-dependencies.jar",
+						metavar="PATH",
+						help="The path of the JAR file to run relative to the project root.")
+	return result
 
 
 def __main(args, current_time: datetime.datetime):
