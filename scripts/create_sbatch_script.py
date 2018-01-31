@@ -16,7 +16,7 @@ import sys
 from enum import Enum, unique
 from typing import Callable
 
-__DEFAULT_ACCOUNT = "2017-130"
+__DEFAULT_ACCOUNT = "2018-1"
 __DEFAULT_TIME = "8:00:00"
 __DEFAULT_HEAPSIZE = "10g"
 
@@ -34,6 +34,8 @@ def __create_argparser(current_time: datetime.datetime) -> argparse.ArgumentPars
 	default_job_name = __create_default_job_name(current_time)
 	result = argparse.ArgumentParser(
 		description="Creates a script for submitting to Slurm to run cross-validation tests.")
+	result.add_argument("user", metavar="USER",
+						help="The system username to use for running the batch script.")
 	result.add_argument("-j", "--job-name", dest="job_name", metavar="JOBNAME", default=default_job_name,
 						help="Specify a name for the job allocation. The specified name will appear along with the job id number when querying running jobs on the system.")
 	result.add_argument("-a", "--account", metavar="ACCOUNT", default=__DEFAULT_ACCOUNT,
@@ -42,11 +44,9 @@ def __create_argparser(current_time: datetime.datetime) -> argparse.ArgumentPars
 						help="Set a limit on the total run time of the job allocation.")
 	result.add_argument("-p", "--heap", metavar="HEAPSIZE", default=__DEFAULT_HEAPSIZE,
 						help="Set a limit on the total run time of the job allocation.")
-	result.add_argument("-u", "--user", metavar="USER", required=True,
-						help="The system username to use for running the batch script.")
 	result.add_argument("-d", "--project-dir", dest="project_dir", metavar="DIRPATH",
 						help="The project root directory.")
-	result.add_argument("-i", "--indir", default="Data/Ready",
+	result.add_argument("-i", "--indir", default="Data",
 						metavar="DIRPATH",
 						help="The path of the directory containing the session data to use for cross-validation relative to the project root.")
 	result.add_argument("-o", "--outdir", default="output",
