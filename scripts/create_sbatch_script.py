@@ -118,7 +118,7 @@ def __create_argparser(current_time: datetime.datetime) -> argparse.ArgumentPars
 	result.add_argument("-o", "--outdir", default="output",
 						metavar="DIRPATH",
 						help="The path of the directory to write the cross-validation results to relative to the project root.")
-	result.add_argument("-r", "--reflang", default="Data/utt-referring-tokens-lemma.tsv",
+	result.add_argument("-r", "--reflang", default="Data/utt-referring-tokens-basic-inflected.tsv",
 						metavar="FILENAME",
 						help="The path of the referring-language file to read relative to the project root.")
 	result.add_argument("-m", "--model-params", default="Data/training-data/model-params.tsv",
