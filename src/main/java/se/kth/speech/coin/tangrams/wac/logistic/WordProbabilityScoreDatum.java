@@ -258,6 +258,18 @@ public enum WordProbabilityScoreDatum implements BiFunction<CrossValidator.Resul
 		}
 
 	},
+	BACKGROUND_DATA_WORD_TOKEN_COUNT {
+		@Override
+		public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			return Long.toString(cvResult.getBackgroundDataTokenCount());
+		}	
+	},
+	INTERACTION_DATA_WORD_TOKEN_COUNT {
+		@Override
+		public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
+			return Long.toString(cvResult.getInteractionDataTokenCount());
+		}	
+	},
 	WEIGHT_BY_FREQ {
 
 		@Override

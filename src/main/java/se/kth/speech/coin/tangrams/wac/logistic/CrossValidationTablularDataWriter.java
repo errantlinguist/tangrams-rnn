@@ -21,13 +21,10 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -38,9 +35,6 @@ import org.apache.commons.csv.CSVPrinter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
-import it.unimi.dsi.fastutil.doubles.DoubleList;
-import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Round;
@@ -384,38 +378,50 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 			}
 
 		},
-		TARGET_WORD_CLASSIFIER_SCORES {
-
+//		TARGET_WORD_CLASSIFIER_SCORES {
+//
+//			@Override
+//			public String apply(final CrossValidator.Result<RoundEvaluationResult<ClassificationResult>> cvResult) {
+//				final RoundEvaluationResult<ClassificationResult> evalResult = cvResult.getEvalResult();
+//				final ClassificationResult classificationResult = evalResult.getClassificationResult();
+//				final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps = classificationResult.getRefWordClassifierScoreMaps();
+//				final NavigableMap<String, DoubleList> combinedWordScores = createCombinedWordScoreMap(refWordClassifierScoreMaps, Referent::isTarget);
+//				try {
+//					return JSON_MAPPER.writeValueAsString(combinedWordScores);
+//				} catch (final JsonProcessingException e) {
+//					throw new RuntimeException(e);
+//				}
+//			}
+//
+//		},
+//		NONTARGET_WORD_CLASSIFIER_SCORES {
+//
+//
+//			@Override
+//			public String apply(final CrossValidator.Result<RoundEvaluationResult<ClassificationResult>> cvResult) {
+//				final RoundEvaluationResult<ClassificationResult> evalResult = cvResult.getEvalResult();
+//				final ClassificationResult classificationResult = evalResult.getClassificationResult();
+//				final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps = classificationResult.getRefWordClassifierScoreMaps();
+//				final NavigableMap<String, DoubleList> combinedWordScores = createCombinedWordScoreMap(refWordClassifierScoreMaps, ref -> !ref.isTarget());
+//				try {
+//					return JSON_MAPPER.writeValueAsString(combinedWordScores);
+//				} catch (final JsonProcessingException e) {
+//					throw new RuntimeException(e);
+//				}
+//			}
+//
+//		},
+		BACKGROUND_DATA_WORD_TOKEN_COUNT {
 			@Override
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<ClassificationResult>> cvResult) {
-				final RoundEvaluationResult<ClassificationResult> evalResult = cvResult.getEvalResult();
-				final ClassificationResult classificationResult = evalResult.getClassificationResult();
-				final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps = classificationResult.getRefWordClassifierScoreMaps();
-				final NavigableMap<String, DoubleList> combinedWordScores = createCombinedWordScoreMap(refWordClassifierScoreMaps, Referent::isTarget);
-				try {
-					return JSON_MAPPER.writeValueAsString(combinedWordScores);
-				} catch (final JsonProcessingException e) {
-					throw new RuntimeException(e);
-				}
-			}
-
+				return Long.toString(cvResult.getBackgroundDataTokenCount());
+			}	
 		},
-		NONTARGET_WORD_CLASSIFIER_SCORES {
-
-
+		INTERACTION_DATA_WORD_TOKEN_COUNT {
 			@Override
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<ClassificationResult>> cvResult) {
-				final RoundEvaluationResult<ClassificationResult> evalResult = cvResult.getEvalResult();
-				final ClassificationResult classificationResult = evalResult.getClassificationResult();
-				final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps = classificationResult.getRefWordClassifierScoreMaps();
-				final NavigableMap<String, DoubleList> combinedWordScores = createCombinedWordScoreMap(refWordClassifierScoreMaps, ref -> !ref.isTarget());
-				try {
-					return JSON_MAPPER.writeValueAsString(combinedWordScores);
-				} catch (final JsonProcessingException e) {
-					throw new RuntimeException(e);
-				}
-			}
-
+				return Long.toString(cvResult.getInteractionDataTokenCount());
+			}	
 		},
 		WORD_COUNTS {
 
@@ -443,22 +449,22 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 
 	private static final CSVFormat FORMAT = CSVFormat.TDF.withHeader(Datum.class);
 
-	private static NavigableMap<String, DoubleList> createCombinedWordScoreMap(
-			final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps,
-			final Predicate<? super Referent> refFilter) {
-		@SuppressWarnings("unchecked")
-		final Entry<Referent, Object2DoubleMap<String>>[] targetScores = refWordClassifierScoreMaps.entrySet().stream()
-				.filter(entry -> refFilter.test(entry.getKey())).toArray(Entry[]::new);
-		final NavigableMap<String, DoubleList> result = new TreeMap<>();
-		Arrays.stream(targetScores).map(Entry::getValue).forEach(wordScoreLists -> {
-			for (final Object2DoubleMap.Entry<String> wordScore : wordScoreLists.object2DoubleEntrySet()) {
-				final DoubleList combinedScores = result.computeIfAbsent(wordScore.getKey(),
-						key -> new DoubleArrayList(targetScores.length));
-				combinedScores.add(wordScore.getDoubleValue());
-			}
-		});
-		return result;
-	}
+//	private static NavigableMap<String, DoubleList> createCombinedWordScoreMap(
+//			final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps,
+//			final Predicate<? super Referent> refFilter) {
+//		@SuppressWarnings("unchecked")
+//		final Entry<Referent, Object2DoubleMap<String>>[] targetScores = refWordClassifierScoreMaps.entrySet().stream()
+//				.filter(entry -> refFilter.test(entry.getKey())).toArray(Entry[]::new);
+//		final NavigableMap<String, DoubleList> result = new TreeMap<>();
+//		Arrays.stream(targetScores).map(Entry::getValue).forEach(wordScoreLists -> {
+//			for (final Object2DoubleMap.Entry<String> wordScore : wordScoreLists.object2DoubleEntrySet()) {
+//				final DoubleList combinedScores = result.computeIfAbsent(wordScore.getKey(),
+//						key -> new DoubleArrayList(targetScores.length));
+//				combinedScores.add(wordScore.getDoubleValue());
+//			}
+//		});
+//		return result;
+//	}
 
 	private static final List<Datum> createDefaultDataToWriteList() {
 		return Arrays.asList(Datum.values());

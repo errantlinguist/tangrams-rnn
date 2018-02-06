@@ -388,9 +388,19 @@ public final class LogisticModel { // NO_UCD (use default)
 	public static final class TrainingData {
 
 		/**
+		 * The number of tokens used for initial training, before any updating.
+		 */
+		private final long backgroundDataTokenCount;
+
+		/**
 		 * The {@link FeatureAttributeData} used for training.
 		 */
 		private final FeatureAttributeData featureAttrs;
+
+		/**
+		 * The number of tokens added during updating thus far.
+		 */
+		private final long interactionDataTokenCount;
 
 		/**
 		 * The {@link RoundSet} used as training data.
@@ -417,61 +427,21 @@ public final class LogisticModel { // NO_UCD (use default)
 		 *            The {@link Vocabulary} used during training.
 		 * @param trainingSet
 		 *            The {@link RoundSet} used as training data.
+		 * @param backgroundDataTokenCount
+		 *            The number of tokens used for initial training, before any
+		 *            updating.
+		 * @param interactionDataTokenCount
+		 *            The number of tokens added during updating thus far.
 		 */
 		private TrainingData(final WordClassifiers wordClassifiers, final FeatureAttributeData featureAttrs,
-				final Vocabulary vocab, final RoundSet trainingSet) {
+				final Vocabulary vocab, final RoundSet trainingSet, final long backgroundDataTokenCount,
+				final long interactionDataTokenCount) {
 			this.wordClassifiers = wordClassifiers;
 			this.featureAttrs = featureAttrs;
 			this.vocab = vocab;
 			this.trainingSet = trainingSet;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 *
-		 * @see java.lang.Object#equals(java.lang.Object)
-		 */
-		@Override
-		public boolean equals(final Object obj) {
-			if (this == obj) {
-				return true;
-			}
-			if (obj == null) {
-				return false;
-			}
-			if (!(obj instanceof TrainingData)) {
-				return false;
-			}
-			final TrainingData other = (TrainingData) obj;
-			if (featureAttrs == null) {
-				if (other.featureAttrs != null) {
-					return false;
-				}
-			} else if (!featureAttrs.equals(other.featureAttrs)) {
-				return false;
-			}
-			if (trainingSet == null) {
-				if (other.trainingSet != null) {
-					return false;
-				}
-			} else if (!trainingSet.equals(other.trainingSet)) {
-				return false;
-			}
-			if (vocab == null) {
-				if (other.vocab != null) {
-					return false;
-				}
-			} else if (!vocab.equals(other.vocab)) {
-				return false;
-			}
-			if (wordClassifiers == null) {
-				if (other.wordClassifiers != null) {
-					return false;
-				}
-			} else if (!wordClassifiers.equals(other.wordClassifiers)) {
-				return false;
-			}
-			return true;
+			this.backgroundDataTokenCount = backgroundDataTokenCount;
+			this.interactionDataTokenCount = interactionDataTokenCount;
 		}
 
 		/**
@@ -479,6 +449,13 @@ public final class LogisticModel { // NO_UCD (use default)
 		 */
 		public FeatureAttributeData getFeatureAttrs() {
 			return featureAttrs;
+		}
+
+		/**
+		 * @return The number of tokens added during updating thus far.
+		 */
+		public long getInteractionDataTokenCount() {
+			return interactionDataTokenCount;
 		}
 
 		/**
@@ -502,40 +479,11 @@ public final class LogisticModel { // NO_UCD (use default)
 			return wordClassifiers;
 		}
 
-		/*
-		 * (non-Javadoc)
-		 *
-		 * @see java.lang.Object#hashCode()
+		/**
+		 * @return the backgroundDataTokenCount
 		 */
-		@Override
-		public int hashCode() {
-			final int prime = 31;
-			int result = 1;
-			result = prime * result + (featureAttrs == null ? 0 : featureAttrs.hashCode());
-			result = prime * result + (trainingSet == null ? 0 : trainingSet.hashCode());
-			result = prime * result + (vocab == null ? 0 : vocab.hashCode());
-			result = prime * result + (wordClassifiers == null ? 0 : wordClassifiers.hashCode());
-			return result;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 *
-		 * @see java.lang.Object#toString()
-		 */
-		@Override
-		public String toString() {
-			final StringBuilder builder = new StringBuilder(1024);
-			builder.append("TrainingData [featureAttrs=");
-			builder.append(featureAttrs);
-			builder.append(", trainingSet=");
-			builder.append(trainingSet);
-			builder.append(", vocab=");
-			builder.append(vocab);
-			builder.append(", wordClassifiers=");
-			builder.append(wordClassifiers);
-			builder.append("]");
-			return builder.toString();
+		long getBackgroundDataTokenCount() {
+			return backgroundDataTokenCount;
 		}
 	}
 
@@ -905,7 +853,10 @@ public final class LogisticModel { // NO_UCD (use default)
 			final RoundSet trainingSet = oldTrainingData.getTrainingSet();
 			trainingSet.getRounds().add(round);
 			final Vocabulary oldVocab = oldTrainingData.getVocabulary();
+			final long oldInteractionDataTokenCount = oldTrainingData.getInteractionDataTokenCount();
 			final Vocabulary vocab = trainingSet.createVocabulary(oldVocab.getWordCount() + 5);
+			final long vocabSizeDiff = vocab.getTokenCount() - oldVocab.getTokenCount();
+			final long newInteractionDataTokenCount = oldInteractionDataTokenCount + vocabSizeDiff;
 			// NOTE: Values are retrieved directly from the map instead of e.g.
 			// assigning
 			// them to a final field because it's possible that the map values
@@ -921,7 +872,8 @@ public final class LogisticModel { // NO_UCD (use default)
 					NumberTypeConversions.finiteDoubleValue(updateWeight.doubleValue()), trainingSet,
 					extantClassifiers);
 			final Entry<WordClassifiers, FeatureAttributeData> trainingResults = trainer.fork().join();
-			result = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet);
+			result = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet,
+					oldTrainingData.getBackgroundDataTokenCount(), newInteractionDataTokenCount);
 			return true;
 		}
 
@@ -1254,7 +1206,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	private static TrainingData createDummyTrainingData(final int initialMapCapacity, final boolean onlyInstructor) {
 		return new TrainingData(new WordClassifiers(new ConcurrentHashMap<>(initialMapCapacity), new Logistic()),
 				new FeatureAttributeData(), new Vocabulary(Object2LongMaps.emptyMap()),
-				new RoundSet(Collections.emptyList(), onlyInstructor));
+				new RoundSet(Collections.emptyList(), onlyInstructor), 0L, 0L);
 	}
 
 	private static Stream<Weighted<Referent>> createWeightedReferents(final Referent[] refs, final double weight) {
@@ -1451,7 +1403,8 @@ public final class LogisticModel { // NO_UCD (use default)
 	 */
 	TrainingData train(final SessionSet set) {
 		final RoundSet trainingSet = new RoundSet(set, (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR));
-		final Vocabulary vocab = trainingSet.createVocabulary(Math.max(1000, trainingData.getVocabulary().getWordCount() + 5));
+		final Vocabulary oldVocab = trainingData.getVocabulary();
+		final Vocabulary vocab = trainingSet.createVocabulary(Math.max(1000, oldVocab.getWordCount() + 5));
 		// NOTE: Values are retrieved directly from the map instead of e.g.
 		// assigning
 		// them to a final field because it's possible that the map values
@@ -1464,7 +1417,8 @@ public final class LogisticModel { // NO_UCD (use default)
 				trainingSet, extantClassifiers);
 		executeAsynchronously(trainingTask);
 		final Entry<WordClassifiers, FeatureAttributeData> trainingResults = trainingTask.join();
-		trainingData = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet);
+		trainingData = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet,
+				vocab.getTokenCount(), 0L);
 		return trainingData;
 	}
 

@@ -47,6 +47,7 @@ import org.slf4j.LoggerFactory;
 import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
+import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.TrainingData;
 import se.kth.speech.coin.tangrams.wac.logistic.RankScorer.ClassificationResult;
 
 public final class CrossValidator<R> { // NO_UCD (use default)
@@ -79,85 +80,34 @@ public final class CrossValidator<R> { // NO_UCD (use default)
 
 		private final int crossValidationIteration;
 
+		/**
+		 * The number of tokens added during updating thus far.
+		 */
+		private final long interactionDataTokenCount;
+
 		private final R evalResult;
 
 		private final Map<ModelParameter, Object> modelParams;
 
-		Result(final int crossValidationIteration, final R evalResult, final Map<ModelParameter, Object> modelParams) {
+		/**
+		 * The number of tokens used for initial training, before any updating.
+		 */
+		private final long backgroundDataTokenCount;
+
+		Result(final int crossValidationIteration, final R evalResult, final Map<ModelParameter, Object> modelParams,
+				final long backgroundDataTokenCount, final long interactionDataTokenCount) {
 			this.crossValidationIteration = crossValidationIteration;
 			this.evalResult = evalResult;
 			this.modelParams = modelParams;
-
+			this.backgroundDataTokenCount = backgroundDataTokenCount;
+			this.interactionDataTokenCount = interactionDataTokenCount;
 		}
 
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see java.lang.Object#equals(java.lang.Object)
+		/**
+		 * @return the backgroundDataTokenCount
 		 */
-		@Override
-		public boolean equals(final Object obj) {
-			if (this == obj) {
-				return true;
-			}
-			if (obj == null) {
-				return false;
-			}
-			if (!(obj instanceof Result)) {
-				return false;
-			}
-			final Result<?> other = (Result<?>) obj;
-			if (crossValidationIteration != other.crossValidationIteration) {
-				return false;
-			}
-			if (evalResult == null) {
-				if (other.evalResult != null) {
-					return false;
-				}
-			} else if (!evalResult.equals(other.evalResult)) {
-				return false;
-			}
-			if (modelParams == null) {
-				if (other.modelParams != null) {
-					return false;
-				}
-			} else if (!modelParams.equals(other.modelParams)) {
-				return false;
-			}
-			return true;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see java.lang.Object#hashCode()
-		 */
-		@Override
-		public int hashCode() {
-			final int prime = 31;
-			int result = 1;
-			result = prime * result + crossValidationIteration;
-			result = prime * result + (evalResult == null ? 0 : evalResult.hashCode());
-			result = prime * result + (modelParams == null ? 0 : modelParams.hashCode());
-			return result;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see java.lang.Object#toString()
-		 */
-		@Override
-		public String toString() {
-			final StringBuilder builder = new StringBuilder(256);
-			builder.append("Result [crossValidationIteration=");
-			builder.append(crossValidationIteration);
-			builder.append(", evalResult=");
-			builder.append(evalResult);
-			builder.append(", modelParams=");
-			builder.append(modelParams);
-			builder.append("]");
-			return builder.toString();
+		long getBackgroundDataTokenCount() {
+			return backgroundDataTokenCount;
 		}
 
 		/**
@@ -175,11 +125,19 @@ public final class CrossValidator<R> { // NO_UCD (use default)
 		}
 
 		/**
+		 * @return the interactionDataTokenCount
+		 */
+		long getInteractionDataTokenCount() {
+			return interactionDataTokenCount;
+		}
+
+		/**
 		 * @return the modelParams
 		 */
 		Map<ModelParameter, Object> getModelParams() {
 			return modelParams;
 		}
+
 	}
 
 	private enum Parameter implements Supplier<Option> {
@@ -235,8 +193,8 @@ public final class CrossValidator<R> { // NO_UCD (use default)
 				final Supplier<LogisticModel> modelFactory = () -> new LogisticModel(modelParams, executor);
 				final Function<LogisticModel, Function<SessionSet, Stream<RoundEvaluationResult<ClassificationResult>>>> evaluatorFactory = model -> model
 						.createRankScorer();
-				final CrossValidator<RoundEvaluationResult<ClassificationResult>> crossValidator = new CrossValidator<>(modelParams,
-						modelFactory, evaluatorFactory, executor);
+				final CrossValidator<RoundEvaluationResult<ClassificationResult>> crossValidator = new CrossValidator<>(
+						modelParams, modelFactory, evaluatorFactory, executor);
 				crossValidator.crossValidate(set, evalResult -> {
 					try {
 						resultWriter.accept(evalResult);
@@ -348,11 +306,12 @@ public final class CrossValidator<R> { // NO_UCD (use default)
 					set.crossValidate((training, testing) -> {
 						try {
 							final LogisticModel model = modelFactory.get();
-							model.train(training);
+							final TrainingData trainingData = model.train(training);
 							final Function<SessionSet, Stream<R>> evaluator = evaluatorFactory.apply(model);
 							final Stream<R> roundEvalResults = evaluator.apply(new SessionSet(testing));
-							roundEvalResults.map(evalResult -> new Result<>(cvIter, evalResult, modelParams))
-									.forEach(resultHandler);
+							roundEvalResults.map(evalResult -> new Result<>(cvIter, evalResult, modelParams,
+									trainingData.getBackgroundDataTokenCount(),
+									trainingData.getInteractionDataTokenCount())).forEach(resultHandler);
 						} catch (final ClassificationException e) {
 							throw new Exception(training, testing, e);
 						}
