@@ -80,35 +80,17 @@ public final class CrossValidator<R> { // NO_UCD (use default)
 
 		private final int crossValidationIteration;
 
-		/**
-		 * The number of tokens added during updating thus far.
-		 */
-		private final long interactionDataTokenCount;
-
 		private final R evalResult;
 
 		private final Map<ModelParameter, Object> modelParams;
 
-		/**
-		 * The number of tokens used for initial training, before any updating.
-		 */
-		private final long backgroundDataTokenCount;
 
-		Result(final int crossValidationIteration, final R evalResult, final Map<ModelParameter, Object> modelParams,
-				final long backgroundDataTokenCount, final long interactionDataTokenCount) {
+		Result(final int crossValidationIteration, final R evalResult, final Map<ModelParameter, Object> modelParams) {
 			this.crossValidationIteration = crossValidationIteration;
 			this.evalResult = evalResult;
 			this.modelParams = modelParams;
-			this.backgroundDataTokenCount = backgroundDataTokenCount;
-			this.interactionDataTokenCount = interactionDataTokenCount;
 		}
 
-		/**
-		 * @return the backgroundDataTokenCount
-		 */
-		long getBackgroundDataTokenCount() {
-			return backgroundDataTokenCount;
-		}
 
 		/**
 		 * @return the crossValidationIteration
@@ -122,13 +104,6 @@ public final class CrossValidator<R> { // NO_UCD (use default)
 		 */
 		R getEvalResult() {
 			return evalResult;
-		}
-
-		/**
-		 * @return the interactionDataTokenCount
-		 */
-		long getInteractionDataTokenCount() {
-			return interactionDataTokenCount;
 		}
 
 		/**
@@ -311,9 +286,7 @@ public final class CrossValidator<R> { // NO_UCD (use default)
 							assert origTrainingData != null;
 							final Function<SessionSet, Stream<R>> evaluator = evaluatorFactory.apply(model);
 							final Stream<R> roundEvalResults = evaluator.apply(new SessionSet(testing));
-							roundEvalResults.map(evalResult -> new Result<>(cvIter, evalResult, modelParams,
-									origTrainingData.getBackgroundDataTokenCount(),
-									origTrainingData.getInteractionDataTokenCount())).forEach(resultHandler);
+							roundEvalResults.map(evalResult -> new Result<>(cvIter, evalResult, modelParams)).forEach(resultHandler);
 						} catch (final ClassificationException e) {
 							throw new Exception(training, testing, e);
 						}

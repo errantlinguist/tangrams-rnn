@@ -414,14 +414,18 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 		BACKGROUND_DATA_WORD_TOKEN_COUNT {
 			@Override
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<ClassificationResult>> cvResult) {
-				return Long.toString(cvResult.getBackgroundDataTokenCount());
-			}	
+				final RoundEvaluationResult<ClassificationResult> evalResults = cvResult.getEvalResult();
+				final ClassificationResult classificationResult = evalResults.getClassificationResult();
+				return Long.toString(classificationResult.getBackgroundDataTokenCount());
+			}
 		},
 		INTERACTION_DATA_WORD_TOKEN_COUNT {
 			@Override
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<ClassificationResult>> cvResult) {
-				return Long.toString(cvResult.getInteractionDataTokenCount());
-			}	
+				final RoundEvaluationResult<ClassificationResult> evalResults = cvResult.getEvalResult();
+				final ClassificationResult classificationResult = evalResults.getClassificationResult();
+				return Long.toString(classificationResult.getInteractionDataTokenCount());
+			}
 		},
 		WORD_COUNTS {
 
@@ -449,22 +453,27 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 
 	private static final CSVFormat FORMAT = CSVFormat.TDF.withHeader(Datum.class);
 
-//	private static NavigableMap<String, DoubleList> createCombinedWordScoreMap(
-//			final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps,
-//			final Predicate<? super Referent> refFilter) {
-//		@SuppressWarnings("unchecked")
-//		final Entry<Referent, Object2DoubleMap<String>>[] targetScores = refWordClassifierScoreMaps.entrySet().stream()
-//				.filter(entry -> refFilter.test(entry.getKey())).toArray(Entry[]::new);
-//		final NavigableMap<String, DoubleList> result = new TreeMap<>();
-//		Arrays.stream(targetScores).map(Entry::getValue).forEach(wordScoreLists -> {
-//			for (final Object2DoubleMap.Entry<String> wordScore : wordScoreLists.object2DoubleEntrySet()) {
-//				final DoubleList combinedScores = result.computeIfAbsent(wordScore.getKey(),
-//						key -> new DoubleArrayList(targetScores.length));
-//				combinedScores.add(wordScore.getDoubleValue());
-//			}
-//		});
-//		return result;
-//	}
+	// private static NavigableMap<String, DoubleList>
+	// createCombinedWordScoreMap(
+	// final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps,
+	// final Predicate<? super Referent> refFilter) {
+	// @SuppressWarnings("unchecked")
+	// final Entry<Referent, Object2DoubleMap<String>>[] targetScores =
+	// refWordClassifierScoreMaps.entrySet().stream()
+	// .filter(entry -> refFilter.test(entry.getKey())).toArray(Entry[]::new);
+	// final NavigableMap<String, DoubleList> result = new TreeMap<>();
+	// Arrays.stream(targetScores).map(Entry::getValue).forEach(wordScoreLists
+	// -> {
+	// for (final Object2DoubleMap.Entry<String> wordScore :
+	// wordScoreLists.object2DoubleEntrySet()) {
+	// final DoubleList combinedScores =
+	// result.computeIfAbsent(wordScore.getKey(),
+	// key -> new DoubleArrayList(targetScores.length));
+	// combinedScores.add(wordScore.getDoubleValue());
+	// }
+	// });
+	// return result;
+	// }
 
 	private static final List<Datum> createDefaultDataToWriteList() {
 		return Arrays.asList(Datum.values());

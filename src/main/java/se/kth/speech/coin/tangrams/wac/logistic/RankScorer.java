@@ -52,6 +52,16 @@ public final class RankScorer
 	public static final class ClassificationResult {
 
 		/**
+		 * The number of tokens used for initial training, before any updating.
+		 */
+		private final long backgroundDataTokenCount;
+
+		/**
+		 * The number of tokens added during updating thus far.
+		 */
+		private final long interactionDataTokenCount;
+
+		/**
 		 * The words which were encountered during classification for which no
 		 * trained model could be found, thus using the discount model for them
 		 * instead.
@@ -105,16 +115,40 @@ public final class RankScorer
 		 * @param wordObservationCounts
 		 *            The counts of observations of each word used for
 		 *            classification in the dataset used for training.
+		 * @param backgroundDataTokenCount
+		 *            The number of tokens used for initial training, before any
+		 *            updating.
+		 * @param interactionDataTokenCount
+		 *            The number of tokens added during updating thus far.
+		 *
 		 */
 		private ClassificationResult(final List<Weighted<Referent>> scoredReferents, final String[] words,
 				final List<String> oovObservations,
 				final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps,
-				final Object2LongMap<String> wordObservationCounts) {
+				final Object2LongMap<String> wordObservationCounts, final long backgroundDataTokenCount,
+				final long interactionDataTokenCount) {
 			this.scoredReferents = scoredReferents;
 			this.words = words;
 			this.oovObservations = oovObservations;
 			this.refWordClassifierScoreMaps = refWordClassifierScoreMaps;
 			this.wordObservationCounts = wordObservationCounts;
+			this.backgroundDataTokenCount = backgroundDataTokenCount;
+			this.interactionDataTokenCount = interactionDataTokenCount;
+		}
+
+		/**
+		 * @return The number of tokens used for initial training, before any
+		 *         updating.
+		 */
+		public long getBackgroundDataTokenCount() {
+			return backgroundDataTokenCount;
+		}
+
+		/**
+		 * @return The number of tokens added during updating thus far.
+		 */
+		public long getInteractionDataTokenCount() {
+			return interactionDataTokenCount;
 		}
 
 		/**
@@ -312,8 +346,7 @@ public final class RankScorer
 					if (weightByFreq) {
 						final long extantWordObservationCount = wordObservationCounts.getLong(word);
 						final double effectiveObsCountValue = isNullWordObservationCount(extantWordObservationCount)
-								? discountWeightingValue
-								: extantWordObservationCount;
+								? discountWeightingValue : extantWordObservationCount;
 						wordScore *= Math.log10(effectiveObsCountValue);
 					}
 					wordScoreArray[i] = wordScore;
@@ -328,7 +361,8 @@ public final class RankScorer
 			@SuppressWarnings("unchecked")
 			final List<Weighted<Referent>> scoredRefList = Arrays.asList(scoredRefs.toArray(Weighted[]::new));
 			result = Optional.of(new ClassificationResult(scoredRefList, words, oovObservations,
-					refWordClassifierScoreMaps, wordObservationCounts));
+					refWordClassifierScoreMaps, wordObservationCounts, trainingData.getBackgroundDataTokenCount(),
+					trainingData.getInteractionDataTokenCount()));
 		}
 		return result;
 	}
