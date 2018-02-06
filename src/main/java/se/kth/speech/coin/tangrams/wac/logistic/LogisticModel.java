@@ -856,6 +856,7 @@ public final class LogisticModel { // NO_UCD (use default)
 			final long oldInteractionDataTokenCount = oldTrainingData.getInteractionDataTokenCount();
 			final Vocabulary vocab = trainingSet.createVocabulary(oldVocab.getWordCount() + 5);
 			final long vocabSizeDiff = vocab.getTokenCount() - oldVocab.getTokenCount();
+			assert vocabSizeDiff > 0;
 			final long newInteractionDataTokenCount = oldInteractionDataTokenCount + vocabSizeDiff;
 			// NOTE: Values are retrieved directly from the map instead of e.g.
 			// assigning
@@ -865,11 +866,13 @@ public final class LogisticModel { // NO_UCD (use default)
 			// here anyway
 			vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
 			final Number updateWeight = (Number) modelParams.get(ModelParameter.UPDATE_WEIGHT);
+			final double updateDoubleWeight = NumberTypeConversions.finiteDoubleValue(updateWeight.doubleValue());
+			assert updateDoubleWeight > 0.0;
 			// Re-use old word classifier map
 			final ConcurrentMap<String, Logistic> extantClassifiers = oldTrainingData
 					.getWordClassifiers().wordClassifiers;
 			final TrainingTask trainer = new TrainingTask(vocab.getUpdatedWordsSince(oldVocab),
-					NumberTypeConversions.finiteDoubleValue(updateWeight.doubleValue()), trainingSet,
+					updateDoubleWeight, trainingSet,
 					extantClassifiers);
 			final Entry<WordClassifiers, FeatureAttributeData> trainingResults = trainer.fork().join();
 			result = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet,
