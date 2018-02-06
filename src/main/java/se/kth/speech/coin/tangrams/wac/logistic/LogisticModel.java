@@ -480,7 +480,8 @@ public final class LogisticModel { // NO_UCD (use default)
 		}
 
 		/**
-		 * @return the backgroundDataTokenCount
+		 * @return The number of tokens used for initial training, before any
+		 *         updating.
 		 */
 		long getBackgroundDataTokenCount() {
 			return backgroundDataTokenCount;
@@ -871,9 +872,8 @@ public final class LogisticModel { // NO_UCD (use default)
 			// Re-use old word classifier map
 			final ConcurrentMap<String, Logistic> extantClassifiers = oldTrainingData
 					.getWordClassifiers().wordClassifiers;
-			final TrainingTask trainer = new TrainingTask(vocab.getUpdatedWordsSince(oldVocab),
-					updateDoubleWeight, trainingSet,
-					extantClassifiers);
+			final TrainingTask trainer = new TrainingTask(vocab.getUpdatedWordsSince(oldVocab), updateDoubleWeight,
+					trainingSet, extantClassifiers);
 			final Entry<WordClassifiers, FeatureAttributeData> trainingResults = trainer.fork().join();
 			result = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet,
 					oldTrainingData.getBackgroundDataTokenCount(), newInteractionDataTokenCount);
