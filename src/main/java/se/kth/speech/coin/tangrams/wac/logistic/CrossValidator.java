@@ -306,12 +306,14 @@ public final class CrossValidator<R> { // NO_UCD (use default)
 					set.crossValidate((training, testing) -> {
 						try {
 							final LogisticModel model = modelFactory.get();
-							final TrainingData trainingData = model.train(training);
+							// NOTE: This is the original training data, NOT updated data!
+							final TrainingData origTrainingData = model.train(training);
+							assert origTrainingData != null;
 							final Function<SessionSet, Stream<R>> evaluator = evaluatorFactory.apply(model);
 							final Stream<R> roundEvalResults = evaluator.apply(new SessionSet(testing));
 							roundEvalResults.map(evalResult -> new Result<>(cvIter, evalResult, modelParams,
-									trainingData.getBackgroundDataTokenCount(),
-									trainingData.getInteractionDataTokenCount())).forEach(resultHandler);
+									origTrainingData.getBackgroundDataTokenCount(),
+									origTrainingData.getInteractionDataTokenCount())).forEach(resultHandler);
 						} catch (final ClassificationException e) {
 							throw new Exception(training, testing, e);
 						}
