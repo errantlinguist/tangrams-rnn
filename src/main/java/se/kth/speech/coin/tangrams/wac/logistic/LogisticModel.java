@@ -445,6 +445,14 @@ public final class LogisticModel { // NO_UCD (use default)
 		}
 
 		/**
+		 * @return The number of tokens used for initial training, before any
+		 *         updating.
+		 */
+		public long getBackgroundDataTokenCount() {
+			return backgroundDataTokenCount;
+		}
+
+		/**
 		 * @return The {@link FeatureAttributeData} used for training.
 		 */
 		public FeatureAttributeData getFeatureAttrs() {
@@ -477,14 +485,6 @@ public final class LogisticModel { // NO_UCD (use default)
 		 */
 		public WordClassifiers getWordClassifiers() {
 			return wordClassifiers;
-		}
-
-		/**
-		 * @return The number of tokens used for initial training, before any
-		 *         updating.
-		 */
-		long getBackgroundDataTokenCount() {
-			return backgroundDataTokenCount;
 		}
 	}
 
