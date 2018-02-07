@@ -105,6 +105,10 @@ public final class RoundSet {
 		return rounds.stream().filter(round -> round.hasWord(vocabWord, onlyInstructor));
 	}
 
+	public Stream<String> getReferringTokens(final Round round) {
+		return round.getReferringTokens(onlyInstructor);
+	}
+
 	/**
 	 * @return the rounds
 	 */
@@ -143,7 +147,7 @@ public final class RoundSet {
 	}
 
 	private void addWordCountsForRounds(final Object2LongOpenHashMap<String> counts) {
-		final Stream<String> tokens = rounds.stream().flatMap(round -> round.getReferringTokens(onlyInstructor));
+		final Stream<String> tokens = rounds.stream().flatMap(this::getReferringTokens);
 		tokens.forEach(word -> {
 			final long oldValue = counts.getLong(word);
 			counts.put(word, oldValue + 1L);
