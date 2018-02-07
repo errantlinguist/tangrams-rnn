@@ -24,9 +24,9 @@ import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 
 public final class RoundSet {
 
-	private final List<Round> rounds;
-
 	private final boolean onlyInstructor;
+
+	private final List<Round> rounds;
 
 	public RoundSet(final List<Round> rounds, final boolean onlyInstructor) { // NO_UCD
 																				// (use
@@ -43,11 +43,7 @@ public final class RoundSet {
 	public Vocabulary createVocabulary(final int estimatedVocabSize) {
 		final Object2LongOpenHashMap<String> counts = new Object2LongOpenHashMap<>(estimatedVocabSize);
 		counts.defaultReturnValue(0L);
-		final Stream<String> tokens = rounds.stream().flatMap(round -> round.getReferringTokens(onlyInstructor));
-		tokens.forEach(word -> {
-			final long oldValue = counts.getLong(word);
-			counts.put(word, oldValue + 1L);
-		});
+		addWordCountsForRounds(counts);
 		counts.trim();
 		return new Vocabulary(counts);
 	}
@@ -144,5 +140,13 @@ public final class RoundSet {
 		builder.append(onlyInstructor);
 		builder.append("]");
 		return builder.toString();
+	}
+
+	private void addWordCountsForRounds(final Object2LongOpenHashMap<String> counts) {
+		final Stream<String> tokens = rounds.stream().flatMap(round -> round.getReferringTokens(onlyInstructor));
+		tokens.forEach(word -> {
+			final long oldValue = counts.getLong(word);
+			counts.put(word, oldValue + 1L);
+		});
 	}
 }
