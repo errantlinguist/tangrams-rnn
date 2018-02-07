@@ -39,7 +39,9 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMaps;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import se.kth.speech.HashedCollections;
 import se.kth.speech.Lists;
 import se.kth.speech.NumberTypeConversions;
@@ -400,7 +402,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		/**
 		 * The number of tokens added during updating thus far.
 		 */
-		private final long interactionDataTokenCount;
+		private final Object2LongMap<String> interactionData;
 
 		/**
 		 * The {@link RoundSet} used as training data.
@@ -430,18 +432,18 @@ public final class LogisticModel { // NO_UCD (use default)
 		 * @param backgroundDataTokenCount
 		 *            The number of tokens used for initial training, before any
 		 *            updating.
-		 * @param interactionDataTokenCount
+		 * @param interactionData
 		 *            The number of tokens added during updating thus far.
 		 */
 		private TrainingData(final WordClassifiers wordClassifiers, final FeatureAttributeData featureAttrs,
 				final Vocabulary vocab, final RoundSet trainingSet, final long backgroundDataTokenCount,
-				final long interactionDataTokenCount) {
+				final Object2LongMap<String> interactionData) {
 			this.wordClassifiers = wordClassifiers;
 			this.featureAttrs = featureAttrs;
 			this.vocab = vocab;
 			this.trainingSet = trainingSet;
 			this.backgroundDataTokenCount = backgroundDataTokenCount;
-			this.interactionDataTokenCount = interactionDataTokenCount;
+			this.interactionData = interactionData;
 		}
 
 		/**
@@ -462,8 +464,8 @@ public final class LogisticModel { // NO_UCD (use default)
 		/**
 		 * @return The number of tokens added during updating thus far.
 		 */
-		public long getInteractionDataTokenCount() {
-			return interactionDataTokenCount;
+		public Object2LongMap<String> getInteractionData() {
+			return interactionData;
 		}
 
 		/**
@@ -854,11 +856,11 @@ public final class LogisticModel { // NO_UCD (use default)
 			final RoundSet trainingSet = oldTrainingData.getTrainingSet();
 			trainingSet.getRounds().add(round);
 			final Vocabulary oldVocab = oldTrainingData.getVocabulary();
-			final long oldInteractionDataTokenCount = oldTrainingData.getInteractionDataTokenCount();
+			final Object2LongMap<String> oldInteractionData = oldTrainingData.getInteractionData();
+			trainingSet.addWordCountsForRounds(round, oldInteractionData);
 			final Vocabulary vocab = trainingSet.createVocabulary(oldVocab.getWordCount() + 5);
 			final long vocabSizeDiff = vocab.getTokenCount() - oldVocab.getTokenCount();
 			assert vocabSizeDiff > 0;
-			final long newInteractionDataTokenCount = oldInteractionDataTokenCount + vocabSizeDiff;
 			// NOTE: Values are retrieved directly from the map instead of e.g.
 			// assigning
 			// them to a final field because it's possible that the map values
@@ -876,7 +878,7 @@ public final class LogisticModel { // NO_UCD (use default)
 					trainingSet, extantClassifiers);
 			final Entry<WordClassifiers, FeatureAttributeData> trainingResults = trainer.fork().join();
 			result = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet,
-					oldTrainingData.getBackgroundDataTokenCount(), newInteractionDataTokenCount);
+					oldTrainingData.getBackgroundDataTokenCount(), oldInteractionData);
 			return true;
 		}
 
@@ -1209,7 +1211,13 @@ public final class LogisticModel { // NO_UCD (use default)
 	private static TrainingData createDummyTrainingData(final int initialMapCapacity, final boolean onlyInstructor) {
 		return new TrainingData(new WordClassifiers(new ConcurrentHashMap<>(initialMapCapacity), new Logistic()),
 				new FeatureAttributeData(), new Vocabulary(Object2LongMaps.emptyMap()),
-				new RoundSet(Collections.emptyList(), onlyInstructor), 0L, 0L);
+				new RoundSet(Collections.emptyList(), onlyInstructor), 0L, createNewInteractionDataMap());
+	}
+
+	private static Object2LongMap<String> createNewInteractionDataMap() {
+		final Object2LongMap<String> result = new Object2LongOpenHashMap<>();
+		result.defaultReturnValue(0L);
+		return result;
 	}
 
 	private static Stream<Weighted<Referent>> createWeightedReferents(final Referent[] refs, final double weight) {
@@ -1420,8 +1428,9 @@ public final class LogisticModel { // NO_UCD (use default)
 				trainingSet, extantClassifiers);
 		executeAsynchronously(trainingTask);
 		final Entry<WordClassifiers, FeatureAttributeData> trainingResults = trainingTask.join();
+		final Object2LongMap<String> interactionData = createNewInteractionDataMap();
 		trainingData = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet,
-				vocab.getTokenCount(), 0L);
+				vocab.getTokenCount(), interactionData);
 		return trainingData;
 	}
 

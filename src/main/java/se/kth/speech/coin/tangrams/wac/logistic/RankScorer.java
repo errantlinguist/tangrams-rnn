@@ -226,6 +226,14 @@ public final class RankScorer
 		return NULL_WORD_OBSERVATION_COUNT == count;
 	}
 
+	private static long sumValues(final Object2LongMap<?> map) {
+		long result = 0L;
+		for (final long value : map.values()) {
+			result += value;
+		}
+		return result;
+	}
+
 	private final LogisticModel model;
 
 	private final Scorer scorer;
@@ -360,9 +368,10 @@ public final class RankScorer
 			});
 			@SuppressWarnings("unchecked")
 			final List<Weighted<Referent>> scoredRefList = Arrays.asList(scoredRefs.toArray(Weighted[]::new));
+			final Object2LongMap<String> interactiondata = trainingData.getInteractionData();
 			result = Optional.of(new ClassificationResult(scoredRefList, words, oovObservations,
 					refWordClassifierScoreMaps, wordObservationCounts, trainingData.getBackgroundDataTokenCount(),
-					trainingData.getInteractionDataTokenCount()));
+					sumValues(interactiondata)));
 		}
 		return result;
 	}
