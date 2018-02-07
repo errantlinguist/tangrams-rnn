@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 
 public final class RoundSet {
@@ -38,6 +39,14 @@ public final class RoundSet {
 	public RoundSet(final SessionSet set, final boolean onlyInstructor) {
 		this(set.getSessions().stream().map(Session::getRounds).flatMap(List::stream).collect(Collectors.toList()),
 				onlyInstructor);
+	}
+
+	public void addWordCountsForRounds(final Round round, final Object2LongMap<String> counts) {
+		final Stream<String> tokens = getReferringTokens(round);
+		tokens.forEach(word -> {
+			final long oldValue = counts.getLong(word);
+			counts.put(word, oldValue + 1L);
+		});
 	}
 
 	public Vocabulary createVocabulary(final int estimatedVocabSize) {
@@ -146,11 +155,7 @@ public final class RoundSet {
 		return builder.toString();
 	}
 
-	private void addWordCountsForRounds(final Object2LongOpenHashMap<String> counts) {
-		final Stream<String> tokens = rounds.stream().flatMap(this::getReferringTokens);
-		tokens.forEach(word -> {
-			final long oldValue = counts.getLong(word);
-			counts.put(word, oldValue + 1L);
-		});
+	private void addWordCountsForRounds(final Object2LongMap<String> counts) {
+		rounds.stream().forEach(round -> addWordCountsForRounds(round, counts));
 	}
 }
