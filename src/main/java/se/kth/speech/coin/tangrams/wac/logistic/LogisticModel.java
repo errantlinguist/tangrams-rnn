@@ -1421,6 +1421,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		// them to a final field because it's possible that the map values
 		// change at another place in the code and performance isn't an issue
 		// here anyway
+		final long unsmoothedVocabTokenCount = vocab.getTokenCount();
 		vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
 		// Re-use old word classifier map
 		final ConcurrentMap<String, Logistic> extantClassifiers = trainingData.getWordClassifiers().wordClassifiers;
@@ -1430,7 +1431,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		final Entry<WordClassifiers, FeatureAttributeData> trainingResults = trainingTask.join();
 		final Object2LongMap<String> interactionData = createNewInteractionDataMap();
 		trainingData = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet,
-				vocab.getTokenCount(), interactionData);
+				unsmoothedVocabTokenCount, interactionData);
 		return trainingData;
 	}
 
