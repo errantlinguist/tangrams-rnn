@@ -17,12 +17,12 @@ package se.kth.speech.coin.tangrams.wac.logistic;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -493,12 +493,6 @@ public final class LogisticModel { // NO_UCD (use default)
 	public static final class WordClassifiers {
 
 		/**
-		 * The {@code Logistic} classifier instance used for classifying unseen
-		 * word observations.
-		 */
-		private final Logistic discountModel;
-
-		/**
 		 * A {@link ConcurrentMap} of words mapped to the {@link Logistic
 		 * classifier} associated with each.
 		 */
@@ -509,13 +503,9 @@ public final class LogisticModel { // NO_UCD (use default)
 		 * @param wordClassifiers
 		 *            A {@link ConcurrentMap} of words mapped to the
 		 *            {@link Logistic classifier} associated with each.
-		 * @param discountModel
-		 *            The {@code Logistic} classifier instance used for
-		 *            classifying unseen word observations.
 		 */
-		private WordClassifiers(final ConcurrentMap<String, Logistic> wordClassifiers, final Logistic discountModel) {
+		private WordClassifiers(final ConcurrentMap<String, Logistic> wordClassifiers) {
 			this.wordClassifiers = wordClassifiers;
-			this.discountModel = discountModel;
 		}
 
 		/*
@@ -535,13 +525,6 @@ public final class LogisticModel { // NO_UCD (use default)
 				return false;
 			}
 			final WordClassifiers other = (WordClassifiers) obj;
-			if (discountModel == null) {
-				if (other.discountModel != null) {
-					return false;
-				}
-			} else if (!discountModel.equals(other.discountModel)) {
-				return false;
-			}
 			if (wordClassifiers == null) {
 				if (other.wordClassifiers != null) {
 					return false;
@@ -553,36 +536,15 @@ public final class LogisticModel { // NO_UCD (use default)
 		}
 
 		/**
-		 * @return The {@code Logistic} classifier instance used for classifying
-		 *         unseen word observations.
-		 */
-		public Logistic getDiscountClassifier() {
-			return discountModel;
-		}
-
-		/**
 		 *
 		 * @param word
 		 *            The word to get the corresponding {@link Classifier} for.
-		 * @return The {@code Logistic} classifier instance representing the
-		 *         given word or {@code null} if no {@code Classifier} was found
+		 * @return An {@link Optional} for the {@code Logistic} classifier instance representing the
+		 *         given word which is {@link Optional#empty() empty} if no {@code Classifier} was found
 		 *         for the given word.
 		 */
-		public Logistic getWordClassifier(final String word) {
-			return wordClassifiers.get(word);
-		}
-
-		/**
-		 *
-		 * @param word
-		 *            The word to get the corresponding {@link Classifier} for.
-		 * @return The {@code Logistic} classifier instance representing the
-		 *         given word or {@link #getDiscountModel() the discount
-		 *         classifier} if no {@code Logistic} was found for the given
-		 *         word.
-		 */
-		public Logistic getWordClassifierOrDiscount(final String word) {
-			return wordClassifiers.getOrDefault(word, getDiscountClassifier());
+		public Optional<Logistic> getWordClassifier(final String word) {
+			return Optional.ofNullable(wordClassifiers.get(word));
 		}
 
 		/*
@@ -594,7 +556,6 @@ public final class LogisticModel { // NO_UCD (use default)
 		public int hashCode() {
 			final int prime = 31;
 			int result = 1;
-			result = prime * result + (discountModel == null ? 0 : discountModel.hashCode());
 			result = prime * result + (wordClassifiers == null ? 0 : wordClassifiers.hashCode());
 			return result;
 		}
@@ -609,8 +570,6 @@ public final class LogisticModel { // NO_UCD (use default)
 			final StringBuilder builder = new StringBuilder(wordClassifiers.size() + 1 + 64);
 			builder.append("WordClassifiers [map=");
 			builder.append(wordClassifiers);
-			builder.append(", discountModel=");
-			builder.append(discountModel);
 			builder.append("]");
 			return builder.toString();
 		}
@@ -758,12 +717,6 @@ public final class LogisticModel { // NO_UCD (use default)
 			// The feature attributes may change from one training iteration to
 			// the next, e.g. seeing new categorical values
 			final FeatureAttributeData featureAttrs = new FeatureAttributeData();
-			// Train the discount model. NOTE: The discount model should not be
-			// in the same map as the classifiers for actually-seen observations
-			final ForkJoinTask<Entry<String, Logistic>> discountClassifierTrainer = ForkJoinTask
-					.adapt(new WordClassifierTrainer(OOV_CLASS_LABEL,
-							() -> createDiscountClassExamples(trainingSet, words), weight, featureAttrs));
-			discountClassifierTrainer.fork();
 			// Train a model for each word, re-using the old map and thus
 			// replacing any classifiers for words which were already used for
 			// previous training iterations
@@ -773,8 +726,7 @@ public final class LogisticModel { // NO_UCD (use default)
 					.toArray(MapPopulator[]::new);
 			ForkJoinTask.invokeAll(wordClassifierTrainers);
 
-			final Entry<String, Logistic> discountResults = discountClassifierTrainer.join();
-			result = Pair.of(new WordClassifiers(wordClassifiers, discountResults.getValue()), featureAttrs);
+			result = Pair.of(new WordClassifiers(wordClassifiers), featureAttrs);
 			return true;
 		}
 
@@ -867,7 +819,6 @@ public final class LogisticModel { // NO_UCD (use default)
 			// change at another place in the code and performance isn't an
 			// issue
 			// here anyway
-			vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
 			final Number updateWeight = (Number) modelParams.get(ModelParameter.UPDATE_WEIGHT);
 			final double updateDoubleWeight = NumberTypeConversions.finiteDoubleValue(updateWeight.doubleValue());
 			assert updateDoubleWeight > 0.0;
@@ -1192,11 +1143,6 @@ public final class LogisticModel { // NO_UCD (use default)
 				createWeightedReferents(negRefs, negClassWeight));
 	}
 
-	private static Stream<Weighted<Referent>> createDiscountClassExamples(final RoundSet rounds,
-			final Collection<? super String> words) {
-		return rounds.getDiscountRounds(words).flatMap(LogisticModel::createClassWeightedReferents);
-	}
-
 	/**
 	 *
 	 * @param initialMapCapacity
@@ -1209,7 +1155,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	 * @return A new, empty {@link TrainingData} instance.
 	 */
 	private static TrainingData createDummyTrainingData(final int initialMapCapacity, final boolean onlyInstructor) {
-		return new TrainingData(new WordClassifiers(new ConcurrentHashMap<>(initialMapCapacity), new Logistic()),
+		return new TrainingData(new WordClassifiers(new ConcurrentHashMap<>(initialMapCapacity)),
 				new FeatureAttributeData(), new Vocabulary(Object2LongMaps.emptyMap()),
 				new RoundSet(Collections.emptyList(), onlyInstructor), 0L, createNewInteractionDataMap());
 	}
@@ -1422,7 +1368,6 @@ public final class LogisticModel { // NO_UCD (use default)
 		// change at another place in the code and performance isn't an issue
 		// here anyway
 		final long unsmoothedVocabTokenCount = vocab.getTokenCount();
-		vocab.prune((Integer) modelParams.get(ModelParameter.DISCOUNT));
 		// Re-use old word classifier map
 		final ConcurrentMap<String, Logistic> extantClassifiers = trainingData.getWordClassifiers().wordClassifiers;
 		final TrainingTask trainingTask = new TrainingTask(vocab.getWords(), INITIAL_TRAINING_DATAPOINT_WEIGHT,

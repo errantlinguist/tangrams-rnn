@@ -55,7 +55,7 @@ import se.kth.speech.function.ThrowingSupplier;
 /**
  * Extracts coreference sequences of a given uniform length from files created
  * by {@link WordProbabilityScoreTablularDataWriter}.
- * 
+ *
  * @author <a href="mailto:errantlinguist+github@gmail.com">Todd Shore</a>
  * @since 5 Dec 2017
  *
@@ -99,9 +99,9 @@ public final class WordProbabiltyScoreSequenceWriter {
 			return result;
 		}
 
-		private static Charset parseEncoding(CommandLine cl, Charset defaultValue) {
+		private static Charset parseEncoding(final CommandLine cl, final Charset defaultValue) {
 			final String encodingName = cl.getOptionValue(Parameter.ENCODING.optName);
-			Charset result = encodingName == null ? defaultValue : Charset.forName(encodingName);
+			final Charset result = encodingName == null ? defaultValue : Charset.forName(encodingName);
 			return result;
 		}
 
@@ -123,35 +123,28 @@ public final class WordProbabiltyScoreSequenceWriter {
 		private final List<List<SequenceDatapoint>> refTokenRows;
 
 		private ReferentTokenSequences() {
-			this.refTokenRows = new ArrayList<>(20);
-		}
-
-		private void add(int refIdx, int tokenSeqIdx, SequenceDatapoint row) {
-			Lists.ensureIndexSuppliedValues(refTokenRows, refIdx, ArrayList::new);
-			List<SequenceDatapoint> tokenSeq = refTokenRows.get(refIdx);
-			Lists.ensureIndexNullValues(tokenSeq, tokenSeqIdx);
-			SequenceDatapoint oldRow = tokenSeq.set(tokenSeqIdx, row);
-			if (oldRow != null) {
-				throw new IllegalArgumentException(
-						String.format("Token row already added for entity ID %d and sequence ordinality %d.", refIdx,
-								tokenSeqIdx + 1));
-			}
+			refTokenRows = new ArrayList<>(20);
 		}
 
 		@Override
-		public boolean equals(Object obj) {
-			if (this == obj)
+		public boolean equals(final Object obj) {
+			if (this == obj) {
 				return true;
-			if (obj == null)
+			}
+			if (obj == null) {
 				return false;
-			if (!(obj instanceof ReferentTokenSequences))
+			}
+			if (!(obj instanceof ReferentTokenSequences)) {
 				return false;
-			ReferentTokenSequences other = (ReferentTokenSequences) obj;
+			}
+			final ReferentTokenSequences other = (ReferentTokenSequences) obj;
 			if (refTokenRows == null) {
-				if (other.refTokenRows != null)
+				if (other.refTokenRows != null) {
 					return false;
-			} else if (!refTokenRows.equals(other.refTokenRows))
+				}
+			} else if (!refTokenRows.equals(other.refTokenRows)) {
 				return false;
+			}
 			return true;
 		}
 
@@ -159,16 +152,26 @@ public final class WordProbabiltyScoreSequenceWriter {
 		public int hashCode() {
 			final int prime = 31;
 			int result = 1;
-			result = prime * result + ((refTokenRows == null) ? 0 : refTokenRows.hashCode());
+			result = prime * result + (refTokenRows == null ? 0 : refTokenRows.hashCode());
 			return result;
+		}
+
+		private void add(final int refIdx, final int tokenSeqIdx, final SequenceDatapoint row) {
+			Lists.ensureIndexSuppliedValues(refTokenRows, refIdx, ArrayList::new);
+			final List<SequenceDatapoint> tokenSeq = refTokenRows.get(refIdx);
+			Lists.ensureIndexNullValues(tokenSeq, tokenSeqIdx);
+			final SequenceDatapoint oldRow = tokenSeq.set(tokenSeqIdx, row);
+			if (oldRow != null) {
+				throw new IllegalArgumentException(
+						String.format("Token row already added for entity ID %d and sequence ordinality %d.", refIdx,
+								tokenSeqIdx + 1));
+			}
 		}
 	}
 
 	private static class SequenceDatapoint {
 
 		private boolean isInstructor;
-
-		private boolean isOov;
 
 		private boolean isTarget;
 
@@ -178,19 +181,17 @@ public final class WordProbabiltyScoreSequenceWriter {
 
 		private String word;
 
-		private SequenceDatapoint(int tokSeqOrdinality, String word, boolean isInstructor, boolean isTarget,
-				boolean isOov, double score) {
+		private SequenceDatapoint(final int tokSeqOrdinality, final String word, final boolean isInstructor,
+				final boolean isTarget, final double score) {
 			this.tokSeqOrdinality = tokSeqOrdinality;
 			this.word = word;
 			this.isInstructor = isInstructor;
 			this.isTarget = isTarget;
-			this.isOov = isOov;
 			this.score = score;
 		}
 
-		private SequenceDatapoint(SequenceDatapoint copyee) {
-			this(copyee.tokSeqOrdinality, copyee.word, copyee.isInstructor, copyee.isTarget, copyee.isOov,
-					copyee.score);
+		private SequenceDatapoint(final SequenceDatapoint copyee) {
+			this(copyee.tokSeqOrdinality, copyee.word, copyee.isInstructor, copyee.isTarget, copyee.score);
 		}
 
 		/**
@@ -222,13 +223,6 @@ public final class WordProbabiltyScoreSequenceWriter {
 		}
 
 		/**
-		 * @return the isOov
-		 */
-		private boolean isOov() {
-			return isOov;
-		}
-
-		/**
 		 * @return the isTarget
 		 */
 		private boolean isTarget() {
@@ -239,23 +233,15 @@ public final class WordProbabiltyScoreSequenceWriter {
 		 * @param isInstructor
 		 *            the isInstructor to set
 		 */
-		private void setInstructor(boolean isInstructor) {
+		private void setInstructor(final boolean isInstructor) {
 			this.isInstructor = isInstructor;
-		}
-
-		/**
-		 * @param isOov
-		 *            the isOov to set
-		 */
-		private void setOov(boolean isOov) {
-			this.isOov = isOov;
 		}
 
 		/**
 		 * @param score
 		 *            the score to set
 		 */
-		private void setScore(double score) {
+		private void setScore(final double score) {
 			this.score = score;
 		}
 
@@ -263,7 +249,7 @@ public final class WordProbabiltyScoreSequenceWriter {
 		 * @param isTarget
 		 *            the isTarget to set
 		 */
-		private void setTarget(boolean isTarget) {
+		private void setTarget(final boolean isTarget) {
 			this.isTarget = isTarget;
 		}
 
@@ -271,7 +257,7 @@ public final class WordProbabiltyScoreSequenceWriter {
 		 * @param tokSeqOrdinality
 		 *            the tokSeqOrdinality to set
 		 */
-		private void setTokSeqOrdinality(int tokSeqOrdinality) {
+		private void setTokSeqOrdinality(final int tokSeqOrdinality) {
 			this.tokSeqOrdinality = tokSeqOrdinality;
 		}
 
@@ -279,7 +265,7 @@ public final class WordProbabiltyScoreSequenceWriter {
 		 * @param word
 		 *            the word to set
 		 */
-		private void setWord(String word) {
+		private void setWord(final String word) {
 			this.word = word;
 		}
 	}
@@ -294,7 +280,7 @@ public final class WordProbabiltyScoreSequenceWriter {
 
 		private final float uttStart;
 
-		private UniqueTokenSequenceKey(int cvId, String dyad, final float uttStart, final float uttEnd) {
+		private UniqueTokenSequenceKey(final int cvId, final String dyad, final float uttStart, final float uttEnd) {
 			this.cvId = cvId;
 			this.dyad = dyad;
 			this.uttStart = uttStart;
@@ -302,7 +288,7 @@ public final class WordProbabiltyScoreSequenceWriter {
 		}
 
 		@Override
-		public int compareTo(UniqueTokenSequenceKey o) {
+		public int compareTo(final UniqueTokenSequenceKey o) {
 			int result = 0;
 			if ((result = Integer.compare(cvId, o.cvId)) == 0) {
 				if ((result = dyad.compareTo(o.dyad)) == 0) {
@@ -315,25 +301,33 @@ public final class WordProbabiltyScoreSequenceWriter {
 		}
 
 		@Override
-		public boolean equals(Object obj) {
-			if (this == obj)
+		public boolean equals(final Object obj) {
+			if (this == obj) {
 				return true;
-			if (obj == null)
+			}
+			if (obj == null) {
 				return false;
-			if (!(obj instanceof UniqueTokenSequenceKey))
+			}
+			if (!(obj instanceof UniqueTokenSequenceKey)) {
 				return false;
-			UniqueTokenSequenceKey other = (UniqueTokenSequenceKey) obj;
-			if (cvId != other.cvId)
+			}
+			final UniqueTokenSequenceKey other = (UniqueTokenSequenceKey) obj;
+			if (cvId != other.cvId) {
 				return false;
+			}
 			if (dyad == null) {
-				if (other.dyad != null)
+				if (other.dyad != null) {
 					return false;
-			} else if (!dyad.equals(other.dyad))
+				}
+			} else if (!dyad.equals(other.dyad)) {
 				return false;
-			if (Float.floatToIntBits(uttEnd) != Float.floatToIntBits(other.uttEnd))
+			}
+			if (Float.floatToIntBits(uttEnd) != Float.floatToIntBits(other.uttEnd)) {
 				return false;
-			if (Float.floatToIntBits(uttStart) != Float.floatToIntBits(other.uttStart))
+			}
+			if (Float.floatToIntBits(uttStart) != Float.floatToIntBits(other.uttStart)) {
 				return false;
+			}
 			return true;
 		}
 
@@ -342,7 +336,7 @@ public final class WordProbabiltyScoreSequenceWriter {
 			final int prime = 31;
 			int result = 1;
 			result = prime * result + cvId;
-			result = prime * result + ((dyad == null) ? 0 : dyad.hashCode());
+			result = prime * result + (dyad == null ? 0 : dyad.hashCode());
 			result = prime * result + Float.floatToIntBits(uttEnd);
 			result = prime * result + Float.floatToIntBits(uttStart);
 			return result;
@@ -350,7 +344,7 @@ public final class WordProbabiltyScoreSequenceWriter {
 
 		@Override
 		public String toString() {
-			StringBuilder builder = new StringBuilder(128);
+			final StringBuilder builder = new StringBuilder(128);
 			builder.append("UniqueTokenSequenceKey [cvId=");
 			builder.append(cvId);
 			builder.append(", dyad=");
@@ -372,21 +366,6 @@ public final class WordProbabiltyScoreSequenceWriter {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(WordProbabiltyScoreSequenceWriter.class);
 
-	private static Map<WordProbabilityScoreDatum, Integer> createColumnIndexMap(String header) {
-		String[] colNames = header.split(COL_DELIM);
-		Map<WordProbabilityScoreDatum, Integer> result = new EnumMap<>(WordProbabilityScoreDatum.class);
-		for (int i = 0; i < colNames.length; ++i) {
-			String colName = colNames[i];
-			try {
-				WordProbabilityScoreDatum datum = WordProbabilityScoreDatum.valueOf(colName);
-				result.put(datum, i);
-			} catch (IllegalArgumentException e) {
-				// Do nothing
-			}
-		}
-		return result;
-	}
-
 	public static void main(final CommandLine cl) throws IOException, ClassificationException, ParseException {
 		if (cl.hasOption(Parameter.HELP.optName)) {
 			Parameter.printHelp();
@@ -400,11 +379,11 @@ public final class WordProbabiltyScoreSequenceWriter {
 				final Path inpath = inpaths[0];
 				final Charset encoding = Parameter.parseEncoding(cl, StandardCharsets.UTF_8);
 				LOGGER.info("Will read data from \"{}\" with encoding \"{}\".", inpath, encoding);
-				int seqLen = ((Number) cl.getParsedOptionValue(Parameter.SEQUENCE_LENGTH.optName)).intValue();
+				final int seqLen = ((Number) cl.getParsedOptionValue(Parameter.SEQUENCE_LENGTH.optName)).intValue();
 				LOGGER.info("Will create sequences of length {}.", seqLen);
 				final ThrowingSupplier<PrintStream, IOException> outStreamGetter = CLIParameters
 						.parseOutpath((File) cl.getParsedOptionValue(Parameter.OUTPATH.optName));
-				Map<UniqueTokenSequenceKey, ReferentTokenSequences> rows = readRows(inpath, encoding);
+				final Map<UniqueTokenSequenceKey, ReferentTokenSequences> rows = readRows(inpath, encoding);
 
 				final WordProbabiltyScoreSequenceWriter writer = new WordProbabiltyScoreSequenceWriter(seqLen);
 				writer.accept(rows, outStreamGetter);
@@ -423,35 +402,50 @@ public final class WordProbabiltyScoreSequenceWriter {
 		}
 	}
 
-	private static SequenceDatapoint parseSequenceDatapoint(String[] row,
-			Map<WordProbabilityScoreDatum, Integer> colIdxs) {
-		int tokenSeqOrdinality = Integer.parseInt(row[colIdxs.get(WordProbabilityScoreDatum.TOKEN_SEQ_ORDINALITY)]);
-		String word = row[colIdxs.get(WordProbabilityScoreDatum.WORD)].intern();
-		boolean isInstructor = Boolean.parseBoolean(row[colIdxs.get(WordProbabilityScoreDatum.IS_INSTRUCTOR)]);
-		boolean isTarget = Boolean.parseBoolean(row[colIdxs.get(WordProbabilityScoreDatum.IS_TARGET)]);
-		boolean isOov = Boolean.parseBoolean(row[colIdxs.get(WordProbabilityScoreDatum.IS_OOV)]);
-		double score = Double.parseDouble(row[colIdxs.get(WordProbabilityScoreDatum.PROBABILITY)]);
-		return new SequenceDatapoint(tokenSeqOrdinality, word, isInstructor, isTarget, isOov, score);
+	private static Map<WordProbabilityScoreDatum, Integer> createColumnIndexMap(final String header) {
+		final String[] colNames = header.split(COL_DELIM);
+		final Map<WordProbabilityScoreDatum, Integer> result = new EnumMap<>(WordProbabilityScoreDatum.class);
+		for (int i = 0; i < colNames.length; ++i) {
+			final String colName = colNames[i];
+			try {
+				final WordProbabilityScoreDatum datum = WordProbabilityScoreDatum.valueOf(colName);
+				result.put(datum, i);
+			} catch (final IllegalArgumentException e) {
+				// Do nothing
+			}
+		}
+		return result;
 	}
 
-	private static Map<UniqueTokenSequenceKey, ReferentTokenSequences> readRows(Path inpath, Charset encoding)
-			throws IOException {
+	private static SequenceDatapoint parseSequenceDatapoint(final String[] row,
+			final Map<WordProbabilityScoreDatum, Integer> colIdxs) {
+		final int tokenSeqOrdinality = Integer
+				.parseInt(row[colIdxs.get(WordProbabilityScoreDatum.TOKEN_SEQ_ORDINALITY)]);
+		final String word = row[colIdxs.get(WordProbabilityScoreDatum.WORD)].intern();
+		final boolean isInstructor = Boolean.parseBoolean(row[colIdxs.get(WordProbabilityScoreDatum.IS_INSTRUCTOR)]);
+		final boolean isTarget = Boolean.parseBoolean(row[colIdxs.get(WordProbabilityScoreDatum.IS_TARGET)]);
+		final double score = Double.parseDouble(row[colIdxs.get(WordProbabilityScoreDatum.PROBABILITY)]);
+		return new SequenceDatapoint(tokenSeqOrdinality, word, isInstructor, isTarget, score);
+	}
+
+	private static Map<UniqueTokenSequenceKey, ReferentTokenSequences> readRows(final Path inpath,
+			final Charset encoding) throws IOException {
 		LOGGER.info("Reading \"{}\" with encoding \"{}\".", inpath, encoding);
 
-		Iterator<String> lineIter = Files.lines(inpath, encoding).iterator();
-		Map<WordProbabilityScoreDatum, Integer> colIdxs = createColumnIndexMap(lineIter.next());
+		final Iterator<String> lineIter = Files.lines(inpath, encoding).iterator();
+		final Map<WordProbabilityScoreDatum, Integer> colIdxs = createColumnIndexMap(lineIter.next());
 		final Map<UniqueTokenSequenceKey, ReferentTokenSequences> result = new HashMap<>(3000);
 		while (lineIter.hasNext()) {
-			String line = lineIter.next();
-			String[] row = line.split(COL_DELIM);
-			SequenceDatapoint datapoint = parseSequenceDatapoint(row, colIdxs);
-			int cvId = Integer.parseInt(row[colIdxs.get(WordProbabilityScoreDatum.CROSS_VALIDATION_ITER)]);
-			String dyad = row[colIdxs.get(WordProbabilityScoreDatum.DYAD)].intern();
+			final String line = lineIter.next();
+			final String[] row = line.split(COL_DELIM);
+			final SequenceDatapoint datapoint = parseSequenceDatapoint(row, colIdxs);
+			final int cvId = Integer.parseInt(row[colIdxs.get(WordProbabilityScoreDatum.CROSS_VALIDATION_ITER)]);
+			final String dyad = row[colIdxs.get(WordProbabilityScoreDatum.DYAD)].intern();
 			final float uttStart = Float.parseFloat(row[colIdxs.get(WordProbabilityScoreDatum.UTT_START_TIME)]);
 			final float uttEnd = Float.parseFloat(row[colIdxs.get(WordProbabilityScoreDatum.UTT_END_TIME)]);
-			UniqueTokenSequenceKey mapKey = new UniqueTokenSequenceKey(cvId, dyad, uttStart, uttEnd);
-			ReferentTokenSequences seqRows = result.computeIfAbsent(mapKey, key -> new ReferentTokenSequences());
-			int refIdx = Integer.parseInt(row[colIdxs.get(WordProbabilityScoreDatum.ENTITY)]) - 1;
+			final UniqueTokenSequenceKey mapKey = new UniqueTokenSequenceKey(cvId, dyad, uttStart, uttEnd);
+			final ReferentTokenSequences seqRows = result.computeIfAbsent(mapKey, key -> new ReferentTokenSequences());
+			final int refIdx = Integer.parseInt(row[colIdxs.get(WordProbabilityScoreDatum.ENTITY)]) - 1;
 
 			seqRows.add(refIdx, datapoint.tokSeqOrdinality - 1, datapoint);
 		}
@@ -461,42 +455,41 @@ public final class WordProbabiltyScoreSequenceWriter {
 
 	private final int seqLen;
 
-	public WordProbabiltyScoreSequenceWriter(int seqLen) {
+	public WordProbabiltyScoreSequenceWriter(final int seqLen) {
 		this.seqLen = seqLen;
 	}
 
-	public void accept(Map<UniqueTokenSequenceKey, ReferentTokenSequences> rows,
+	public void accept(final Map<UniqueTokenSequenceKey, ReferentTokenSequences> rows,
 			final ThrowingSupplier<PrintStream, IOException> outStreamGetter) throws IOException {
 		LOGGER.info("Writing to output.");
-		Iterator<Entry<UniqueTokenSequenceKey, ReferentTokenSequences>> entryIter = rows.entrySet().stream()
+		final Iterator<Entry<UniqueTokenSequenceKey, ReferentTokenSequences>> entryIter = rows.entrySet().stream()
 				.sorted(Comparator.comparing(Entry::getKey)).iterator();
 		try (PrintStream outStream = outStreamGetter.get()) {
-			CSVPrinter printer = CSVFormat.TDF.withHeader(COL_HEADERS).print(outStream);
+			final CSVPrinter printer = CSVFormat.TDF.withHeader(COL_HEADERS).print(outStream);
 			while (entryIter.hasNext()) {
-				Entry<UniqueTokenSequenceKey, ReferentTokenSequences> entry = entryIter.next();
-				UniqueTokenSequenceKey key = entry.getKey();
-				ReferentTokenSequences seqs = entry.getValue();
+				final Entry<UniqueTokenSequenceKey, ReferentTokenSequences> entry = entryIter.next();
+				final UniqueTokenSequenceKey key = entry.getKey();
+				final ReferentTokenSequences seqs = entry.getValue();
 				writePaddedSequences(key, seqs, printer);
 			}
 		}
 		LOGGER.info("Finished writing.");
 	}
 
-	private List<SequenceDatapoint> createPaddedSequence(List<SequenceDatapoint> seq, int windowStartIdx,
-			int windowEndIdx) {
+	private List<SequenceDatapoint> createPaddedSequence(final List<SequenceDatapoint> seq, final int windowStartIdx,
+			final int windowEndIdx) {
 		List<SequenceDatapoint> result;
 		if (windowStartIdx < 0) {
 			result = new ArrayList<>(seqLen);
-			SequenceDatapoint firstSeqDatapoint = seq.get(0);
+			final SequenceDatapoint firstSeqDatapoint = seq.get(0);
 			for (int tokSeqOrdinality = windowStartIdx + 1; tokSeqOrdinality <= 0; ++tokSeqOrdinality) {
-				SequenceDatapoint padding = new SequenceDatapoint(firstSeqDatapoint);
+				final SequenceDatapoint padding = new SequenceDatapoint(firstSeqDatapoint);
 				padding.setTokSeqOrdinality(tokSeqOrdinality);
 				padding.setWord("__PADDING__");
-				padding.setOov(false);
 				padding.setScore(0);
 				result.add(padding);
 			}
-			List<SequenceDatapoint> realDatapoints = seq.subList(0, windowEndIdx);
+			final List<SequenceDatapoint> realDatapoints = seq.subList(0, windowEndIdx);
 			result.addAll(realDatapoints);
 		} else {
 			// No need for padding
@@ -506,9 +499,9 @@ public final class WordProbabiltyScoreSequenceWriter {
 		return result;
 	}
 
-	private void writePaddedSequences(UniqueTokenSequenceKey key, ReferentTokenSequences seqs, CSVPrinter printer)
-			throws IOException {
-		ListIterator<List<SequenceDatapoint>> refTokSeqIter = seqs.refTokenRows.listIterator();
+	private void writePaddedSequences(final UniqueTokenSequenceKey key, final ReferentTokenSequences seqs,
+			final CSVPrinter printer) throws IOException {
+		final ListIterator<List<SequenceDatapoint>> refTokSeqIter = seqs.refTokenRows.listIterator();
 		do {
 			final List<SequenceDatapoint> seq = refTokSeqIter.next();
 			final int refId = refTokSeqIter.nextIndex();
@@ -516,12 +509,10 @@ public final class WordProbabiltyScoreSequenceWriter {
 			for (int windowEndIdx = 1; windowEndIdx <= seq.size(); ++windowEndIdx) {
 				final int windowStartIdx = windowEndIdx - seqLen;
 				final List<SequenceDatapoint> splitSeq = createPaddedSequence(seq, windowStartIdx, windowEndIdx);
-				for (SequenceDatapoint datapoint : splitSeq) {
-					final Stream<String> rowCells = Stream
-							.of(key.cvId, key.dyad, key.uttStart, key.uttEnd, splitSeqNo,
-									datapoint.getTokSeqOrdinality(), datapoint.getWord(), datapoint.isInstructor(),
-									datapoint.isOov(), refId, datapoint.isTarget(), datapoint.getScore())
-							.map(Object::toString);
+				for (final SequenceDatapoint datapoint : splitSeq) {
+					final Stream<String> rowCells = Stream.of(key.cvId, key.dyad, key.uttStart, key.uttEnd, splitSeqNo,
+							datapoint.getTokSeqOrdinality(), datapoint.getWord(), datapoint.isInstructor(), refId,
+							datapoint.isTarget(), datapoint.getScore()).map(Object::toString);
 					printer.printRecord((Iterable<String>) rowCells::iterator);
 				}
 				splitSeqNo++;

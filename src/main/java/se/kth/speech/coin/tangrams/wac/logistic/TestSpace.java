@@ -23,6 +23,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,7 +74,9 @@ public final class TestSpace {
 					ref.setPosition(y, x);
 
 					for (final String w : wlist) {
-						final Logistic wordClassifier = model.getTrainingData().getWordClassifiers().getWordClassifier(w);
+						final Optional<Logistic> optWordClassifier = model.getTrainingData().getWordClassifiers().getWordClassifier(w);
+						// There should always be a classifier for the specified words
+						final Logistic wordClassifier = optWordClassifier.get();
 						final double score = scorer.score(wordClassifier, ref);
 						pw.println("<div style=\"color:" + TestColor.getHTMLColorString(score) + "\">" + w + "</div>");
 					}

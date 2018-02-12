@@ -49,8 +49,6 @@ public final class WordProbabilityScorer
 
 		private final boolean isInstructor;
 
-		private final boolean isOov;
-
 		private final Referent ref;
 
 		private final int refId;
@@ -68,8 +66,8 @@ public final class WordProbabilityScorer
 		private final long wordObsCount;
 
 		private ReferentWordScore(final Referent ref, final int refId, final float uttStartTime, final float uttEndTime,
-				final int tokSeqOrdinality, final String word, final boolean isInstructor, final boolean isOov,
-				final long wordObsCount, final double score) {
+				final int tokSeqOrdinality, final String word, final boolean isInstructor, final long wordObsCount,
+				final double score) {
 			this.ref = ref;
 			this.refId = refId;
 			this.uttStartTime = uttStartTime;
@@ -77,7 +75,6 @@ public final class WordProbabilityScorer
 			this.tokSeqOrdinality = tokSeqOrdinality;
 			this.word = word;
 			this.isInstructor = isInstructor;
-			this.isOov = isOov;
 			this.wordObsCount = wordObsCount;
 			this.score = score;
 		}
@@ -145,13 +142,6 @@ public final class WordProbabilityScorer
 			return isInstructor;
 		}
 
-		/**
-		 * @return the isOov
-		 */
-		public boolean isOov() {
-			return isOov;
-		}
-
 	}
 
 	private static final Consumer<Round> DUMMY_INCREMENTAL_ROUND_TRAINING_UPDATER = round -> {
@@ -163,11 +153,8 @@ public final class WordProbabilityScorer
 	private static List<Utterance> createUttList(final Round round, final boolean onlyInstructor) {
 		final List<Utterance> allUtts = round.getUtts();
 		return onlyInstructor
-				? Arrays.asList(allUtts.stream().filter(Utterance::isInstructor).toArray(Utterance[]::new)) : allUtts;
-	}
-
-	private static boolean isNullWordObservationCount(final long count) {
-		return count < 1L;
+				? Arrays.asList(allUtts.stream().filter(Utterance::isInstructor).toArray(Utterance[]::new))
+				: allUtts;
 	}
 
 	private final LogisticModel model;
@@ -242,9 +229,6 @@ public final class WordProbabilityScorer
 			final FeatureAttributeData featureAttrs = trainingData.getFeatureAttrs();
 			final Vocabulary vocab = trainingData.getVocabulary();
 			final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
-			final long discountCutoffValue = ((Number) modelParams.get(ModelParameter.DISCOUNT)).longValue();
-			final double discountWeightingValue = discountCutoffValue;
-			final Logistic discountClassifier = wordClassifiers.getDiscountClassifier();
 
 			final Stream.Builder<ReferentWordScore> refWordScores = Stream.builder();
 			for (final ListIterator<Referent> refIter = round.getReferents().listIterator(); refIter.hasNext();) {
@@ -264,25 +248,25 @@ public final class WordProbabilityScorer
 						while (wordIter.hasNext()) {
 							final String word = wordIter.next();
 							tokSeqOrdinality++;
-							Logistic wordClassifier = wordClassifiers.getWordClassifier(word);
-							final boolean isOov;
-							final long wordObsCount;
-							if (isOov = wordClassifier == null) {
-								wordClassifier = discountClassifier;
-								wordObsCount = discountCutoffValue;
+							final Optional<Logistic> optWordClassifier = wordClassifiers.getWordClassifier(word);
+							final long extantWordObservationCount = vocab.getCount(word);
+							final double wordScore;
+							if (optWordClassifier.isPresent()) {
+								final Logistic wordClassifier = optWordClassifier.get();
+								assert extantWordObservationCount > 0L;
+								final double unweightedWordScore = scorer.score(wordClassifier, inst);
+								if (weightByFreq) {
+									wordScore = unweightedWordScore * Math.log10(extantWordObservationCount);
+								} else {
+									wordScore = unweightedWordScore;
+								}
 							} else {
-								wordObsCount = vocab.getCount(word);
+								wordScore = 0.0;
 							}
-							double wordScore = scorer.score(wordClassifier, inst);
-							if (weightByFreq) {
-								final long extantWordObservationCount = vocab.getCount(word);
-								final double effectiveObsCountValue = isNullWordObservationCount(
-										extantWordObservationCount) ? discountWeightingValue
-												: extantWordObservationCount;
-								wordScore *= Math.log10(effectiveObsCountValue);
-							}
+
 							final ReferentWordScore refWordScore = new ReferentWordScore(ref, refId, uttStartTime,
-									uttEndTime, tokSeqOrdinality, word, isInstructor, isOov, wordObsCount, wordScore);
+									uttEndTime, tokSeqOrdinality, word, isInstructor, extantWordObservationCount,
+									wordScore);
 							refWordScores.add(refWordScore);
 						}
 					}

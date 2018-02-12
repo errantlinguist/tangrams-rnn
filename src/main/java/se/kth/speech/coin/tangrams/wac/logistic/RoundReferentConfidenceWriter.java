@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.NavigableSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Supplier;
@@ -209,19 +210,18 @@ public final class RoundReferentConfidenceWriter {
 					final Instances refInsts = trainingData.getFeatureAttrs().createInstances(refs);
 					final Stream<String> refTokens = round.getReferringTokens(onlyInstructor);
 					final Stream<Stream<String>> rowCellValues = refTokens.map(word -> {
-						final Logistic wordClassifier = trainingData.getWordClassifiers().getWordClassifier(word);
-						final Stream<String> positiveConfidences;
-						if (wordClassifier == null) {
-							positiveConfidences = Stream.generate(() -> DISCOUNTED_WORD_CLASSIFIER_CONFIDENCE_VAL)
-									.limit(referentCols);
-						} else {
+						final Optional<Logistic> optWordClassifier = trainingData.getWordClassifiers()
+								.getWordClassifier(word);
+						final Stream<String> positiveConfidences = optWordClassifier.map(wordClassifier -> {
 							try {
 								final DoubleStream refConfidences = scorer.score(wordClassifier, refInsts);
-								positiveConfidences = refConfidences.mapToObj(Double::toString);
+								return refConfidences.mapToObj(Double::toString);
 							} catch (final Exception e) {
 								throw new ClassificationException(e);
 							}
-						}
+						}).orElseGet(() -> {
+							return Stream.generate(() -> DISCOUNTED_WORD_CLASSIFIER_CONFIDENCE_VAL).limit(referentCols);
+						});
 						final Stream<String> roundData = Stream.of(dyadId, roundId, targetRefIdStr, word);
 						return Stream.concat(roundData, positiveConfidences);
 					});

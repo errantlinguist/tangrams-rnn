@@ -92,14 +92,6 @@ enum RoundReferentFeatureDescription implements Function<RoundReferentFeatureDes
 		}
 
 	},
-	IS_OOV {
-
-		@Override
-		public String apply(final Input input) {
-			return Boolean.toString(input.isOov);
-		}
-
-	},
 	SHAPE {
 
 		@Override
@@ -204,11 +196,9 @@ enum RoundReferentFeatureDescription implements Function<RoundReferentFeatureDes
 
 		private final String word;
 		
-		private final boolean isOov;
-
 		private final double confidence;
 
-		Input(final String dyadId, final String roundId, final Round round, String refId, final Referent ref, final String word, boolean isOov,
+		Input(final String dyadId, final String roundId, final Round round, String refId, final Referent ref, final String word,
 				final double confidence) {
 			this.dyadId = dyadId;
 			this.roundId = roundId;
@@ -216,7 +206,6 @@ enum RoundReferentFeatureDescription implements Function<RoundReferentFeatureDes
 			this.refId = refId;
 			this.ref = ref;
 			this.word = word;
-			this.isOov = isOov;
 			this.confidence = confidence;
 		}
 

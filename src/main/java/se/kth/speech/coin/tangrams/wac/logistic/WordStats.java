@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -67,13 +68,13 @@ public final class WordStats { // NO_UCD (unused code)
 		final boolean onlyInstructor = (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR);
 		for (final Round round : new RoundSet(set, onlyInstructor).getRounds()) {
 			round.getReferringTokens(onlyInstructor).forEach(word -> {
-				final Logistic wordClassifier = model.getTrainingData().getWordClassifiers().getWordClassifier(word);
-				if (wordClassifier != null) {
+				final Optional<Logistic> optWordClassifier = model.getTrainingData().getWordClassifiers().getWordClassifier(word);
+				optWordClassifier.ifPresent(wordClassifier -> {
 					for (final Referent ref : round.getReferents()) {
 						final double score = scorer.score(wordClassifier, ref);
 						stats.add(round, word, score, ref.isTarget());
 					}
-				}
+				});
 			});
 		}
 		stats.print();

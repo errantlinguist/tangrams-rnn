@@ -96,13 +96,6 @@ public enum WordProbabilityScoreDatum implements BiFunction<CrossValidator.Resul
 			return Long.toString(refWordScore.getWordObsCount());
 		}
 	},
-	IS_OOV {
-
-		@Override
-		public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-			return Boolean.toString(refWordScore.isOov());
-		}
-	},
 	PROBABILITY {
 
 		@Override
@@ -210,15 +203,6 @@ public enum WordProbabilityScoreDatum implements BiFunction<CrossValidator.Resul
 		@Override
 		public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
 			return Double.toString(refWordScore.getRef().getMidY());
-		}
-
-	},
-	DISCOUNT {
-
-		@Override
-		public String apply(final CrossValidator.Result<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> cvResult, final WordProbabilityScorer.ReferentWordScore refWordScore) {
-			final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
-			return modelParams.get(ModelParameter.DISCOUNT).toString();
 		}
 
 	},

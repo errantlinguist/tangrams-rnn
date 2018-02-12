@@ -113,23 +113,6 @@ public final class Vocabulary {
 		return result;
 	}
 
-	/**
-	 *
-	 * @param n
-	 *            The minimum observation count for a word to not be discounted.
-	 * @return The number of word observations discounted for use in smoothing.
-	 */
-	public long prune(final int n) {
-		long result = 0;
-		for (final String word : getWords()) {
-			if (wordObservationCounts.getLong(word) < n) {
-				final long obsCount = wordObservationCounts.removeLong(word);
-				result += obsCount;
-			}
-		}
-		return result;
-	}
-
 	@Override
 	public String toString() {
 		final StringBuilder sb = new StringBuilder();

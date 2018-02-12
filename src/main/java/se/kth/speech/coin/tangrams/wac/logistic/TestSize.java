@@ -23,6 +23,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +72,9 @@ public final class TestSize {
 				pw.println("<tr><td>" + size + "<td>");
 
 				for (final String word : wlist) {
-					final Logistic wordClassifier = model.getTrainingData().getWordClassifiers().getWordClassifier(word);
+					final Optional<Logistic> optWordClassifier = model.getTrainingData().getWordClassifiers().getWordClassifier(word);
+					// There should always be a classifier for the specified words
+					final Logistic wordClassifier = optWordClassifier.get();
 					final double score = scorer.score(wordClassifier, ref);
 					pw.println("<td style=\"color:" + TestColor.getHTMLColorString(score) + "\">" + word + "</td>");
 				}

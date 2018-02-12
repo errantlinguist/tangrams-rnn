@@ -54,27 +54,6 @@ public enum ModelParameter {
 		}
 	},
 	/**
-	 * Only build model for words with more or equal number of instances than
-	 * this; This should be a positive {@link Integer}.
-	 */
-	DISCOUNT("sm", 3) {
-		@Override
-		public Option.Builder createCLIOptionBuilder() {
-			return Option.builder(getOptName()).longOpt("smoothing")
-					.desc("Only build model for words with more or equal number of instances than this.").hasArg()
-					.argName("mincount").type(Number.class);
-		}
-
-		/**
-		 * @return A positive {@link Integer} value.
-		 */
-		@Override
-		protected Object parseValue(final String input) {
-			return parsePositiveInteger(input);
-		}
-	},
-
-	/**
 	 * Only use language from the instructor, i.e.&nbsp;ignore language from the
 	 * manipulator; This should be a {@link Boolean}.
 	 */

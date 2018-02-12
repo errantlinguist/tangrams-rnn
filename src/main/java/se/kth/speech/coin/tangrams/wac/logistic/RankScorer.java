@@ -17,7 +17,6 @@ package se.kth.speech.coin.tangrams.wac.logistic;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -30,11 +29,8 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
-import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
-import se.kth.speech.HashedCollections;
 import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
@@ -62,59 +58,44 @@ public final class RankScorer
 		private final long interactionDataTokenCount;
 
 		/**
-		 * The words which were encountered during classification for which no
-		 * trained model could be found, thus using the discount model for them
-		 * instead.
+		 * The words which were encountered during classification for which no trained
+		 * model could be found, thus using the discount model for them instead.
 		 */
 		private final List<String> oovObservations;
 
 		/**
-		 * A {@link Map} of the different word classifiers used (including the
-		 * OOV label if used) mapping to a {@link Object2DoubleMap} of
-		 * classification scores computed for each {@link Referent}.
-		 */
-		private final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps;
-
-		/**
-		 * A list of {@link Weighted} instances representing the confidence
-		 * score of each {@link Referent} being the target referent for the
-		 * given game round.
+		 * A list of {@link Weighted} instances representing the confidence score of
+		 * each {@link Referent} being the target referent for the given game round.
 		 */
 		private final List<Weighted<Referent>> scoredReferents;
 
 		/**
-		 * The counts of observations of each word used for classification in
-		 * the dataset used for training.
+		 * The counts of observations of each word used for classification in the
+		 * dataset used for training.
 		 */
 		private final Object2LongMap<String> wordObservationCounts;
 
 		/**
-		 * An array of strings used for choosing word classifiers during
-		 * classification.
+		 * An array of strings used for choosing word classifiers during classification.
 		 */
 		private final String[] words;
 
 		/**
 		 *
 		 * @param scoredReferents
-		 *            A list of {@link Weighted} instances representing the
-		 *            confidence score of each {@link Referent} being the target
-		 *            referent for the given game round.
+		 *            A list of {@link Weighted} instances representing the confidence
+		 *            score of each {@link Referent} being the target referent for the
+		 *            given game round.
 		 * @param words
-		 *            An array of strings used for choosing word classifiers
-		 *            during classification.
+		 *            An array of strings used for choosing word classifiers during
+		 *            classification.
 		 * @param oovObservations
-		 *            The words which were encountered during classification for
-		 *            which no trained model could be found, thus using the
-		 *            discount model for them instead.
-		 * @param wordClassifierScoreLists
-		 *            A {@link Map} of the different word classifiers used
-		 *            (including the OOV label if used) mapping to a
-		 *            {@link Object2DoubleMap} of classification scores computed
-		 *            for each {@link Referent}.
+		 *            The words which were encountered during classification for which
+		 *            no trained model could be found, thus using the discount model for
+		 *            them instead.
 		 * @param wordObservationCounts
-		 *            The counts of observations of each word used for
-		 *            classification in the dataset used for training.
+		 *            The counts of observations of each word used for classification in
+		 *            the dataset used for training.
 		 * @param backgroundDataTokenCount
 		 *            The number of tokens used for initial training, before any
 		 *            updating.
@@ -124,21 +105,18 @@ public final class RankScorer
 		 */
 		private ClassificationResult(final List<Weighted<Referent>> scoredReferents, final String[] words,
 				final List<String> oovObservations,
-				final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps,
 				final Object2LongMap<String> wordObservationCounts, final long backgroundDataTokenCount,
 				final long interactionDataTokenCount) {
 			this.scoredReferents = scoredReferents;
 			this.words = words;
 			this.oovObservations = oovObservations;
-			this.refWordClassifierScoreMaps = refWordClassifierScoreMaps;
 			this.wordObservationCounts = wordObservationCounts;
 			this.backgroundDataTokenCount = backgroundDataTokenCount;
 			this.interactionDataTokenCount = interactionDataTokenCount;
 		}
 
 		/**
-		 * @return The number of tokens used for initial training, before any
-		 *         updating.
+		 * @return The number of tokens used for initial training, before any updating.
 		 */
 		public long getBackgroundDataTokenCount() {
 			return backgroundDataTokenCount;
@@ -152,36 +130,26 @@ public final class RankScorer
 		}
 
 		/**
-		 * @return The words which were encountered during classification for
-		 *         which no trained model could be found, thus using the
-		 *         discount model for them instead.
+		 * @return The words which were encountered during classification for which no
+		 *         trained model could be found, thus using the discount model for them
+		 *         instead.
 		 */
 		List<String> getOovObservations() {
 			return oovObservations;
 		}
 
 		/**
-		 * @return A {@link Map} of the different word classifiers used
-		 *         (including the OOV label if used) mapping to a
-		 *         {@link Object2DoubleMap} of classification scores computed
-		 *         for each {@link Referent}.
-		 */
-		Map<Referent, Object2DoubleMap<String>> getRefWordClassifierScoreMaps() {
-			return refWordClassifierScoreMaps;
-		}
-
-		/**
-		 * @return A list of {@link Weighted} instances representing the
-		 *         confidence score of each {@link Referent} being the target
-		 *         referent for the given game round.
+		 * @return A list of {@link Weighted} instances representing the confidence
+		 *         score of each {@link Referent} being the target referent for the
+		 *         given game round.
 		 */
 		List<Weighted<Referent>> getScoredReferents() {
 			return scoredReferents;
 		}
 
 		/**
-		 * @return The counts of observations of each word used for
-		 *         classification in the dataset used for training.
+		 * @return The counts of observations of each word used for classification in
+		 *         the dataset used for training.
 		 */
 		Object2LongMap<String> getWordObservationCounts() {
 			return wordObservationCounts;
@@ -202,24 +170,12 @@ public final class RankScorer
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(RankScorer.class);
 
-	private static final double NULL_WORD_CLASSIFIER_SCORE = Double.NaN;
-
 	private static final long NULL_WORD_OBSERVATION_COUNT = 0L;
-
-	private static Object2DoubleMap<String> createWordClassifierScoreMap(final int expectedTokenTypeCount) {
-		final Object2DoubleMap<String> result = new Object2DoubleOpenHashMap<>(expectedTokenTypeCount);
-		result.defaultReturnValue(NULL_WORD_CLASSIFIER_SCORE);
-		return result;
-	}
 
 	private static Object2LongMap<String> createWordObservationCountMap(final int expectedTokenTypeCount) {
 		final Object2LongMap<String> result = new Object2LongOpenHashMap<>(expectedTokenTypeCount);
 		result.defaultReturnValue(NULL_WORD_OBSERVATION_COUNT);
 		return result;
-	}
-
-	private static boolean isNullWordClassifierScore(final double score) {
-		return Double.isNaN(score);
 	}
 
 	private static boolean isNullWordObservationCount(final long count) {
@@ -314,14 +270,8 @@ public final class RankScorer
 			final FeatureAttributeData featureAttrs = trainingData.getFeatureAttrs();
 			final Vocabulary vocab = trainingData.getVocabulary();
 			final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
-			final long discountCutoffValue = ((Number) modelParams.get(ModelParameter.DISCOUNT)).longValue();
-			final double discountWeightingValue = discountCutoffValue;
 			final List<String> oovObservations = new ArrayList<>();
-			final Logistic discountClassifier = wordClassifiers.getDiscountClassifier();
 			final List<Referent> refs = round.getReferents();
-			final Map<Referent, Object2DoubleMap<String>> refWordClassifierScoreMaps = new IdentityHashMap<>(
-					HashedCollections.capacity(refs.size()));
-			refs.forEach(ref -> refWordClassifierScoreMaps.put(ref, createWordClassifierScoreMap(words.length)));
 			// Create an entirely-new map rather than referencing the
 			// classifiers so that they can be properly garbage-collected
 			// after ranking and before possible updating preceding the next
@@ -330,38 +280,28 @@ public final class RankScorer
 
 			final Stream<Weighted<Referent>> scoredRefs = refs.stream().map(ref -> {
 				final Instance inst = featureAttrs.createInstance(ref);
-				final Object2DoubleMap<String> refWordClassifierScoreMap = refWordClassifierScoreMaps.get(ref);
 				final double[] wordScoreArray = new double[words.length];
 				for (int i = 0; i < words.length; ++i) {
 					final String word = words[i];
-					Logistic wordClassifier = wordClassifiers.getWordClassifier(word);
-					final String wordClassifierScoreMapKey;
-					if (wordClassifier == null) {
-						wordClassifier = discountClassifier;
-						oovObservations.add(word);
-						final long oldDiscountObsCount = wordObservationCounts
-								.putIfAbsent(LogisticModel.OOV_CLASS_LABEL, discountCutoffValue);
-						assert isNullWordObservationCount(oldDiscountObsCount) ? true
-								: oldDiscountObsCount == discountCutoffValue;
-						wordClassifierScoreMapKey = LogisticModel.OOV_CLASS_LABEL;
-					} else {
+					final Optional<Logistic> optWordClassifier = wordClassifiers.getWordClassifier(word);
+					final double wordScore;
+					if (optWordClassifier.isPresent()) {
+						final Logistic wordClassifier = optWordClassifier.get();
 						final long oldWordObsCount = wordObservationCounts.computeLongIfAbsent(word, vocab::getCount);
 						assert isNullWordObservationCount(oldWordObsCount) ? true
 								: oldWordObsCount == vocab.getCount(word);
-						wordClassifierScoreMapKey = word;
-					}
-					double wordScore = scorer.score(wordClassifier, inst);
-					if (weightByFreq) {
-						final long extantWordObservationCount = wordObservationCounts.getLong(word);
-						final double effectiveObsCountValue = isNullWordObservationCount(extantWordObservationCount)
-								? discountWeightingValue : extantWordObservationCount;
-						wordScore *= Math.log10(effectiveObsCountValue);
+						final double unweightedWordScore = scorer.score(wordClassifier, inst);
+						if (weightByFreq) {
+							final long extantWordObservationCount = wordObservationCounts.getLong(word);
+							wordScore = unweightedWordScore * Math.log10(extantWordObservationCount);
+						} else {
+							wordScore = unweightedWordScore;
+						}
+					} else {
+						wordScore = 0.0;
+						oovObservations.add(word);
 					}
 					wordScoreArray[i] = wordScore;
-					final double oldWordClassifierScore = refWordClassifierScoreMap
-							.putIfAbsent(wordClassifierScoreMapKey, wordScore);
-					assert isNullWordClassifierScore(oldWordClassifierScore) ? true
-							: oldWordClassifierScore == wordScore;
 				}
 				final double score = Arrays.stream(wordScoreArray).average().getAsDouble();
 				return new Weighted<>(ref, score);
@@ -370,8 +310,7 @@ public final class RankScorer
 			final List<Weighted<Referent>> scoredRefList = Arrays.asList(scoredRefs.toArray(Weighted[]::new));
 			final Object2LongMap<String> interactiondata = trainingData.getInteractionData();
 			result = Optional.of(new ClassificationResult(scoredRefList, words, oovObservations,
-					refWordClassifierScoreMaps, wordObservationCounts, trainingData.getBackgroundDataTokenCount(),
-					sumValues(interactiondata)));
+					wordObservationCounts, trainingData.getBackgroundDataTokenCount(), sumValues(interactiondata)));
 		}
 		return result;
 	}

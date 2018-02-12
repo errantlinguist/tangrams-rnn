@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -171,18 +172,14 @@ public final class RoundReferentFeatureConfidenceWriter {
 					final List<Referent> refs = round.getReferents();
 					for (final String refToken : refTokens) {
 						final WordClassifiers wordClassifiers = model.getTrainingData().getWordClassifiers();
-						Logistic wordClassifier = wordClassifiers.getWordClassifier(refToken);
-						final boolean isOov;
-						if (isOov = wordClassifier == null) {
-							wordClassifier = wordClassifiers.getDiscountClassifier();
-						}
+						final Optional<Logistic> optWordClassifier = wordClassifiers.getWordClassifier(refToken);
 						for (final ListIterator<Referent> refIter = refs.listIterator(); refIter.hasNext();) {
 							final Referent ref = refIter.next();
 							// Entities are 1-indexed
 							final String refId = Integer.toString(refIter.nextIndex());
-							final double refConf = scorer.score(wordClassifier, ref);
+							final double refConf = optWordClassifier.isPresent() ? scorer.score(optWordClassifier.get(), ref) : 0.0;
 							final RoundReferentFeatureDescription.Input descInput = new RoundReferentFeatureDescription.Input(
-									dyadId, roundId, round, refId, ref, refToken, isOov, refConf);
+									dyadId, roundId, round, refId, ref, refToken, refConf);
 							final Stream<String> rowCells = createRowCells(descInput);
 							printer.printRecord((Iterable<String>) rowCells::iterator);
 						}

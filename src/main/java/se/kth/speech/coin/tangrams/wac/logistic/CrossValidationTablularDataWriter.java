@@ -324,15 +324,6 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 			}
 
 		},
-		DISCOUNT {
-
-			@Override
-			public String apply(final CrossValidator.Result<RoundEvaluationResult<ClassificationResult>> cvResult) {
-				final Map<ModelParameter, Object> modelParams = cvResult.getModelParams();
-				return modelParams.get(ModelParameter.DISCOUNT).toString();
-			}
-
-		},
 		ONLY_INSTRUCTOR {
 
 			@Override
