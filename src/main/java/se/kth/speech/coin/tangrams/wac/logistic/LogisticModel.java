@@ -423,6 +423,9 @@ public final class LogisticModel { // NO_UCD (use default)
 		 */
 		private final WordClassifiers wordClassifiers;
 
+		/**
+		 * The {@link Instances} objects to use for training each respective word model.
+		 */
 		private final Map<String, Instances> wordTrainingInsts;
 
 		/**
@@ -435,6 +438,9 @@ public final class LogisticModel { // NO_UCD (use default)
 		 *            The {@link Vocabulary} used during training.
 		 * @param trainingSet
 		 *            The {@link RoundSet} used as training data.
+		 * @param wordTrainingInsts
+		 *            The {@link Instances} objects to use for training each respective
+		 *            word model.
 		 * @param backgroundDataTokenCount
 		 *            The number of tokens used for initial training, before any
 		 *            updating.
@@ -1355,7 +1361,8 @@ public final class LogisticModel { // NO_UCD (use default)
 		// the old training set not seen in the new training set
 		final ConcurrentMap<String, Logistic> extantClassifiers = new ConcurrentHashMap<>(
 				DEFAULT_INITIAL_WORD_CLASS_MAP_CAPACITY);
-		final TrainingTask trainingTask = new TrainingTask(wordTrainingInsts.keySet(), wordTrainingInsts, extantClassifiers);
+		final TrainingTask trainingTask = new TrainingTask(wordTrainingInsts.keySet(), wordTrainingInsts,
+				extantClassifiers);
 		executeAsynchronously(trainingTask);
 		final WordClassifiers trainingResults = trainingTask.join();
 		trainingData = new TrainingData(trainingResults, featureAttrs, vocab, trainingSet, wordTrainingInsts,
