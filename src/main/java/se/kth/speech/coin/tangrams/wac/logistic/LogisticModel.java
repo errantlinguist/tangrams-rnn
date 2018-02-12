@@ -1355,7 +1355,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		// the old training set not seen in the new training set
 		final ConcurrentMap<String, Logistic> extantClassifiers = new ConcurrentHashMap<>(
 				DEFAULT_INITIAL_WORD_CLASS_MAP_CAPACITY);
-		final TrainingTask trainingTask = new TrainingTask(vocab.getWords(), wordTrainingInsts, extantClassifiers);
+		final TrainingTask trainingTask = new TrainingTask(wordTrainingInsts.keySet(), wordTrainingInsts, extantClassifiers);
 		executeAsynchronously(trainingTask);
 		final WordClassifiers trainingResults = trainingTask.join();
 		trainingData = new TrainingData(trainingResults, featureAttrs, vocab, trainingSet, wordTrainingInsts,
