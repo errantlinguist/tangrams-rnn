@@ -15,7 +15,6 @@
  */
 package se.kth.speech.coin.tangrams.wac.data;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -39,14 +38,6 @@ public final class RoundSet {
 	public RoundSet(final SessionSet set, final boolean onlyInstructor) {
 		this(set.getSessions().stream().map(Session::getRounds).flatMap(List::stream).collect(Collectors.toList()),
 				onlyInstructor);
-	}
-
-	public void addWordCountsForRounds(final Round round, final Object2LongMap<String> counts) {
-		final Stream<String> tokens = getReferringTokens(round);
-		tokens.forEach(word -> {
-			final long oldValue = counts.getLong(word);
-			counts.put(word, oldValue + 1L);
-		});
 	}
 
 	public Vocabulary createVocabulary(final int estimatedVocabSize) {
@@ -85,33 +76,6 @@ public final class RoundSet {
 			return false;
 		}
 		return true;
-	}
-
-	/**
-	 * Gets {@link Round} instances which contain words not part of the given
-	 * {@link Collection} of words.
-	 *
-	 * @param vocabWords
-	 *            The vocabulary of all words to be used as classifiers.
-	 * @return A {@link Stream} of {@code Round} instances, each of which
-	 *         featuring at least one referring-language word which is not part
-	 *         of the given {@code Collection} of vocabulary words.
-	 */
-	public Stream<Round> getDiscountRounds(final Collection<? super String> vocabWords) {
-		return rounds.stream().filter(round -> round.hasDiscount(vocabWords, onlyInstructor));
-	}
-
-	/**
-	 * Gets {@link Round} instances which contains at least one observation of a
-	 * given word used as referring language.
-	 *
-	 * @param vocabWord
-	 *            The word to search for.
-	 * @return A {@link Stream} of {@code Round} instances, each of which
-	 *         featuring usage of the given word as referring language.
-	 */
-	public Stream<Round> getExampleRounds(final String vocabWord) {
-		return rounds.stream().filter(round -> round.hasWord(vocabWord, onlyInstructor));
 	}
 
 	public Stream<String> getReferringTokens(final Round round) {
@@ -155,7 +119,15 @@ public final class RoundSet {
 		return builder.toString();
 	}
 
+	private void addWordCountsForRound(final Round round, final Object2LongMap<String> counts) {
+		final Stream<String> tokens = getReferringTokens(round);
+		tokens.forEach(word -> {
+			final long oldValue = counts.getLong(word);
+			counts.put(word, oldValue + 1L);
+		});
+	}
+
 	private void addWordCountsForRounds(final Object2LongMap<String> counts) {
-		rounds.stream().forEach(round -> addWordCountsForRounds(round, counts));
+		rounds.stream().forEach(round -> addWordCountsForRound(round, counts));
 	}
 }

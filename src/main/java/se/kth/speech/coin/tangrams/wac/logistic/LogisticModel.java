@@ -19,10 +19,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,9 +41,13 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
+import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMaps;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import se.kth.speech.HashedCollections;
 import se.kth.speech.Lists;
 import se.kth.speech.NumberTypeConversions;
@@ -104,11 +110,11 @@ public final class LogisticModel { // NO_UCD (use default)
 		 *
 		 * @param ref
 		 *            The {@code Referent} to create an {@code Instance} for.
-		 * @return A new {@code Instance}; There is no reason to cache Instance
-		 *         values because {@link Instances#add(Instance)} always creates
-		 *         a shallow copy thereof anyway, so the only possible benefit
-		 *         of a cache would be avoiding the computational cost of object
-		 *         construction at the cost of greater memory requirements.
+		 * @return A new {@code Instance}; There is no reason to cache Instance values
+		 *         because {@link Instances#add(Instance)} always creates a shallow copy
+		 *         thereof anyway, so the only possible benefit of a cache would be
+		 *         avoiding the computational cost of object construction at the cost of
+		 *         greater memory requirements.
 		 */
 		public Instance createInstance(final Referent ref) {
 			final Map<ReferentFeature, Attribute> attrMap = featureAttrs;
@@ -119,16 +125,16 @@ public final class LogisticModel { // NO_UCD (use default)
 		}
 
 		/**
-		 * Creates a new {@link Instances} representing the given
-		 * {@link Referent} instances.
+		 * Creates a new {@link Instances} representing the given {@link Referent}
+		 * instances.
 		 *
 		 * @param refs
-		 *            The {@code Referent} instances to create {@code Instance}
-		 *            objects for; Their index in the given {@link List} will be
-		 *            the index of their corresponding {@code Instance} objects
-		 *            in the result data structure.
-		 * @return A new {@code Instances} object containing {@code Instance}
-		 *         objects representing each given {@code Referent}.
+		 *            The {@code Referent} instances to create {@code Instance} objects
+		 *            for; Their index in the given {@link List} will be the index of
+		 *            their corresponding {@code Instance} objects in the result data
+		 *            structure.
+		 * @return A new {@code Instances} object containing {@code Instance} objects
+		 *         representing each given {@code Referent}.
 		 */
 		public Instances createInstances(final List<Referent> refs) {
 			final Instances result = createNewInstances(refs.size());
@@ -222,9 +228,9 @@ public final class LogisticModel { // NO_UCD (use default)
 	public final class Scorer {
 
 		/**
-		 * The {@link ReferentClassification} to get the score for,
-		 * i.e.&nbsp;the probability of this class being the correct one for a
-		 * given word {@code Classifier} and referent.
+		 * The {@link ReferentClassification} to get the score for, i.e.&nbsp;the
+		 * probability of this class being the correct one for a given word
+		 * {@code Classifier} and referent.
 		 */
 		private final ReferentClassification classification;
 
@@ -232,8 +238,8 @@ public final class LogisticModel { // NO_UCD (use default)
 		 *
 		 * @param classification
 		 *            The {@link ReferentClassification} to get the score for,
-		 *            i.e.&nbsp;the probability of this class being the correct
-		 *            one for a given word {@code Classifier} and referent.
+		 *            i.e.&nbsp;the probability of this class being the correct one for
+		 *            a given word {@code Classifier} and referent.
 		 */
 		private Scorer(final ReferentClassification classification) {
 			this.classification = classification;
@@ -308,8 +314,8 @@ public final class LogisticModel { // NO_UCD (use default)
 		 *            The word {@link Classifier classifier} to use.
 		 * @param refs
 		 *            The {@link Referent} instances to classify.
-		 * @return The probabilities of the {@code Referent} instances being
-		 *         classified correctly.
+		 * @return The probabilities of the {@code Referent} instances being classified
+		 *         correctly.
 		 * @throws ClassificationException
 		 *             If an {@link Exception} occurs during
 		 *             {@link BatchPredictor#distributionForInstances(Instances)
@@ -326,8 +332,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		 *            The word {@link Classifier classifier} to use.
 		 * @param inst
 		 *            The {@link Instance} to classify.
-		 * @return The probability of the {@code Instance} being classified
-		 *         correctly.
+		 * @return The probability of the {@code Instance} being classified correctly.
 		 * @throws ClassificationException
 		 *             If an {@link Exception} occurs during
 		 *             {@link Classifier#distributionForInstance(Instance)
@@ -356,8 +361,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		 *            The word {@link Classifier classifier} to use.
 		 * @param ref
 		 *            The {@link Referent} to classify.
-		 * @return The probability of the {@code Referent} being classified
-		 *         correctly.
+		 * @return The probability of the {@code Referent} being classified correctly.
 		 * @throws ClassificationException
 		 *             If an {@link Exception} occurs during
 		 *             {@link Classifier#distributionForInstance(Instance)
@@ -419,6 +423,8 @@ public final class LogisticModel { // NO_UCD (use default)
 		 */
 		private final WordClassifiers wordClassifiers;
 
+		private final Map<String, Instances> wordTrainingInsts;
+
 		/**
 		 *
 		 * @param wordClassifiers
@@ -436,19 +442,19 @@ public final class LogisticModel { // NO_UCD (use default)
 		 *            The number of tokens added during updating thus far.
 		 */
 		private TrainingData(final WordClassifiers wordClassifiers, final FeatureAttributeData featureAttrs,
-				final Vocabulary vocab, final RoundSet trainingSet, final long backgroundDataTokenCount,
-				final Object2LongMap<String> interactionData) {
+				final Vocabulary vocab, final RoundSet trainingSet, final Map<String, Instances> wordTrainingInsts,
+				final long backgroundDataTokenCount, final Object2LongMap<String> interactionData) {
 			this.wordClassifiers = wordClassifiers;
 			this.featureAttrs = featureAttrs;
 			this.vocab = vocab;
 			this.trainingSet = trainingSet;
+			this.wordTrainingInsts = wordTrainingInsts;
 			this.backgroundDataTokenCount = backgroundDataTokenCount;
 			this.interactionData = interactionData;
 		}
 
 		/**
-		 * @return The number of tokens used for initial training, before any
-		 *         updating.
+		 * @return The number of tokens used for initial training, before any updating.
 		 */
 		public long getBackgroundDataTokenCount() {
 			return backgroundDataTokenCount;
@@ -493,16 +499,16 @@ public final class LogisticModel { // NO_UCD (use default)
 	public static final class WordClassifiers {
 
 		/**
-		 * A {@link ConcurrentMap} of words mapped to the {@link Logistic
-		 * classifier} associated with each.
+		 * A {@link ConcurrentMap} of words mapped to the {@link Logistic classifier}
+		 * associated with each.
 		 */
 		private final ConcurrentMap<String, Logistic> wordClassifiers;
 
 		/**
 		 *
 		 * @param wordClassifiers
-		 *            A {@link ConcurrentMap} of words mapped to the
-		 *            {@link Logistic classifier} associated with each.
+		 *            A {@link ConcurrentMap} of words mapped to the {@link Logistic
+		 *            classifier} associated with each.
 		 */
 		private WordClassifiers(final ConcurrentMap<String, Logistic> wordClassifiers) {
 			this.wordClassifiers = wordClassifiers;
@@ -539,9 +545,9 @@ public final class LogisticModel { // NO_UCD (use default)
 		 *
 		 * @param word
 		 *            The word to get the corresponding {@link Classifier} for.
-		 * @return An {@link Optional} for the {@code Logistic} classifier instance representing the
-		 *         given word which is {@link Optional#empty() empty} if no {@code Classifier} was found
-		 *         for the given word.
+		 * @return An {@link Optional} for the {@code Logistic} classifier instance
+		 *         representing the given word which is {@link Optional#empty() empty}
+		 *         if no {@code Classifier} was found for the given word.
 		 */
 		public Optional<Logistic> getWordClassifier(final String word) {
 			return Optional.ofNullable(wordClassifiers.get(word));
@@ -640,7 +646,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	 * @since 7 Dec 2017
 	 *
 	 */
-	private static class TrainingTask extends ForkJoinTask<Entry<WordClassifiers, FeatureAttributeData>> {
+	private static class TrainingTask extends ForkJoinTask<WordClassifiers> {
 
 		/**
 		 *
@@ -648,22 +654,10 @@ public final class LogisticModel { // NO_UCD (use default)
 		private static final long serialVersionUID = 466815336422504998L;
 
 		/**
-		 * The {@link WordClassifiers} and {@link FeatureAttributeData} objects
-		 * representing newly-trained classifiers and the features used for
-		 * training them.
+		 * The {@link WordClassifiers} object representing newly-trained classifiers and
+		 * the features used for training them.
 		 */
-		private Entry<WordClassifiers, FeatureAttributeData> result;
-
-		/**
-		 * The (new) {@link RoundSet} to use for training.
-		 */
-		private final RoundSet trainingSet;
-
-		/**
-		 * The weight of each datapoint representing a single observation for a
-		 * given word.
-		 */
-		private final double weight;
+		private WordClassifiers result;
 
 		/**
 		 * The {@link Map} of word classifiers to (re-)populate.
@@ -673,27 +667,29 @@ public final class LogisticModel { // NO_UCD (use default)
 		/**
 		 * The vocabulary words to train models for.
 		 */
-		private final List<String> words;
+		private final Set<String> words;
 
 		/**
-		 * Constructs a {@link TrainingTask} for training models for the
-		 * specified words asynchronously.
+		 * The {@link Instances} objects to use for training each respective word model.
+		 */
+		private final Map<String, Instances> wordTrainingInsts;
+
+		/**
+		 * Constructs a {@link TrainingTask} for training models for the specified words
+		 * asynchronously.
 		 *
 		 * @param words
 		 *            The vocabulary words to train models for.
-		 * @param weight
-		 *            The weight of each datapoint representing a single
-		 *            observation for a given word.
-		 * @param trainingSet
-		 *            The (new) {@link RoundSet} to use for training.
+		 * @param wordTrainingInsts
+		 *            The {@link Instances} objects to use for training each respective
+		 *            word model.
 		 * @param wordClassifiers
 		 *            The {@link Map} of word classifiers to (re-)populate.
 		 */
-		private TrainingTask(final List<String> words, final double weight, final RoundSet trainingSet,
+		private TrainingTask(final Set<String> words, final Map<String, Instances> wordTrainingInsts,
 				final ConcurrentMap<String, Logistic> wordClassifiers) {
 			this.words = words;
-			this.weight = weight;
-			this.trainingSet = trainingSet;
+			this.wordTrainingInsts = wordTrainingInsts;
 			this.wordClassifiers = wordClassifiers;
 		}
 
@@ -703,7 +699,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		 * @see java.util.concurrent.ForkJoinTask#getRawResult()
 		 */
 		@Override
-		public Entry<WordClassifiers, FeatureAttributeData> getRawResult() {
+		public WordClassifiers getRawResult() {
 			return result;
 		}
 
@@ -714,19 +710,16 @@ public final class LogisticModel { // NO_UCD (use default)
 		 */
 		@Override
 		protected boolean exec() {
-			// The feature attributes may change from one training iteration to
-			// the next, e.g. seeing new categorical values
-			final FeatureAttributeData featureAttrs = new FeatureAttributeData();
 			// Train a model for each word, re-using the old map and thus
 			// replacing any classifiers for words which were already used for
 			// previous training iterations
 			final MapPopulator[] wordClassifierTrainers = words.stream()
-					.map(word -> new MapPopulator(new WordClassifierTrainer(word,
-							() -> createWordClassExamples(trainingSet, word), weight, featureAttrs), wordClassifiers))
+					.map(word -> new MapPopulator(new WordClassifierTrainer(word, () -> wordTrainingInsts.get(word)),
+							wordClassifiers))
 					.toArray(MapPopulator[]::new);
 			ForkJoinTask.invokeAll(wordClassifierTrainers);
 
-			result = Pair.of(new WordClassifiers(wordClassifiers), featureAttrs);
+			result = new WordClassifiers(wordClassifiers);
 			return true;
 		}
 
@@ -736,7 +729,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		 * @see java.util.concurrent.ForkJoinTask#setRawResult(java.lang.Object)
 		 */
 		@Override
-		protected void setRawResult(final Entry<WordClassifiers, FeatureAttributeData> value) {
+		protected void setRawResult(final WordClassifiers value) {
 			result = value;
 		}
 
@@ -757,7 +750,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		/**
 		 * The {@link TrainingData} created by the last training iteration.
 		 */
-		private final TrainingData oldTrainingData;
+		private final TrainingData oldBackgroundData;
 
 		/**
 		 * The {@link TrainingData} created during updating.
@@ -773,17 +766,16 @@ public final class LogisticModel { // NO_UCD (use default)
 		 *
 		 * @param round
 		 *            The {@link Round} to add to the dataset for training.
-		 * @param oldTrainingData
-		 *            The {@link TrainingData} created by the last training
-		 *            iteration.
+		 * @param oldBackgroundData
+		 *            The {@link TrainingData} created by the last training iteration.
 		 * @param modelParams
-		 *            The {@link Map} of {@link ModelParameter} values to use
-		 *            for training.
+		 *            The {@link Map} of {@link ModelParameter} values to use for
+		 *            training.
 		 */
-		private UpdateTask(final Round round, final TrainingData oldTrainingData,
+		private UpdateTask(final Round round, final TrainingData oldBackgroundData,
 				final Map<ModelParameter, Object> modelParams) {
 			this.round = round;
-			this.oldTrainingData = oldTrainingData;
+			this.oldBackgroundData = oldBackgroundData;
 			this.modelParams = modelParams;
 		}
 
@@ -804,32 +796,51 @@ public final class LogisticModel { // NO_UCD (use default)
 		 */
 		@Override
 		protected boolean exec() {
-			// Re-use old training data plus data from the given round
-			final RoundSet trainingSet = oldTrainingData.getTrainingSet();
-			trainingSet.getRounds().add(round);
-			final Vocabulary oldVocab = oldTrainingData.getVocabulary();
-			final Object2LongMap<String> oldInteractionData = oldTrainingData.getInteractionData();
-			trainingSet.addWordCountsForRounds(round, oldInteractionData);
-			final Vocabulary vocab = trainingSet.createVocabulary(oldVocab.getWordCount() + 5);
-			final long vocabSizeDiff = vocab.getTokenCount() - oldVocab.getTokenCount();
-			assert vocabSizeDiff > 0;
+			final RoundSet oldTrainingSet = oldBackgroundData.getTrainingSet();
+			// Get the referring language tokens for the new round but don't add it to the
+			// background data round set
+			final String[] newTokens = oldTrainingSet.getReferringTokens(round).toArray(String[]::new);
+			final Vocabulary vocab = oldBackgroundData.getVocabulary();
+			final Object2LongMap<String> oldInteractionData = oldBackgroundData.getInteractionData();
+			// A weighted bag-of-words map weighting each map key according to how many of
+			// times the word appears in the new round
+			final Object2DoubleMap<String> newWordWeights = new Object2DoubleOpenHashMap<>(newTokens.length);
+			newWordWeights.defaultReturnValue(0.0);
+			for (final String newToken : newTokens) {
+				vocab.incrementCount(newToken);
+				oldInteractionData.put(newToken, oldInteractionData.getLong(newToken) + 1L);
+				newWordWeights.put(newToken, newWordWeights.getDouble(newToken) + 1.0);
+			}
+			@SuppressWarnings("unchecked")
+			final Weighted<Referent>[] classWeightedRefs = createClassWeightedReferents(round).toArray(Weighted[]::new);
 			// NOTE: Values are retrieved directly from the map instead of e.g.
 			// assigning
 			// them to a final field because it's possible that the map values
 			// change at another place in the code and performance isn't an
-			// issue
-			// here anyway
+			// issue here anyway
 			final Number updateWeight = (Number) modelParams.get(ModelParameter.UPDATE_WEIGHT);
 			final double updateDoubleWeight = NumberTypeConversions.finiteDoubleValue(updateWeight.doubleValue());
 			assert updateDoubleWeight > 0.0;
+			// The feature attributes may change from one training iteration to
+			// the next, e.g. seeing new categorical values
+			final FeatureAttributeData featureAttrs = new FeatureAttributeData();
+			final Map<String, Instances> extantWordTrainingInsts = oldBackgroundData.wordTrainingInsts;
+			for (final Object2DoubleMap.Entry<String> wordWeight : newWordWeights.object2DoubleEntrySet()) {
+				final String word = wordWeight.getKey();
+				final double weight = wordWeight.getDoubleValue();
+				final Instances wordTrainingInsts = extantWordTrainingInsts.computeIfAbsent(word,
+						k -> featureAttrs.createNewInstances(classWeightedRefs.length * 2));
+				addTrainingInstances(wordTrainingInsts, classWeightedRefs, featureAttrs, weight * updateDoubleWeight);
+			}
+
 			// Re-use old word classifier map
-			final ConcurrentMap<String, Logistic> extantClassifiers = oldTrainingData
+			final ConcurrentMap<String, Logistic> extantClassifiers = oldBackgroundData
 					.getWordClassifiers().wordClassifiers;
-			final TrainingTask trainer = new TrainingTask(vocab.getUpdatedWordsSince(oldVocab), updateDoubleWeight,
-					trainingSet, extantClassifiers);
-			final Entry<WordClassifiers, FeatureAttributeData> trainingResults = trainer.fork().join();
-			result = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet,
-					oldTrainingData.getBackgroundDataTokenCount(), oldInteractionData);
+			final TrainingTask trainer = new TrainingTask(newWordWeights.keySet(), extantWordTrainingInsts,
+					extantClassifiers);
+			final WordClassifiers trainingResults = trainer.fork().join();
+			result = new TrainingData(trainingResults, featureAttrs, vocab, oldTrainingSet, extantWordTrainingInsts,
+					oldBackgroundData.getBackgroundDataTokenCount(), oldInteractionData);
 			return true;
 		}
 
@@ -849,21 +860,9 @@ public final class LogisticModel { // NO_UCD (use default)
 			implements Callable<Entry<String, Logistic>>, Supplier<Entry<String, Logistic>> {
 
 		/**
-		 * A {@link Supplier} of {@link Weighted} {@link Referent} instances to
-		 * use as training examples.
+		 * A {@link Supplier} of {@link Instances} to use as training examples.
 		 */
-		private final Supplier<? extends Stream<Weighted<Referent>>> exampleSupplier;
-
-		/**
-		 * The {@link FeatureAttributeData} to use for training.
-		 */
-		private final FeatureAttributeData featureAttrs;
-
-		/**
-		 * The weight of each datapoint representing a single observation for
-		 * the given word.
-		 */
-		private final double weight;
+		private final Supplier<? extends Instances> exampleSupplier;
 
 		/**
 		 * The word to train a {@link Logistic} classifier for.
@@ -875,21 +874,12 @@ public final class LogisticModel { // NO_UCD (use default)
 		 * @param word
 		 *            The word to train a {@link Logistic} classifier for.
 		 * @param exampleSupplier
-		 *            A {@link Supplier} of {@link Weighted} {@link Referent}
-		 *            instances to use as training examples.
-		 * @param weight
-		 *            The weight of each datapoint representing a single
-		 *            observation for the given word.
-		 * @param featureAttrs
-		 *            The {@link FeatureAttributeData} to use for training.
+		 *            A {@link Supplier} of {@link Instances} to use as training
+		 *            examples.
 		 */
-		private WordClassifierTrainer(final String word,
-				final Supplier<? extends Stream<Weighted<Referent>>> exampleSupplier, final double weight,
-				final FeatureAttributeData featureAttrs) {
+		private WordClassifierTrainer(final String word, final Supplier<? extends Instances> exampleSupplier) {
 			this.word = word;
 			this.exampleSupplier = exampleSupplier;
-			this.weight = weight;
-			this.featureAttrs = featureAttrs;
 		}
 
 		/*
@@ -905,21 +895,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		@Override
 		public Entry<String, Logistic> get() {
 			final Logistic logistic = new Logistic();
-			@SuppressWarnings("unchecked")
-			final Weighted<Referent>[] examples = exampleSupplier.get().toArray(Weighted[]::new);
-			final Instances dataset = featureAttrs.createNewInstances(examples.length);
-
-			for (final Weighted<Referent> example : examples) {
-				final Referent ref = example.getWrapped();
-				final Instance inst = featureAttrs.createInstance(ref);
-				// The instance's current weight is the weight of the instance's
-				// class; now multiply it by the weight of the word the model is
-				// being trained for
-				final double totalWeight = weight * example.getWeight();
-				inst.setWeight(totalWeight);
-				dataset.add(inst);
-			}
-
+			final Instances dataset = exampleSupplier.get();
 			try {
 				logistic.buildClassifier(dataset);
 			} catch (final Exception e) {
@@ -933,15 +909,15 @@ public final class LogisticModel { // NO_UCD (use default)
 	enum ReferentClassification {
 		// @formatter:off
 		/**
-		 * Denotes that the given referent is classified as <em>not</em> being
-		 * the &ldquo;target&rdquo; referent, i.e.&nbsp;the entity is not the
-		 * one being referred to in the round being classified.
+		 * Denotes that the given referent is classified as <em>not</em> being the
+		 * &ldquo;target&rdquo; referent, i.e.&nbsp;the entity is not the one being
+		 * referred to in the round being classified.
 		 */
 		FALSE(Boolean.FALSE.toString()),
 		/**
 		 * Denotes that the given referent is classified as being the
-		 * &ldquo;target&rdquo; referent, i.e.&nbsp;the entity is actually the
-		 * one being referred to in the round being classified.
+		 * &ldquo;target&rdquo; referent, i.e.&nbsp;the entity is actually the one being
+		 * referred to in the round being classified.
 		 */
 		TRUE(Boolean.TRUE.toString());
 		// @formatter:on
@@ -1107,11 +1083,23 @@ public final class LogisticModel { // NO_UCD (use default)
 	 */
 	private static final ReferentClassification DEFAULT_REF_CLASSIFICATION = ReferentClassification.TRUE;
 
-	private static final double INITIAL_TRAINING_DATAPOINT_WEIGHT = 1.0;
-
 	private static final Logger LOGGER = LoggerFactory.getLogger(LogisticModel.class);
 
 	static final String OOV_CLASS_LABEL = "__OUT_OF_VOCABULARY__";
+
+	private static void addTrainingInstances(final Instances dataset, final Weighted<Referent>[] weightedRefs,
+			final FeatureAttributeData featureAttrs, final double wordWeight) {
+		for (final Weighted<Referent> weightedRef : weightedRefs) {
+			final Referent ref = weightedRef.getWrapped();
+			final Instance inst = featureAttrs.createInstance(ref);
+			// The instance's current weight is the weight of the instance's
+			// class; now multiply it by the weight of the word the model is
+			// being trained for
+			final double totalWeight = wordWeight * weightedRef.getWeight();
+			inst.setWeight(totalWeight);
+			dataset.add(inst);
+		}
+	}
 
 	private static long calculateRetryWaitTime(final int retryNumber) {
 		assert retryNumber > 0 : String.format("Retry number was %d but must be positive.", retryNumber);
@@ -1146,9 +1134,9 @@ public final class LogisticModel { // NO_UCD (use default)
 	/**
 	 *
 	 * @param initialMapCapacity
-	 *            The initial capacity of the {@link ConcurrentHashMap} used to
-	 *            map words to their respective {@link Logistic classifiers},
-	 *            which is populated during training.
+	 *            The initial capacity of the {@link ConcurrentHashMap} used to map
+	 *            words to their respective {@link Logistic classifiers}, which is
+	 *            populated during training.
 	 * @param onlyInstructor
 	 *            A flag denoting if only instructor language should be used for
 	 *            training set or not.
@@ -1157,7 +1145,8 @@ public final class LogisticModel { // NO_UCD (use default)
 	private static TrainingData createDummyTrainingData(final int initialMapCapacity, final boolean onlyInstructor) {
 		return new TrainingData(new WordClassifiers(new ConcurrentHashMap<>(initialMapCapacity)),
 				new FeatureAttributeData(), new Vocabulary(Object2LongMaps.emptyMap()),
-				new RoundSet(Collections.emptyList(), onlyInstructor), 0L, createNewInteractionDataMap());
+				new RoundSet(Collections.emptyList(), onlyInstructor), new HashMap<>(initialMapCapacity), 0L,
+				createNewInteractionDataMap());
 	}
 
 	private static Object2LongMap<String> createNewInteractionDataMap() {
@@ -1170,8 +1159,31 @@ public final class LogisticModel { // NO_UCD (use default)
 		return Arrays.stream(refs).map(ref -> new Weighted<>(ref, weight));
 	}
 
-	private static Stream<Weighted<Referent>> createWordClassExamples(final RoundSet rounds, final String word) {
-		return rounds.getExampleRounds(word).flatMap(LogisticModel::createClassWeightedReferents);
+	private static Object2ObjectMap<String, Instances> createWordTrainingInstsMap(final RoundSet trainingSet,
+			final FeatureAttributeData featureAttrs) {
+		final Object2ObjectOpenHashMap<String, Instances> result = new Object2ObjectOpenHashMap<>(
+				DEFAULT_INITIAL_WORD_CLASS_MAP_CAPACITY);
+		for (final Round round : trainingSet.getRounds()) {
+			final String[] tokens = trainingSet.getReferringTokens(round).toArray(String[]::new);
+			// A weighted bag-of-words map weighting each map key according to how many of
+			// times the word appears in the new round
+			final Object2DoubleMap<String> wordWeights = new Object2DoubleOpenHashMap<>(tokens.length);
+			wordWeights.defaultReturnValue(0.0);
+			for (final String token : tokens) {
+				wordWeights.put(token, wordWeights.getDouble(token) + 1.0);
+			}
+			@SuppressWarnings("unchecked")
+			final Weighted<Referent>[] classWeightedRefs = createClassWeightedReferents(round).toArray(Weighted[]::new);
+			for (final Object2DoubleMap.Entry<String> wordWeight : wordWeights.object2DoubleEntrySet()) {
+				final String word = wordWeight.getKey();
+				final double weight = wordWeight.getDoubleValue();
+				final Instances wordTrainingInsts = result.computeIfAbsent(word,
+						k -> featureAttrs.createNewInstances(classWeightedRefs.length * 2));
+				addTrainingInstances(wordTrainingInsts, classWeightedRefs, featureAttrs, weight);
+			}
+		}
+		result.trim();
+		return result;
 	}
 
 	/**
@@ -1215,39 +1227,17 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *            The {@link ForkJoinPool} to use for executing parallelized
 	 *            training (sub-)tasks.
 	 */
-	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool taskPool) { // NO_UCD
-																										// (use
-																										// default)
-		this(modelParams, taskPool, DEFAULT_INITIAL_WORD_CLASS_MAP_CAPACITY);
-	}
-
-	/**
-	 *
-	 * @param modelParams
-	 *            The {@link Map} of {@link ModelParameter} values to use for
-	 *            training.
-	 * @param taskPool
-	 *            The {@link ForkJoinPool} to use for executing parallelized
-	 *            training (sub-)tasks.
-	 * @param initialMapCapacity
-	 *            The initial capacity of the {@link ConcurrentHashMap} used to
-	 *            map words to their respective {@link Logistic classifiers},
-	 *            which is populated during training.
-	 */
-	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool taskPool, // NO_UCD
-																										// (use
-																										// private)
-			final int initialMapCapacity) {
+	public LogisticModel(final Map<ModelParameter, Object> modelParams, final ForkJoinPool taskPool) {
 		this.modelParams = modelParams;
 		this.taskPool = taskPool;
-		trainingData = createDummyTrainingData(initialMapCapacity,
+		trainingData = createDummyTrainingData(DEFAULT_INITIAL_WORD_CLASS_MAP_CAPACITY,
 				(Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR));
 	}
 
 	/**
 	 *
-	 * @return A new {@link RankScorer} for {@link #DEFAULT_REF_CLASSIFICATION
-	 *         the default classification} using this {@link LogisticModel}.
+	 * @return A new {@link RankScorer} for {@link #DEFAULT_REF_CLASSIFICATION the
+	 *         default classification} using this {@link LogisticModel}.
 	 */
 	public RankScorer createRankScorer() {
 		return createRankScorer(DEFAULT_REF_CLASSIFICATION);
@@ -1257,10 +1247,10 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *
 	 * @param classification
 	 *            The {@link ReferentClassification} to get the score for,
-	 *            i.e.&nbsp;the probability of this class being the correct one
-	 *            for the given word {@code Classifier} and {@code Instance}.
-	 * @return A new {@link RankScorer} for the given
-	 *         {@code ReferentClassification} using this {@link LogisticModel}.
+	 *            i.e.&nbsp;the probability of this class being the correct one for
+	 *            the given word {@code Classifier} and {@code Instance}.
+	 * @return A new {@link RankScorer} for the given {@code ReferentClassification}
+	 *         using this {@link LogisticModel}.
 	 */
 	public RankScorer createRankScorer(final ReferentClassification classification) {
 		final Scorer scorer = createScorer(classification);
@@ -1279,8 +1269,8 @@ public final class LogisticModel { // NO_UCD (use default)
 	/**
 	 * @param classification
 	 *            The {@link ReferentClassification} to get the score for,
-	 *            i.e.&nbsp;the probability of this class being the correct one
-	 *            for the given word {@code Classifier} and {@code Instance}.
+	 *            i.e.&nbsp;the probability of this class being the correct one for
+	 *            the given word {@code Classifier} and {@code Instance}.
 	 * @return A new {@link Scorer} for the given {@code ReferentClassification}
 	 *         using this {@link LogisticModel}.
 	 */
@@ -1291,8 +1281,8 @@ public final class LogisticModel { // NO_UCD (use default)
 	/**
 	 *
 	 * @return A new {@link WordProbabilityScorer} for
-	 *         {@link #DEFAULT_REF_CLASSIFICATION the default classification}
-	 *         using this {@link LogisticModel}.
+	 *         {@link #DEFAULT_REF_CLASSIFICATION the default classification} using
+	 *         this {@link LogisticModel}.
 	 */
 	public WordProbabilityScorer createWordProbabilityScorer() {
 		return createWordProbabilityScorer(DEFAULT_REF_CLASSIFICATION);
@@ -1302,8 +1292,8 @@ public final class LogisticModel { // NO_UCD (use default)
 	 *
 	 * @param classification
 	 *            The {@link ReferentClassification} to get the score for,
-	 *            i.e.&nbsp;the probability of this class being the correct one
-	 *            for the given word {@code Classifier} and {@code Instance}.
+	 *            i.e.&nbsp;the probability of this class being the correct one for
+	 *            the given word {@code Classifier} and {@code Instance}.
 	 * @return A new {@link WordProbabilityScorer} for the given
 	 *         {@code ReferentClassification} using this {@link LogisticModel}.
 	 */
@@ -1313,16 +1303,14 @@ public final class LogisticModel { // NO_UCD (use default)
 	}
 
 	/**
-	 * @return The {@link Map} of {@link ModelParameter} values to use for
-	 *         training.
+	 * @return The {@link Map} of {@link ModelParameter} values to use for training.
 	 */
 	public Map<ModelParameter, Object> getModelParams() {
 		return modelParams;
 	}
 
 	/**
-	 * @return The {@link TrainingData} created during the last training
-	 *         iteration.
+	 * @return The {@link TrainingData} created during the last training iteration.
 	 */
 	public TrainingData getTrainingData() {
 		return trainingData;
@@ -1352,7 +1340,7 @@ public final class LogisticModel { // NO_UCD (use default)
 	}
 
 	/**
-	 * Trains the word models using all data from a {@link SessionSet}.
+	 * Trains all word models anew using all data from a {@link SessionSet}.
 	 *
 	 * @param set
 	 *            The {@code SessionSet} to use as training data.
@@ -1360,23 +1348,18 @@ public final class LogisticModel { // NO_UCD (use default)
 	 */
 	TrainingData train(final SessionSet set) {
 		final RoundSet trainingSet = new RoundSet(set, (Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR));
-		final Vocabulary oldVocab = trainingData.getVocabulary();
-		final Vocabulary vocab = trainingSet.createVocabulary(Math.max(1000, oldVocab.getWordCount() + 5));
-		// NOTE: Values are retrieved directly from the map instead of e.g.
-		// assigning
-		// them to a final field because it's possible that the map values
-		// change at another place in the code and performance isn't an issue
-		// here anyway
-		final long unsmoothedVocabTokenCount = vocab.getTokenCount();
-		// Re-use old word classifier map
-		final ConcurrentMap<String, Logistic> extantClassifiers = trainingData.getWordClassifiers().wordClassifiers;
-		final TrainingTask trainingTask = new TrainingTask(vocab.getWords(), INITIAL_TRAINING_DATAPOINT_WEIGHT,
-				trainingSet, extantClassifiers);
+		final Vocabulary vocab = trainingSet.createVocabulary(DEFAULT_INITIAL_WORD_CLASS_MAP_CAPACITY);
+		final FeatureAttributeData featureAttrs = new FeatureAttributeData();
+		final Map<String, Instances> wordTrainingInsts = createWordTrainingInstsMap(trainingSet, featureAttrs);
+		// Create an entirely-new word classifier map because there might be words from
+		// the old training set not seen in the new training set
+		final ConcurrentMap<String, Logistic> extantClassifiers = new ConcurrentHashMap<>(
+				DEFAULT_INITIAL_WORD_CLASS_MAP_CAPACITY);
+		final TrainingTask trainingTask = new TrainingTask(vocab.getWords(), wordTrainingInsts, extantClassifiers);
 		executeAsynchronously(trainingTask);
-		final Entry<WordClassifiers, FeatureAttributeData> trainingResults = trainingTask.join();
-		final Object2LongMap<String> interactionData = createNewInteractionDataMap();
-		trainingData = new TrainingData(trainingResults.getKey(), trainingResults.getValue(), vocab, trainingSet,
-				unsmoothedVocabTokenCount, interactionData);
+		final WordClassifiers trainingResults = trainingTask.join();
+		trainingData = new TrainingData(trainingResults, featureAttrs, vocab, trainingSet, wordTrainingInsts,
+				vocab.getTokenCount(), createNewInteractionDataMap());
 		return trainingData;
 	}
 

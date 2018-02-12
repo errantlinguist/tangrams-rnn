@@ -18,6 +18,7 @@ package se.kth.speech.coin.tangrams.wac.data;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
@@ -85,12 +86,12 @@ public final class Vocabulary {
 		return wordObservationCounts.size();
 	}
 
-	public List<String> getWords() {
-		return new ArrayList<>(wordObservationCounts.keySet());
+	public Set<String> getWords() {
+		return wordObservationCounts.keySet();
 	}
 
 	public List<String> getWordsSortedByFreq() {
-		final List<String> words = getWords();
+		final List<String> words = new ArrayList<>(getWords());
 		words.sort(new Comparator<String>() {
 			@Override
 			public int compare(final String o1, final String o2) {
@@ -110,6 +111,12 @@ public final class Vocabulary {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + (wordObservationCounts == null ? 0 : wordObservationCounts.hashCode());
+		return result;
+	}
+
+	public long incrementCount(final String word) {
+		final long result = wordObservationCounts.getLong(word) + 1L;
+		wordObservationCounts.put(word, result);
 		return result;
 	}
 
