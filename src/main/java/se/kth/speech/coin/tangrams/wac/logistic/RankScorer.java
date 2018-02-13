@@ -269,10 +269,10 @@ public final class RankScorer
 			final FeatureAttributeData featureAttrs = trainingData.getFeatureAttrs();
 			final Vocabulary vocab = trainingData.getVocabulary();
 			final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
-			final List<Referent> refs = round.getReferents();
 			final Object2LongMap<String> wordObservationCounts = createWordObservationCountMap(words, vocab);
 			final String[] oovObservations = Arrays.stream(words).filter(word -> wordObservationCounts.getLong(word) < 1L).toArray(String[]::new);
 
+			final List<Referent> refs = round.getReferents();
 			final Stream<Weighted<Referent>> scoredRefs = refs.stream().map(ref -> {
 				final Instance inst = featureAttrs.createInstance(ref);
 				final double[] wordScoreArray = new double[words.length];
