@@ -274,7 +274,8 @@ public final class RankScorer
 			// that the map values change at another place in the code and
 			// performance isn't an issue here anyway
 			final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
-			final Stream<Weighted<Referent>> scoredRefs = round.getReferents().parallelStream().map(ref -> {
+			// NOTE: Logistic instances are not thread-safe!
+			final Stream<Weighted<Referent>> scoredRefs = round.getReferents().stream().map(ref -> {
 				final Instance inst = featureAttrs.createInstance(ref);
 				final double score = words.stream().mapToDouble(word -> {
 					final double wordScore;
@@ -282,6 +283,7 @@ public final class RankScorer
 					final Optional<Logistic> optWordClassifier = wordClassifiers.getWordClassifier(word);
 					if (optWordClassifier.isPresent()) {
 						final Logistic wordClassifier = optWordClassifier.get();
+						assert wordClassifier != null;
 						final double unweightedWordScore = scorer.score(wordClassifier, inst);
 						if (weightByFreq) {
 							final long extantWordObservationCount = wordObservationCounts.getLong(word);
