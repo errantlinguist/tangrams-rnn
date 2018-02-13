@@ -127,7 +127,7 @@ public final class WordProbabilityScoreTablularDataWriter { // NO_UCD (use
 					final Function<LogisticModel, Function<SessionSet, Stream<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>>>> evaluatorFactory = model -> model
 							.createWordProbabilityScorer();
 					final CrossValidator<RoundEvaluationResult<WordProbabilityScorer.ReferentWordScore[]>> crossValidator = new CrossValidator<>(
-							modelParams, modelFactory, evaluatorFactory, executor);
+							modelParams, modelFactory, evaluatorFactory, TestSessions::isTestSession, executor);
 					crossValidator.crossValidate(set, evalResult -> {
 						try {
 							resultWriter.accept(evalResult);

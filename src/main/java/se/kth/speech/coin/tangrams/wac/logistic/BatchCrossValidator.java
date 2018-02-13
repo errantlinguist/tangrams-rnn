@@ -34,6 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -50,6 +51,7 @@ import org.slf4j.LoggerFactory;
 
 import se.kth.speech.FileNames;
 import se.kth.speech.HashedCollections;
+import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 import se.kth.speech.coin.tangrams.wac.logistic.RankScorer.ClassificationResult;
@@ -84,7 +86,7 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 			final Function<LogisticModel, Function<SessionSet, Stream<RoundEvaluationResult<ClassificationResult>>>> evaluatorFactory = model -> model
 					.createRankScorer();
 			final CrossValidator<RoundEvaluationResult<ClassificationResult>> crossValidator = new CrossValidator<>(modelParams, modelFactory,
-					executor, evaluatorFactory, cvIterBatchSize);
+					executor, evaluatorFactory, testSessionMatcher, cvIterBatchSize);
 			BufferedWriter fileWriter;
 			CrossValidationTablularDataWriter resultWriter;
 			try {
@@ -181,6 +183,8 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 	private static final Logger LOGGER = LoggerFactory.getLogger(BatchCrossValidator.class);
 
 	private static final Charset OUTFILE_ENCODING = StandardCharsets.UTF_8;
+	
+	private final Predicate<? super Session> testSessionMatcher;
 
 	public static void main(final CommandLine cl) throws ParseException, IOException { // NO_UCD
 																						// (use
@@ -212,7 +216,7 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 				// NOTE: No need to explicitly shut down common pool
 				LOGGER.info("Will run cross-validation using a(n) {} instance with a parallelism level of {}.",
 						executor.getClass().getSimpleName(), executor.getParallelism());
-				final BatchCrossValidator batchCrossValidator = new BatchCrossValidator(set, executor);
+				final BatchCrossValidator batchCrossValidator = new BatchCrossValidator(set, TestSessions::isTestSession, executor);
 				batchCrossValidator.accept(namedParamSets, Files.createDirectories(outdirPath));
 			}
 		}
@@ -260,10 +264,11 @@ public final class BatchCrossValidator { // NO_UCD (use default)
 
 	private final SessionSet set;
 
-	public BatchCrossValidator(final SessionSet set, final ForkJoinPool executor) { // NO_UCD
+	public BatchCrossValidator(final SessionSet set, final Predicate<? super Session> testSessionMatcher, final ForkJoinPool executor) { // NO_UCD
 																					// (use
 																					// private)
 		this.set = set;
+		this.testSessionMatcher = testSessionMatcher;
 		this.executor = executor;
 	}
 

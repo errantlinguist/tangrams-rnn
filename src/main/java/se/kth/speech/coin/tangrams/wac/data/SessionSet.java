@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import se.kth.speech.HashedCollections;
 import se.kth.speech.coin.tangrams.wac.logistic.ModelParameter;
@@ -49,8 +51,8 @@ public final class SessionSet {
 		this(Collections.singletonList(session));
 	}
 
-	public void crossValidate(final BiConsumer<SessionSet, Session> consumer,
-			final Map<ModelParameter, Object> modelParams, Random random) {
+	public void crossValidate(final BiConsumer<SessionSet, SessionSet> consumer,
+			final Map<ModelParameter, Object> modelParams, final Random random) {
 		final int trainingSetSizeDiscount = (Integer) modelParams.get(ModelParameter.TRAINING_SET_SIZE_DISCOUNT);
 		final ListIterator<Session> testSessionIter = sessions.listIterator();
 		while (testSessionIter.hasNext()) {
@@ -58,7 +60,29 @@ public final class SessionSet {
 			final Session testSession = testSessionIter.next();
 			final List<Session> trainingSessions = createTrainingSessionList(testSessionIdx, trainingSetSizeDiscount,
 					random);
-			consumer.accept(new SessionSet(trainingSessions), testSession);
+			consumer.accept(new SessionSet(trainingSessions), new SessionSet(testSession));
+		}
+	}
+
+	public void crossValidate(final BiConsumer<SessionSet, SessionSet> consumer,
+			final Map<ModelParameter, Object> modelParams, final Random random,
+			final Predicate<? super Session> testSessionMatcher) {
+		final int trainingSetSizeDiscount = (Integer) modelParams.get(ModelParameter.TRAINING_SET_SIZE_DISCOUNT);
+		final Map<Boolean, List<Session>> testTrainingSessions = sessions.stream()
+				.collect(Collectors.partitioningBy(testSessionMatcher));
+		final List<Session> trainingSessions = testTrainingSessions.get(Boolean.FALSE);
+		final List<Session> testSessions = testTrainingSessions.get(Boolean.TRUE);
+		final int trainingSetSize = trainingSessions.size() - trainingSetSizeDiscount;
+		if (trainingSetSize <= 0) {
+			throw new IllegalArgumentException(String.format(
+					"Cannot use a training set discount of %d with a test set of size %d and a total of %d possible training sessions.",
+					trainingSetSizeDiscount, testSessions.size(), trainingSessions.size()));
+		} else {
+			while (trainingSessions.size() > trainingSetSize) {
+				final int nextIdx = random.nextInt(trainingSessions.size());
+				trainingSessions.remove(nextIdx);
+			}
+			consumer.accept(new SessionSet(trainingSessions), new SessionSet(testSessions));
 		}
 	}
 
@@ -136,12 +160,12 @@ public final class SessionSet {
 					String.format("Tried to discount training set size by %d but there are only %s sessions.",
 							trainingSetSizeDiscount, sessions.size()));
 		}
-		
+
 		final Set<Integer> idxsToRemove = new HashSet<>(HashedCollections.capacity(idxsToRemoveCount));
 		idxsToRemove.add(testSessionIdx);
 		addRandomIntegers(idxsToRemove, idxsToRemoveCount, sessions.size(), random);
 		assert idxsToRemove.size() == idxsToRemoveCount;
-		
+
 		final List<Session> result = new ArrayList<>(resultSize);
 		final ListIterator<Session> trainingSessionIter = sessions.listIterator();
 		while (trainingSessionIter.hasNext()) {

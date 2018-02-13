@@ -21,17 +21,16 @@ import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.cli.CommandLine;
@@ -61,16 +60,16 @@ public final class CrossValidator<R> { // NO_UCD (use default)
 		 */
 		private static final long serialVersionUID = -1636897113752283942L;
 
-		private static final String createMessage(final SessionSet training, final Session testing,
+		private static final String createMessage(final SessionSet training, final SessionSet testing,
 				final java.lang.Exception cause) {
-			final Set<String> trainingSessionNames = training.getSessions().stream().map(Session::getName)
-					.collect(Collectors.toCollection(() -> new TreeSet<>()));
+			final List<String> trainingSessionNames = Arrays.asList(training.getSessions().stream().map(Session::getName).sorted().toArray(String[]::new));
+			final List<String> testSessionNames = Arrays.asList(testing.getSessions().stream().map(Session::getName).sorted().toArray(String[]::new));
 			return String.format(
-					"A(n) %s occurred while cross-validating with a training set of %d session(s) and testing on session \"%s\". Training sets: %s",
-					cause, training.size(), testing.getName(), trainingSessionNames);
+					"A(n) %s occurred while cross-validating with a training set of %d session(s) and testing on sessions %s. Training sets: %s",
+					cause, training.size(), testSessionNames, trainingSessionNames);
 		}
 
-		private Exception(final SessionSet training, final Session testing, final java.lang.Exception cause) {
+		private Exception(final SessionSet training, final SessionSet testing, final java.lang.Exception cause) {
 			super(createMessage(training, testing, cause), cause);
 		}
 
@@ -169,7 +168,7 @@ public final class CrossValidator<R> { // NO_UCD (use default)
 				final Function<LogisticModel, Function<SessionSet, Stream<RoundEvaluationResult<ClassificationResult>>>> evaluatorFactory = model -> model
 						.createRankScorer();
 				final CrossValidator<RoundEvaluationResult<ClassificationResult>> crossValidator = new CrossValidator<>(
-						modelParams, modelFactory, evaluatorFactory, executor);
+						modelParams, modelFactory, evaluatorFactory, TestSessions::isTestSession, executor);
 				crossValidator.crossValidate(set, evalResult -> {
 					try {
 						resultWriter.accept(evalResult);
@@ -214,22 +213,25 @@ public final class CrossValidator<R> { // NO_UCD (use default)
 	private final Supplier<LogisticModel> modelFactory;
 
 	private final Map<ModelParameter, Object> modelParams;
+	
+	private final Predicate<? super Session> testSessionMatcher;
 
 	public CrossValidator(final Map<ModelParameter, Object> modelParams, final Supplier<LogisticModel> modelFactory, // NO_UCD
 																														// (use
 																														// default)
-			final Executor executor, final Function<LogisticModel, Function<SessionSet, Stream<R>>> evaluatorFactory,
+			final Executor executor, final Function<LogisticModel, Function<SessionSet, Stream<R>>> evaluatorFactory, final Predicate<? super Session> testSessionMatcher,
 			final int cvIterBatchSize) {
 		this.modelParams = modelParams;
 		this.modelFactory = modelFactory;
 		this.executor = executor;
 		this.evaluatorFactory = evaluatorFactory;
+		this.testSessionMatcher = testSessionMatcher;
 		this.cvIterBatchSize = cvIterBatchSize;
 	}
 
 	public CrossValidator(final Map<ModelParameter, Object> modelParams, final Supplier<LogisticModel> modelFactory,
-			final Function<LogisticModel, Function<SessionSet, Stream<R>>> evaluatorFactory, final Executor executor) {
-		this(modelParams, modelFactory, executor, evaluatorFactory, 1);
+			final Function<LogisticModel, Function<SessionSet, Stream<R>>> evaluatorFactory,  final Predicate<? super Session> testSessionMatcher, final Executor executor) {
+		this(modelParams, modelFactory, executor, evaluatorFactory, testSessionMatcher, 1);
 	}
 
 	/**
@@ -285,12 +287,12 @@ public final class CrossValidator<R> { // NO_UCD (use default)
 							final TrainingData origTrainingData = model.train(training);
 							assert origTrainingData != null;
 							final Function<SessionSet, Stream<R>> evaluator = evaluatorFactory.apply(model);
-							final Stream<R> roundEvalResults = evaluator.apply(new SessionSet(testing));
+							final Stream<R> roundEvalResults = evaluator.apply(testing);
 							roundEvalResults.map(evalResult -> new Result<>(cvIter, evalResult, modelParams)).forEach(resultHandler);
 						} catch (final ClassificationException e) {
 							throw new Exception(training, testing, e);
 						}
-					}, modelParams, random);
+					}, modelParams, random, testSessionMatcher);
 				}
 			}, executor));
 		}

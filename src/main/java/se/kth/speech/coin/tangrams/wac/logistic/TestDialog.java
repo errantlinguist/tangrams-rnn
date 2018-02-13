@@ -22,12 +22,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Random;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import se.kth.speech.coin.tangrams.wac.data.Session;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.SessionSetReader;
 
@@ -46,11 +50,11 @@ public final class TestDialog {
 			LOGGER.info(
 					"Will read sessions from \"{}\", using referring language read from \"{}\"; Will write output to \"{}\".",
 					inpath, refTokenFilePath, outpath);
-			run(inpath, refTokenFilePath, outpath);
+			run(inpath, refTokenFilePath, TestSessions::isTestSession, outpath);
 		}
 	}
 
-	private static void run(final Path inpath, final Path refTokenFilePath, final Path outpath)
+	private static void run(final Path inpath, final Path refTokenFilePath, final Predicate<? super Session> testSessionMatcher, final Path outpath)
 			throws IOException, ClassificationException {
 		final SessionSet set = new SessionSetReader(refTokenFilePath).apply(inpath);
 		final Map<ModelParameter, Object> modelParams = ModelParameter.createDefaultParamValueMap();
@@ -59,7 +63,9 @@ public final class TestDialog {
 		final long randomSeed = (Long) modelParams.get(ModelParameter.RANDOM_SEED);
 		final Random random = new Random(randomSeed);
 		set.crossValidate((training, testing) -> {
-			final Path outfilePath = outpath.resolve(testing.getName() + ".html");
+			final Collection<Session> testSessions = testing.getSessions();
+			final String outfileName = testSessions.stream().map(Session::getName).sorted().collect(Collectors.joining(",", "", ".html"));
+			final Path outfilePath = outpath.resolve(outfileName);
 			try (PrintWriter pw = new PrintWriter(Files.newBufferedWriter(outfilePath, StandardOpenOption.CREATE,
 					StandardOpenOption.TRUNCATE_EXISTING))) {
 				pw.println("<table>");
@@ -79,7 +85,7 @@ public final class TestDialog {
 				throw new UncheckedIOException(e);
 			}
 
-		}, modelParams, random);
+		}, modelParams, random, testSessionMatcher);
 	}
 
 }
