@@ -37,7 +37,6 @@ import se.kth.speech.coin.tangrams.wac.data.Referent;
 import se.kth.speech.coin.tangrams.wac.data.Round;
 import se.kth.speech.coin.tangrams.wac.data.SessionSet;
 import se.kth.speech.coin.tangrams.wac.data.Vocabulary;
-import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.FeatureAttributeData;
 import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.Scorer;
 import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.TrainingData;
 import se.kth.speech.coin.tangrams.wac.logistic.LogisticModel.WordClassifiers;
