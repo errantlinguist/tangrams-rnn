@@ -17,6 +17,7 @@ package se.kth.speech.coin.tangrams.wac.logistic;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -78,10 +79,9 @@ public final class RankScorer
 		private final Object2LongMap<String> wordObservationCounts;
 
 		/**
-		 * An array of strings used for choosing word classifiers during
-		 * classification.
+		 * The strings used for choosing word classifiers during classification.
 		 */
-		private final String[] words;
+		private final List<String> words;
 
 		/**
 		 *
@@ -90,8 +90,8 @@ public final class RankScorer
 		 *            confidence score of each {@link Referent} being the target
 		 *            referent for the given game round.
 		 * @param words
-		 *            An array of strings used for choosing word classifiers
-		 *            during classification.
+		 *            The strings used for choosing word classifiers during
+		 *            classification.
 		 * @param oovObservations
 		 *            The words which were encountered during classification for
 		 *            which no trained model could be found, thus using the
@@ -106,7 +106,7 @@ public final class RankScorer
 		 *            The number of tokens added during updating thus far.
 		 *
 		 */
-		private ClassificationResult(final List<Weighted<Referent>> scoredReferents, final String[] words,
+		private ClassificationResult(final List<Weighted<Referent>> scoredReferents, final List<String> words,
 				final String[] oovObservations, final Object2LongMap<String> wordObservationCounts,
 				final long backgroundDataTokenCount, final long interactionDataTokenCount) {
 			this.scoredReferents = scoredReferents;
@@ -159,10 +159,10 @@ public final class RankScorer
 		}
 
 		/**
-		 * @return An array of strings used for choosing word classifiers during
+		 * @return The strings used for choosing word classifiers during
 		 *         classification.
 		 */
-		String[] getWords() {
+		List<String> getWords() {
 			return words;
 		}
 	}
@@ -173,10 +173,11 @@ public final class RankScorer
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(RankScorer.class);
 
-	private static Object2LongMap<String> createWordObservationCountMap(final String[] words, Vocabulary vocab) {
-		final Object2LongMap<String> result = new Object2LongOpenHashMap<>(words.length);
+	private static Object2LongMap<String> createWordObservationCountMap(final Collection<String> words,
+			final Vocabulary vocab) {
+		final Object2LongMap<String> result = new Object2LongOpenHashMap<>(words.size());
 		result.defaultReturnValue(0L);
-		for (String word : words) {
+		for (final String word : words) {
 			final long oldWordObsCount = result.computeLongIfAbsent(word, vocab::getCount);
 			assert oldWordObsCount >= 0L;
 		}
@@ -254,10 +255,10 @@ public final class RankScorer
 	 *         representing the results.
 	 */
 	private Optional<ClassificationResult> rank(final Round round, final Map<ModelParameter, Object> modelParams) {
-		final String[] words = round.getReferringTokens((Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR))
-				.toArray(String[]::new);
+		final List<String> words = Arrays.asList(round
+				.getReferringTokens((Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR)).toArray(String[]::new));
 		final Optional<ClassificationResult> result;
-		if (words.length < 1) {
+		if (words.size() < 1) {
 			result = Optional.empty();
 		} else {
 			final TrainingData trainingData = updatedTrainingDataFuture.join();
@@ -265,8 +266,8 @@ public final class RankScorer
 			final FeatureAttributeData featureAttrs = trainingData.getFeatureAttrs();
 			final Vocabulary vocab = trainingData.getVocabulary();
 			final Object2LongMap<String> wordObservationCounts = createWordObservationCountMap(words, vocab);
-			final String[] oovObservations = Arrays.stream(words)
-					.filter(word -> wordObservationCounts.getLong(word) < 1L).toArray(String[]::new);
+			final String[] oovObservations = words.stream().filter(word -> wordObservationCounts.getLong(word) < 1L)
+					.toArray(String[]::new);
 
 			// NOTE: Values are retrieved directly from the map instead of
 			// e.g. assigning them to a final field because it's possible
@@ -275,11 +276,10 @@ public final class RankScorer
 			final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
 			final Stream<Weighted<Referent>> scoredRefs = round.getReferents().parallelStream().map(ref -> {
 				final Instance inst = featureAttrs.createInstance(ref);
-				final double[] wordScoreArray = new double[words.length];
-				for (int i = 0; i < words.length; ++i) {
-					final String word = words[i];
-					final Optional<Logistic> optWordClassifier = wordClassifiers.getWordClassifier(word);
+				final double score = words.stream().mapToDouble(word -> {
 					final double wordScore;
+
+					final Optional<Logistic> optWordClassifier = wordClassifiers.getWordClassifier(word);
 					if (optWordClassifier.isPresent()) {
 						final Logistic wordClassifier = optWordClassifier.get();
 						final double unweightedWordScore = scorer.score(wordClassifier, inst);
@@ -292,9 +292,9 @@ public final class RankScorer
 					} else {
 						wordScore = 0.0;
 					}
-					wordScoreArray[i] = wordScore;
-				}
-				final double score = Arrays.stream(wordScoreArray).average().getAsDouble();
+
+					return wordScore;
+				}).average().orElse(0.0);
 				return new Weighted<>(ref, score);
 			});
 			@SuppressWarnings("unchecked")

@@ -151,8 +151,8 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<ClassificationResult>> cvResult) {
 				final RoundEvaluationResult<ClassificationResult> evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
-				final String[] refTokens = classificationResult.getWords();
-				final int count = refTokens.length;
+				final List<String> refTokens = classificationResult.getWords();
+				final int count = refTokens.size();
 				return Integer.toString(count);
 				// final Round round = evalResult.getRound();
 				// final List<Utterance> utts = round.getUtts();
@@ -168,8 +168,8 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<ClassificationResult>> cvResult) {
 				final RoundEvaluationResult<ClassificationResult> evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
-				final String[] refTokens = classificationResult.getWords();
-				return Arrays.stream(refTokens).collect(TOKEN_JOINER);
+				final List<String> refTokens = classificationResult.getWords();
+				return refTokens.stream().collect(TOKEN_JOINER);
 			}
 
 		},
