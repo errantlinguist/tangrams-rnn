@@ -277,7 +277,7 @@ public final class RankScorer
 			final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
 			// For each word, create an array of scores for each referent
 			// NOTE: Logistic instances are not thread-safe!
-			final double[][] wordRefScores = words.stream().map(word -> {
+			final double[][] wordRefScores = words.parallelStream().map(word -> {
 				final double[] refScores;
 
 				final Optional<Logistic> optWordClassifier = wordClassifiers.getWordClassifier(word);
