@@ -179,8 +179,8 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<ClassificationResult>> cvResult) {
 				final RoundEvaluationResult<ClassificationResult> evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
-				final List<String> oovObservations = classificationResult.getOovObservations();
-				return oovObservations.stream().collect(TOKEN_JOINER);
+				final String[] oovObservations = classificationResult.getOovObservations();
+				return Arrays.stream(oovObservations).collect(TOKEN_JOINER);
 			}
 
 		},
@@ -190,8 +190,8 @@ public final class CrossValidationTablularDataWriter { // NO_UCD (use default)
 			public String apply(final CrossValidator.Result<RoundEvaluationResult<ClassificationResult>> cvResult) {
 				final RoundEvaluationResult<ClassificationResult> evalResult = cvResult.getEvalResult();
 				final ClassificationResult classificationResult = evalResult.getClassificationResult();
-				final List<String> oovObservations = classificationResult.getOovObservations();
-				return Integer.toString(oovObservations.size());
+				final String[] oovObservations = classificationResult.getOovObservations();
+				return Integer.toString(oovObservations.length);
 			}
 
 		},

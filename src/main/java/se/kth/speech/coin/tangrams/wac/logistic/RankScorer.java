@@ -61,7 +61,7 @@ public final class RankScorer
 		 * The words which were encountered during classification for which no trained
 		 * model could be found, thus using the discount model for them instead.
 		 */
-		private final List<String> oovObservations;
+		private final String[] oovObservations;
 
 		/**
 		 * A list of {@link Weighted} instances representing the confidence score of
@@ -104,7 +104,7 @@ public final class RankScorer
 		 *
 		 */
 		private ClassificationResult(final List<Weighted<Referent>> scoredReferents, final String[] words,
-				final List<String> oovObservations,
+				final String[] oovObservations,
 				final Object2LongMap<String> wordObservationCounts, final long backgroundDataTokenCount,
 				final long interactionDataTokenCount) {
 			this.scoredReferents = scoredReferents;
@@ -134,7 +134,7 @@ public final class RankScorer
 		 *         trained model could be found, thus using the discount model for them
 		 *         instead.
 		 */
-		List<String> getOovObservations() {
+		String[] getOovObservations() {
 			return oovObservations;
 		}
 
@@ -170,16 +170,15 @@ public final class RankScorer
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(RankScorer.class);
 
-	private static final long NULL_WORD_OBSERVATION_COUNT = 0L;
 
-	private static Object2LongMap<String> createWordObservationCountMap(final int expectedTokenTypeCount) {
-		final Object2LongMap<String> result = new Object2LongOpenHashMap<>(expectedTokenTypeCount);
-		result.defaultReturnValue(NULL_WORD_OBSERVATION_COUNT);
+	private static Object2LongMap<String> createWordObservationCountMap(final String[] words, Vocabulary vocab) {
+		final Object2LongMap<String> result = new Object2LongOpenHashMap<>(words.length);
+		result.defaultReturnValue(0L);
+		for (String word : words) {
+			final long oldWordObsCount = result.computeLongIfAbsent(word, vocab::getCount);
+			assert oldWordObsCount >= 0L;
+		}
 		return result;
-	}
-
-	private static boolean isNullWordObservationCount(final long count) {
-		return NULL_WORD_OBSERVATION_COUNT == count;
 	}
 
 	private static long sumValues(final Object2LongMap<?> map) {
@@ -270,13 +269,9 @@ public final class RankScorer
 			final FeatureAttributeData featureAttrs = trainingData.getFeatureAttrs();
 			final Vocabulary vocab = trainingData.getVocabulary();
 			final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
-			final List<String> oovObservations = new ArrayList<>();
 			final List<Referent> refs = round.getReferents();
-			// Create an entirely-new map rather than referencing the
-			// classifiers so that they can be properly garbage-collected
-			// after ranking and before possible updating preceding the next
-			// classification
-			final Object2LongMap<String> wordObservationCounts = createWordObservationCountMap(words.length);
+			final Object2LongMap<String> wordObservationCounts = createWordObservationCountMap(words, vocab);
+			final String[] oovObservations = Arrays.stream(words).filter(word -> wordObservationCounts.getLong(word) < 1L).toArray(String[]::new);
 
 			final Stream<Weighted<Referent>> scoredRefs = refs.stream().map(ref -> {
 				final Instance inst = featureAttrs.createInstance(ref);
@@ -287,9 +282,6 @@ public final class RankScorer
 					final double wordScore;
 					if (optWordClassifier.isPresent()) {
 						final Logistic wordClassifier = optWordClassifier.get();
-						final long oldWordObsCount = wordObservationCounts.computeLongIfAbsent(word, vocab::getCount);
-						assert isNullWordObservationCount(oldWordObsCount) ? true
-								: oldWordObsCount == vocab.getCount(word);
 						final double unweightedWordScore = scorer.score(wordClassifier, inst);
 						if (weightByFreq) {
 							final long extantWordObservationCount = wordObservationCounts.getLong(word);
@@ -299,7 +291,6 @@ public final class RankScorer
 						}
 					} else {
 						wordScore = 0.0;
-						oovObservations.add(word);
 					}
 					wordScoreArray[i] = wordScore;
 				}
