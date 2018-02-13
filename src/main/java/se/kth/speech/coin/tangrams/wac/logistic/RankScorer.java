@@ -273,7 +273,7 @@ public final class RankScorer
 			// that the map values change at another place in the code and
 			// performance isn't an issue here anyway
 			final boolean weightByFreq = (Boolean) modelParams.get(ModelParameter.WEIGHT_BY_FREQ);
-			final Stream<Weighted<Referent>> scoredRefs = round.getReferents().stream().map(ref -> {
+			final Stream<Weighted<Referent>> scoredRefs = round.getReferents().parallelStream().map(ref -> {
 				final Instance inst = featureAttrs.createInstance(ref);
 				final double[] wordScoreArray = new double[words.length];
 				for (int i = 0; i < words.length; ++i) {
