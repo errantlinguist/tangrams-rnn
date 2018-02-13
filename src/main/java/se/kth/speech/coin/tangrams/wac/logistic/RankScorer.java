@@ -278,12 +278,9 @@ public final class RankScorer
 			// For each word, create an array of scores for each referent
 			// NOTE: Logistic instances are not thread-safe!
 			final double[][] wordRefScores = words.parallelStream().map(word -> {
-				final double[] refScores;
-
 				final Optional<Logistic> optWordClassifier = wordClassifiers.getWordClassifier(word);
-				if (optWordClassifier.isPresent()) {
-					final Logistic wordClassifier = optWordClassifier.get();
-					assert wordClassifier != null;
+				return optWordClassifier.map(wordClassifier -> {
+					final double[] refScores;
 					final DoubleStream unweightedRefScores = scorer.score(wordClassifier, refInsts);
 					if (weightByFreq) {
 						final long extantWordObservationCount = wordObservationCounts.getLong(word);
@@ -292,11 +289,8 @@ public final class RankScorer
 					} else {
 						refScores = unweightedRefScores.toArray();
 					}
-				} else {
-					refScores = new double[refInsts.size()];
-				}
-
-				return refScores;
+					return refScores;
+				}).orElseGet(() -> new double[refInsts.size()]);
 			}).toArray(double[][]::new);
 
 			final List<Weighted<Referent>> scoredRefList = new ArrayList<>(refs.size());
