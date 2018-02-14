@@ -227,22 +227,26 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	public final class Scorer {
 
-		/**
-		 * The {@link ReferentClassification} to get the score for, i.e.&nbsp;the
-		 * probability of this class being the correct one for a given word
-		 * {@code Classifier} and referent.
-		 */
-		private final ReferentClassification classification;
-
-		/**
-		 *
-		 * @param classification
-		 *            The {@link ReferentClassification} to get the score for,
-		 *            i.e.&nbsp;the probability of this class being the correct one for
-		 *            a given word {@code Classifier} and referent.
-		 */
-		private Scorer(final ReferentClassification classification) {
-			this.classification = classification;
+//		/**
+//		 * The {@link ReferentClassification} to get the score for, i.e.&nbsp;the
+//		 * probability of this class being the correct one for a given word
+//		 * {@code Classifier} and referent.
+//		 */
+//		private final ReferentClassification classification;
+//
+//		/**
+//		 *
+//		 * @param classification
+//		 *            The {@link ReferentClassification} to get the score for,
+//		 *            i.e.&nbsp;the probability of this class being the correct one for
+//		 *            a given word {@code Classifier} and referent.
+//		 */
+//		private Scorer(final ReferentClassification classification) {
+//			this.classification = classification;
+//		}
+		
+		private Scorer() {
+			
 		}
 
 		/*
@@ -265,9 +269,9 @@ public final class LogisticModel { // NO_UCD (use default)
 			if (!getOuterType().equals(other.getOuterType())) {
 				return false;
 			}
-			if (classification != other.classification) {
-				return false;
-			}
+//			if (classification != other.classification) {
+//				return false;
+//			}
 			return true;
 		}
 
@@ -281,7 +285,7 @@ public final class LogisticModel { // NO_UCD (use default)
 			final int prime = 31;
 			int result = 1;
 			result = prime * result + getOuterType().hashCode();
-			result = prime * result + (classification == null ? 0 : classification.hashCode());
+//			result = prime * result + (classification == null ? 0 : classification.hashCode());
 			return result;
 		}
 
@@ -305,7 +309,8 @@ public final class LogisticModel { // NO_UCD (use default)
 			} catch (final Exception e) {
 				throw new ClassificationException(e);
 			}
-			return classification.getProbabilities(dists, insts);
+			return Arrays.stream(dists).mapToDouble(classificationScores -> classificationScores[0]);
+//			return classification.getProbabilities(dists, insts);
 		}
 
 		/**
@@ -352,7 +357,8 @@ public final class LogisticModel { // NO_UCD (use default)
 			} catch (final Exception e) {
 				throw new ClassificationException(e);
 			}
-			return classification.getProbability(dist, inst);
+//			return classification.getProbability(dist, inst);
+			return dist[0];
 		}
 
 		/**
@@ -371,19 +377,19 @@ public final class LogisticModel { // NO_UCD (use default)
 			return score(wordClassifier, trainingData.getFeatureAttrs().createInstance(ref));
 		}
 
-		/*
-		 * (non-Javadoc)
-		 *
-		 * @see java.lang.Object#toString()
-		 */
-		@Override
-		public String toString() {
-			final StringBuilder builder = new StringBuilder(64);
-			builder.append("Scorer [classification=");
-			builder.append(classification);
-			builder.append("]");
-			return builder.toString();
-		}
+//		/*
+//		 * (non-Javadoc)
+//		 *
+//		 * @see java.lang.Object#toString()
+//		 */
+//		@Override
+//		public String toString() {
+//			final StringBuilder builder = new StringBuilder(64);
+//			builder.append("Scorer [classification=");
+//			builder.append(classification);
+//			builder.append("]");
+//			return builder.toString();
+//		}
 
 		private LogisticModel getOuterType() {
 			return LogisticModel.this;
@@ -919,58 +925,60 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	}
 
-	enum ReferentClassification {
-		// @formatter:off
-		/**
-		 * Denotes that the given referent is classified as <em>not</em> being the
-		 * &ldquo;target&rdquo; referent, i.e.&nbsp;the entity is not the one being
-		 * referred to in the round being classified.
-		 */
-		FALSE(Boolean.FALSE.toString()),
-		/**
-		 * Denotes that the given referent is classified as being the
-		 * &ldquo;target&rdquo; referent, i.e.&nbsp;the entity is actually the one being
-		 * referred to in the round being classified.
-		 */
-		TRUE(Boolean.TRUE.toString());
-		// @formatter:on
-
-		private static final List<String> ORDERED_VALUES;
-
-		private static final Map<ReferentClassification, Integer> VALUE_IDXS;
-
-		static {
-			final List<ReferentClassification> ordering = Arrays.asList(ReferentClassification.values());
-			ORDERED_VALUES = Arrays
-					.asList(ordering.stream().map(ReferentClassification::getClassValue).toArray(String[]::new));
-			VALUE_IDXS = Lists.createIndexMap(ordering, ReferentClassification.class);
-			assert ORDERED_VALUES.size() == VALUE_IDXS.size();
-		}
-
-		private String classValue;
-
-		private ReferentClassification(final String classValue) {
-			this.classValue = classValue.intern();
-		}
-
-		public String getClassValue() {
-			return classValue;
-		}
-
-		private int getClassValueIdx() {
-			return VALUE_IDXS.get(this);
-		}
-
-		private DoubleStream getProbabilities(final double[][] dists, final Instances insts) {
-			final int classIdx = getClassValueIdx();
-			return Arrays.stream(dists).mapToDouble(dist -> dist[classIdx]);
-		}
-
-		private double getProbability(final double[] dist, final Instance inst) {
-			final int classIdx = getClassValueIdx();
-			return dist[classIdx];
-		}
-	}
+//	enum ReferentClassification {
+//		// @formatter:off
+//		/**
+//		 * Denotes that the given referent is classified as <em>not</em> being the
+//		 * &ldquo;target&rdquo; referent, i.e.&nbsp;the entity is not the one being
+//		 * referred to in the round being classified.
+//		 */
+//		FALSE(Boolean.FALSE.toString()),
+//		/**
+//		 * Denotes that the given referent is classified as being the
+//		 * &ldquo;target&rdquo; referent, i.e.&nbsp;the entity is actually the one being
+//		 * referred to in the round being classified.
+//		 */
+//		TRUE(Boolean.TRUE.toString());
+//		// @formatter:on
+//
+//		private static final List<String> ORDERED_VALUES;
+//
+//		private static final Map<ReferentClassification, Integer> VALUE_IDXS;
+//
+//		static {
+//			final List<ReferentClassification> ordering = Arrays.asList(ReferentClassification.values());
+//			ORDERED_VALUES = Arrays
+//					.asList(ordering.stream().map(ReferentClassification::getClassValue).toArray(String[]::new));
+//			VALUE_IDXS = Lists.createIndexMap(ordering, ReferentClassification.class);
+//			assert ORDERED_VALUES.size() == VALUE_IDXS.size();
+//		}
+//
+//		private String classValue;
+//
+//		private ReferentClassification(final String classValue) {
+//			this.classValue = classValue.intern();
+//		}
+//
+//		public String getClassValue() {
+//			return classValue;
+//		}
+//
+//		private int getClassValueIdx() {
+//			return VALUE_IDXS.get(this);
+//		}
+//
+//		private DoubleStream getProbabilities(final double[][] dists, final Instances insts) {
+//			final int classIdx = getClassValueIdx();
+//			return Arrays.stream(dists).mapToDouble(dist -> dist[classIdx]);
+//		}
+//
+//		private double getProbability(final double[] dist, final Instance inst) {
+//			final int classIdx = getClassValueIdx();
+//			return dist[classIdx];
+//		}
+//	}
+	
+	private static final List<String> CLASSIFICATIONS = Arrays.asList("TRUE", "FALSE");
 
 	enum ReferentFeature {
 		BLUE {
@@ -1050,7 +1058,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		TARGET {
 			@Override
 			protected Attribute createAttribute(final List<String> shapeUniqueValues) {
-				return new Attribute(name(), ReferentClassification.ORDERED_VALUES);
+				return new Attribute(name(), CLASSIFICATIONS);
 			}
 
 			@Override
@@ -1091,10 +1099,10 @@ public final class LogisticModel { // NO_UCD (use default)
 
 	private static final int DEFAULT_INITIAL_WORD_CLASS_MAP_CAPACITY = HashedCollections.capacity(1130);
 
-	/**
-	 * The default {@link ReferentClassification} to use for scoring.
-	 */
-	private static final ReferentClassification DEFAULT_REF_CLASSIFICATION = ReferentClassification.TRUE;
+//	/**
+//	 * The default {@link ReferentClassification} to use for scoring.
+//	 */
+//	private static final ReferentClassification DEFAULT_REF_CLASSIFICATION = ReferentClassification.TRUE;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(LogisticModel.class);
 
@@ -1252,73 +1260,87 @@ public final class LogisticModel { // NO_UCD (use default)
 				(Boolean) modelParams.get(ModelParameter.ONLY_INSTRUCTOR));
 	}
 
-	/**
-	 *
-	 * @return A new {@link RankScorer} for {@link #DEFAULT_REF_CLASSIFICATION the
-	 *         default classification} using this {@link LogisticModel}.
-	 */
+//	/**
+//	 *
+//	 * @return A new {@link RankScorer} for {@link #DEFAULT_REF_CLASSIFICATION the
+//	 *         default classification} using this {@link LogisticModel}.
+//	 */
+//	public RankScorer createRankScorer() {
+//		return createRankScorer(DEFAULT_REF_CLASSIFICATION);
+//	}
+	
 	public RankScorer createRankScorer() {
-		return createRankScorer(DEFAULT_REF_CLASSIFICATION);
-	}
-
-	/**
-	 *
-	 * @param classification
-	 *            The {@link ReferentClassification} to get the score for,
-	 *            i.e.&nbsp;the probability of this class being the correct one for
-	 *            the given word {@code Classifier} and {@code Instance}.
-	 * @return A new {@link RankScorer} for the given {@code ReferentClassification}
-	 *         using this {@link LogisticModel}.
-	 */
-	public RankScorer createRankScorer(final ReferentClassification classification) {
-		final Scorer scorer = createScorer(classification);
+		final Scorer scorer = createScorer();
 		return new RankScorer(this, scorer);
 	}
 
-	/**
-	 *
-	 * @return A new {@link Scorer} for {@link #DEFAULT_REF_CLASSIFICATION the
-	 *         default classification} using this {@link LogisticModel}.
-	 */
+//	/**
+//	 *
+//	 * @param classification
+//	 *            The {@link ReferentClassification} to get the score for,
+//	 *            i.e.&nbsp;the probability of this class being the correct one for
+//	 *            the given word {@code Classifier} and {@code Instance}.
+//	 * @return A new {@link RankScorer} for the given {@code ReferentClassification}
+//	 *         using this {@link LogisticModel}.
+//	 */
+//	public RankScorer createRankScorer(final ReferentClassification classification) {
+//		final Scorer scorer = createScorer(classification);
+//		return new RankScorer(this, scorer);
+//	}
+
+//	/**
+//	 *
+//	 * @return A new {@link Scorer} for {@link #DEFAULT_REF_CLASSIFICATION the
+//	 *         default classification} using this {@link LogisticModel}.
+//	 */
+//	public Scorer createScorer() {
+//		return new Scorer(DEFAULT_REF_CLASSIFICATION);
+//	}
+	
 	public Scorer createScorer() {
-		return new Scorer(DEFAULT_REF_CLASSIFICATION);
+		return new Scorer();
 	}
+	
+//
+//	/**
+//	 * @param classification
+//	 *            The {@link ReferentClassification} to get the score for,
+//	 *            i.e.&nbsp;the probability of this class being the correct one for
+//	 *            the given word {@code Classifier} and {@code Instance}.
+//	 * @return A new {@link Scorer} for the given {@code ReferentClassification}
+//	 *         using this {@link LogisticModel}.
+//	 */
+//	public Scorer createScorer(final ReferentClassification classification) {
+//		return new Scorer(classification);
+//	}
 
-	/**
-	 * @param classification
-	 *            The {@link ReferentClassification} to get the score for,
-	 *            i.e.&nbsp;the probability of this class being the correct one for
-	 *            the given word {@code Classifier} and {@code Instance}.
-	 * @return A new {@link Scorer} for the given {@code ReferentClassification}
-	 *         using this {@link LogisticModel}.
-	 */
-	public Scorer createScorer(final ReferentClassification classification) {
-		return new Scorer(classification);
-	}
-
-	/**
-	 *
-	 * @return A new {@link WordProbabilityScorer} for
-	 *         {@link #DEFAULT_REF_CLASSIFICATION the default classification} using
-	 *         this {@link LogisticModel}.
-	 */
+//	/**
+//	 *
+//	 * @return A new {@link WordProbabilityScorer} for
+//	 *         {@link #DEFAULT_REF_CLASSIFICATION the default classification} using
+//	 *         this {@link LogisticModel}.
+//	 */
+//	public WordProbabilityScorer createWordProbabilityScorer() {
+//		return createWordProbabilityScorer(DEFAULT_REF_CLASSIFICATION);
+//	}
+	
 	public WordProbabilityScorer createWordProbabilityScorer() {
-		return createWordProbabilityScorer(DEFAULT_REF_CLASSIFICATION);
+		return createWordProbabilityScorer();
 	}
 
-	/**
-	 *
-	 * @param classification
-	 *            The {@link ReferentClassification} to get the score for,
-	 *            i.e.&nbsp;the probability of this class being the correct one for
-	 *            the given word {@code Classifier} and {@code Instance}.
-	 * @return A new {@link WordProbabilityScorer} for the given
-	 *         {@code ReferentClassification} using this {@link LogisticModel}.
-	 */
-	public WordProbabilityScorer createWordProbabilityScorer(final ReferentClassification classification) {
-		final Scorer scorer = createScorer(classification);
-		return new WordProbabilityScorer(this, scorer);
-	}
+//	/**
+//	 *
+//	 * @param classification
+//	 *            The {@link ReferentClassification} to get the score for,
+//	 *            i.e.&nbsp;the probability of this class being the correct one for
+//	 *            the given word {@code Classifier} and {@code Instance}.
+//	 * @return A new {@link WordProbabilityScorer} for the given
+//	 *         {@code ReferentClassification} using this {@link LogisticModel}.
+//	 */
+//	public WordProbabilityScorer createWordProbabilityScorer(final ReferentClassification classification) {
+//		final Scorer scorer = createScorer(classification);
+//		return new WordProbabilityScorer(this, scorer);
+//	}
 
 	/**
 	 * @return The {@link Map} of {@link ModelParameter} values to use for training.
