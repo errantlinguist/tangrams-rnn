@@ -915,6 +915,7 @@ public final class LogisticModel { // NO_UCD (use default)
 		public Entry<String, Logistic> get() {
 			final Logistic logistic = new Logistic();
 			final Instances dataset = exampleSupplier.get();
+			logistic.setRidge(100.0);
 			try {
 				logistic.buildClassifier(dataset);
 			} catch (final Exception e) {
