@@ -160,6 +160,26 @@ public enum ModelParameter {
 		protected Object parseValue(final String input) {
 			return Boolean.valueOf(input);
 		}
+	},
+	/**
+	 * Only build model for words with more or equal number of instances than
+	 * this; This should be a positive {@link Integer}.
+	 */
+	WORD_FREQ_DISCOUNT("sm", 3) {
+		@Override
+		public Option.Builder createCLIOptionBuilder() {
+			return Option.builder(getOptName()).longOpt("smoothing")
+					.desc("Only build model for words with more or equal number of instances than this.").hasArg()
+					.argName("mincount").type(Number.class);
+		}
+
+		/**
+		 * @return A positive {@link Integer} value.
+		 */
+		@Override
+		protected Object parseValue(final String input) {
+			return parsePositiveInteger(input);
+		}
 	};
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ModelParameter.class);
