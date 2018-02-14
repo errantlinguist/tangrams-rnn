@@ -978,7 +978,7 @@ public final class LogisticModel { // NO_UCD (use default)
 //		}
 //	}
 	
-	private static final List<String> CLASSIFICATIONS = Arrays.asList("TRUE", "FALSE");
+	private static final List<String> CLASSIFICATIONS = Arrays.asList(Boolean.TRUE.toString(), Boolean.FALSE.toString());
 
 	enum ReferentFeature {
 		BLUE {
