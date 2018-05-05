@@ -342,13 +342,13 @@ public class LogisticModel {
 			try {
 				model.train(training);
 			} catch (PredictionException | TrainingException e) {
-				throw new RuntimeException(String.format("A(n) occurred during training in cross-validation.", e.getClass().getSimpleName()), e);
+				throw new RuntimeException(String.format("A(n) %s occurred during training in cross-validation.", e.getClass().getSimpleName()), e);
 			}
 			Result resultR = null;
 			try {
 				resultR = model.eval(new SessionSet(testing));
 			} catch (PredictionException | TrainingException e) {
-				throw new RuntimeException(String.format("A(n) occurred during evaluation in cross-validation.", e.getClass().getSimpleName()), e);
+				throw new RuntimeException(String.format("A(n) %s occurred during evaluation in cross-validation.", e.getClass().getSimpleName()), e);
 			}
 			System.out.println(testing.name + "\t" + resultR);
 				result.increment(resultR);
