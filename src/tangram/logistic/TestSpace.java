@@ -1,6 +1,5 @@
 package tangram.logistic;
 
-import java.awt.Color;
 import java.io.File;
 import java.io.PrintWriter;
 import java.util.Arrays;
@@ -18,13 +17,13 @@ public class TestSpace {
 		
 		List<String> wlist = Arrays.asList(new String[]{"left", "right", "bottom", "top", "middle", "center", "corner"});
 		
-		PrintWriter pw = new PrintWriter("space.html");
+		PrintWriter pw = new PrintWriter("space2.html");
 		
-		pw.println("<table cellpadding=\"5\">");
+		pw.println("<table cellpadding=\"5\" width=\"100%\">");
 				
-		for (float y = 0f; y <= 1f; y += 0.2) {
+		for (float y = 0f; y <= 1f; y += 0.5) {
 			pw.println("<tr>");
-			for (float x = 0f; x <= 1f; x += 0.2) {
+			for (float x = 0f; x <= 1f; x += 0.5) {
 				pw.println("<td style=\"border:1px solid black\">");
 				
 				Referent ref = new Referent();

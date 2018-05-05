@@ -1,10 +1,27 @@
 package tangram.data;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.util.*;
 
 public class Vocabulary {
 
-	Map<String,Integer> dict = new HashMap<>();
+	public Map<String,Integer> dict = new HashMap<>();
+
+	public Vocabulary() {
+	}
+	
+	public Vocabulary(File file) throws Exception {
+		for (String line : Files.readAllLines(file.toPath())) {
+			line = line.trim();
+			if (line.length() > 0) {
+				String[] cols = line.split("\t");
+				dict.put(cols[0], Integer.parseInt(cols[1]));
+			}
+		}
+	}
 	
 	public void add(String word) {
 		if (!dict.containsKey(word))
@@ -29,7 +46,7 @@ public class Vocabulary {
 			}
 		}
 	}
-
+	
 	public int size() {
 		return dict.size();
 	}
@@ -49,13 +66,13 @@ public class Vocabulary {
 		return new ArrayList<>(dict.keySet());
 	}
 
-	public List<String> getUpdatedWordsSince(Vocabulary oldVocab) {
+	public List<String> getUpdatedWordsSince(Vocabulary oldVocab, int threshold) {
 		List<String> newWords = new ArrayList<>();
 		for (String word : getWords()) {
 			//System.out.println(word + " " + oldVocab.dict.get(word) + " " + dict.get(word));
-			if (!oldVocab.dict.containsKey(word) || !oldVocab.dict.get(word).equals(dict.get(word)))
+			if (!oldVocab.dict.containsKey(word) || (oldVocab.dict.get(word) <= threshold && !oldVocab.dict.get(word).equals(dict.get(word))))
 				newWords.add(word);
-		}
+		} 
 		return newWords;
 	}
 
@@ -67,12 +84,24 @@ public class Vocabulary {
 		return dict.containsKey(word);
 	}
 
-	public double getCount(String word, int def) {
+	public int getCount(String word, int def) {
 		Integer count = getCount(word);
 		if (count == null)
 			return def;
 		else
 			return count;
+	}
+
+	public int getSize() {
+		return dict.size();
+	}
+
+	public void save(File file) throws FileNotFoundException {
+		PrintWriter pw = new PrintWriter(file);
+		for (String word : getWordsSortedByFreq()) {
+			pw.println(word + "\t" + dict.get(word));
+		}
+		pw.close();
 	}
 	
 	

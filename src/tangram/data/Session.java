@@ -19,15 +19,21 @@ public class Session {
 				continue;
 			line = line.trim();
 			Utterance utt = new Utterance(line);
+			
 			if (round == null || round.n != utt.round) {
 				round = new Round();
+				round.session = this;
 				round.n = utt.round;
 				rounds.add(round);
 				AisGiver = !AisGiver;
 			}
+			if (utt.fullText.length < 1)
+				throw new RuntimeException("Round " + round.n + " in session " + dir + " has no words");
+					
 			utt.setRole(AisGiver);
 			round.utts.add(utt);
 		}
+		Map<Integer,Integer> mentioned = new HashMap<>();
 		i = 0;
 		for (String line : Files.readAllLines(new File(dir, "events.tsv").toPath())) {
 			if (i++ == 0) 
@@ -35,7 +41,9 @@ public class Session {
 			line = line.trim();
 			String[] cols = line.split("\t");
 			if (cols[4].equals("nextturn.request")) {
+				
 				Referent referent = new Referent(cols);
+				referent.mentioned = mentioned.getOrDefault(referent.id, 0);
 				round = getRound(referent.round);
 				if (round == null) {
 					//System.out.println("Cannot find round " + referent.round);
@@ -44,6 +52,7 @@ public class Session {
 					if (referent.target)
 						round.target = referent;
 				}
+				mentioned.put(referent.id, mentioned.getOrDefault(referent.id, 0) + 1);
 			}
 		}
 		// Sanity check session
