@@ -1,11 +1,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>se.kth.speech.coin.tangrams</groupId>
-	<artifactId>tangrams-wac</artifactId>
+	<groupId>Tangram-RNN</groupId>
+	<artifactId>Tangram-RNN</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<properties>
-		<javac.version>1.8</javac.version>
+		<java.version>1.8</java.version>
 		<nd4j.backend>nd4j-native-platform</nd4j.backend>
 		<!--
 		<nd4j.backend>nd4j-cuda-7.5-platform</nd4j.backend>
@@ -36,11 +36,11 @@
 			<version>${dl4j.version}</version>
 		</dependency>
 
-		<dependency>
-			<groupId>org.deeplearning4j</groupId>
-			<artifactId>deeplearning4j-ui_2.10</artifactId>
-			<version>${dl4j.version}</version>
-		</dependency>
+		<!--<dependency>-->
+			<!--<groupId>org.deeplearning4j</groupId>-->
+			<!--<artifactId>deeplearning4j-ui_2.10</artifactId>-->
+			<!--<version>${dl4j.version}</version>-->
+		<!--</dependency>-->
 		<dependency>
 			<groupId>org.deeplearning4j</groupId>
 			<artifactId>deeplearning4j-nlp</artifactId>
@@ -56,44 +56,12 @@
 	<build>
 		<plugins>
 			<plugin>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<version>3.1.0</version>
-				<configuration>
-					<archive>
-						<manifest>
-							<addClasspath>true</addClasspath>
-							<!--<mainClass>${mainClass}</mainClass>-->
-						</manifest>
-					</archive>
-					<descriptorRefs>
-						<descriptorRef>jar-with-dependencies</descriptorRef>
-					</descriptorRefs>
-				</configuration>
-				<executions>
-					<execution>
-						<id>make-assembly</id>
-						<phase>package</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.7.0</version>
 				<configuration>
-					<source>${javac.version}</source>
-					<target>${javac.version}</target>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
 				</configuration>
-			</plugin>
-			<plugin>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.0.0</version>
-			</plugin>
-			<plugin>
-				<artifactId>maven-source-plugin</artifactId>
-				<version>3.0.1</version>
 			</plugin>
 		</plugins>
 	</build>
