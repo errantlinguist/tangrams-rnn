@@ -76,7 +76,7 @@ public class AnalyzeCategories {
 	}
 
 
-	public static void main(String[] args) throws IOException, Exception {
+	public static void main(String[] args) throws IOException, PredictionException, TrainingException {
 		Parameters.WEIGHT_BY_FREQ = true;
 		Parameters.WEIGHT_BY_POWER = true;
 		LogisticModel model = new LogisticModel();

@@ -7,7 +7,7 @@ import se.kth.speech.coin.tangrams.data.*;
 
 public class AnalyzeWords {
 	
-	public static void main(String[] args) throws IOException, Exception {
+	public static void main(String[] args) throws IOException, PredictionException, TrainingException {
 		Parameters.WEIGHT_BY_FREQ = true;
 		Parameters.WEIGHT_BY_POWER = true;
 		SessionSet testingSet = new SessionSet(new File("C:/data/tangram/testing.txt"));
