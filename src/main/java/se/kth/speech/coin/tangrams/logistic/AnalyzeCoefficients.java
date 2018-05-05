@@ -2,10 +2,7 @@ package se.kth.speech.coin.tangrams.logistic;
 
 import java.io.File;
 import java.io.IOException;
-
-import se.kth.speech.coin.tangrams.data.Parameters;
-import se.kth.speech.coin.tangrams.data.SessionSet;
-
+import se.kth.speech.coin.tangrams.data.*;
 
 public class AnalyzeCoefficients {
 	

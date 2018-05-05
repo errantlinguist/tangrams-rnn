@@ -11,8 +11,7 @@ import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
 import org.deeplearning4j.models.embeddings.wordvectors.WordVectors;
 
-import se.kth.speech.coin.tangrams.data.Parameters;
-import se.kth.speech.coin.tangrams.data.SessionSet;
+import se.kth.speech.coin.tangrams.data.*;
 
 public class AnalyzeWord2Vec {
 	

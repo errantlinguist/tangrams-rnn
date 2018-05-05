@@ -5,13 +5,13 @@ import java.util.*;
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
 
-import se.kth.speech.coin.tangrams.data.RoundSet;
-import se.kth.speech.coin.tangrams.data.SessionSet;
-import se.kth.speech.coin.tangrams.data.Vocabulary;
 import se.kth.speech.coin.tangrams.data.Parameters;
 import se.kth.speech.coin.tangrams.data.Referent;
 import se.kth.speech.coin.tangrams.data.Round;
+import se.kth.speech.coin.tangrams.data.RoundSet;
 import se.kth.speech.coin.tangrams.data.Session;
+import se.kth.speech.coin.tangrams.data.SessionSet;
+import se.kth.speech.coin.tangrams.data.Vocabulary;
 import weka.classifiers.functions.Logistic;
 import weka.core.*;
 

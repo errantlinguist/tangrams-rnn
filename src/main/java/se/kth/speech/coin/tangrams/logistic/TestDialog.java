@@ -6,7 +6,6 @@ import java.io.PrintWriter;
 
 import se.kth.speech.coin.tangrams.data.*;
 
-
 public class TestDialog {
 
 	public static void main(String[] args) throws Exception {

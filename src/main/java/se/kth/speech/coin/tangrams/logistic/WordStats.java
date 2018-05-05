@@ -6,7 +6,6 @@ import java.util.*;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import se.kth.speech.coin.tangrams.data.*;
 
-
 public class WordStats {
 
 	private Map<String,List<Double>> targetScores = new HashMap<>();

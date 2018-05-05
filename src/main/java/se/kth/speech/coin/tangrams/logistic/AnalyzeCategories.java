@@ -10,10 +10,7 @@ import java.util.*;
 
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
 
-import se.kth.speech.coin.tangrams.data.Parameters;
-import se.kth.speech.coin.tangrams.data.Referent;
-import se.kth.speech.coin.tangrams.data.SessionSet;
-
+import se.kth.speech.coin.tangrams.data.*;
 
 public class AnalyzeCategories {
 	

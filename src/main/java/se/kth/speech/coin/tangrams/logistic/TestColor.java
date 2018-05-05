@@ -5,9 +5,7 @@ import java.io.*;
 import java.util.Arrays;
 import java.util.List;
 
-import se.kth.speech.coin.tangrams.data.Referent;
-import se.kth.speech.coin.tangrams.data.SessionSet;
-
+import se.kth.speech.coin.tangrams.data.*;
 
 public class TestColor {
 
