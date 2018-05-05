@@ -6,6 +6,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<properties>
 		<java.version>1.8</java.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<nd4j.backend>nd4j-native-platform</nd4j.backend>
 		<!--
 		<nd4j.backend>nd4j-cuda-7.5-platform</nd4j.backend>
