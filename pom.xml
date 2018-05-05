@@ -1,8 +1,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>Tangram-RNN</groupId>
-	<artifactId>Tangram-RNN</artifactId>
+	<groupId>se.kth.speech.coin.tangrams</groupId>
+	<artifactId>tangrams-wac</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<properties>
 		<java.version>1.8</java.version>
@@ -25,6 +25,7 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
+
 	<dependencies>
 		<!-- ND4J backend. You need one in every DL4J project. Normally define artifactId as either "nd4j-native-platform" or "nd4j-cuda-7.5-platform" -->
 		<dependency>
