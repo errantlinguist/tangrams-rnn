@@ -146,9 +146,5 @@ public class RoundSet {
 		sets[1] = new RoundSet(list.subList(list.size()/2, list.size()));
 		return sets;
 	}
-
-	public static void main(String[] args) throws IOException {
-		System.out.println(new RoundSet(new SessionSet(new File("C:/data/tangram"))).getBigramVocabulary());
-	}
 	
 }

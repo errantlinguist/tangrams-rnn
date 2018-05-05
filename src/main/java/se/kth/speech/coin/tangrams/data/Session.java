@@ -80,8 +80,4 @@ public class Session {
 		return null;
 	}
 	
- 	public static void main(String[] args) throws IOException {
-		new Session(new File("C:\\data\\Summer recordings\\Game150"));
-	}
-	
 }
