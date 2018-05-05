@@ -70,7 +70,7 @@ public class TestRank {
 		rnnLogisticModel.train(new SessionSet(new File(MakeFeatures.dataDir, "training.txt")));
 
 		Result roundMean = new Result();
-		SessionSet testingSet = new SessionSet(new File(MakeFeatures.dataDir, "testing.txt"));;
+		SessionSet testingSet = new SessionSet(new File(MakeFeatures.dataDir, "testing.txt"));
 		for (Session session : testingSet.sessions) {
 			Result sessionMean = new Result();
 			for (Round round : session.rounds) {
