@@ -1,6 +1,7 @@
 package se.kth.speech.coin.tangrams.logistic;
 
 import java.io.File;
+import java.io.IOException;
 
 import se.kth.speech.coin.tangrams.data.Parameters;
 import se.kth.speech.coin.tangrams.data.SessionSet;
@@ -8,7 +9,7 @@ import se.kth.speech.coin.tangrams.data.SessionSet;
 public class TestLogisticModel {
 
 	
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws IOException, PredictionException, TrainingException {
 		SessionSet training = new SessionSet(new File("d:/data/tangram/training.txt"));
 		SessionSet testing = new SessionSet(new File("d:/data/tangram/testing.txt"));
 

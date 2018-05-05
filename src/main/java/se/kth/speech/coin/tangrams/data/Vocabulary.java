@@ -2,6 +2,7 @@ package se.kth.speech.coin.tangrams.data;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.util.*;
@@ -13,7 +14,7 @@ public class Vocabulary {
 	public Vocabulary() {
 	}
 	
-	public Vocabulary(File file) throws Exception {
+	public Vocabulary(File file) throws IOException {
 		for (String line : Files.readAllLines(file.toPath())) {
 			line = line.trim();
 			if (line.length() > 0) {

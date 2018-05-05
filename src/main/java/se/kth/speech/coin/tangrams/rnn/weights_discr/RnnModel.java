@@ -21,7 +21,7 @@ public class RnnModel {
 		this.model = model;
 	}
 	 
-	public INDArray score(Round round) throws Exception {
+	public INDArray score(Round round)  {
 		int nInput = encoder.size() + 2;
 		INDArray input = Nd4j.zeros(round.getNormalizedTextWordCount(),nInput);
 		int i = 0;

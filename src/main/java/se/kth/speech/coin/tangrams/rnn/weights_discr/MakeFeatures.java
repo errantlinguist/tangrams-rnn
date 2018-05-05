@@ -6,6 +6,8 @@ import org.apache.commons.math3.stat.descriptive.moment.Mean;
 
 import se.kth.speech.coin.tangrams.data.*;
 import se.kth.speech.coin.tangrams.logistic.LogisticModel;
+import se.kth.speech.coin.tangrams.logistic.PredictionException;
+import se.kth.speech.coin.tangrams.logistic.TrainingException;
 import se.kth.speech.coin.tangrams.rnn.WordEncoder;
 
 public class MakeFeatures {
@@ -18,7 +20,7 @@ public class MakeFeatures {
 	
 	static int datan = 0;
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws IOException, InterruptedException {
 		Parameters.WEIGHT_BY_FREQ = true;
 		Parameters.WEIGHT_BY_POWER = false;
 		new File(featDir).mkdirs();
@@ -31,7 +33,7 @@ public class MakeFeatures {
 		wordEncoder.save(new File(modelDir, "words.txt"));
 		vocab.save(new File(modelDir, "vocab.txt"));
 		set.crossValidate((training,testing)-> {
-			try { 
+			try {
 				System.out.println(testing.name);
 				LogisticModel logisticModel = new LogisticModel();
 				logisticModel.train(training);
@@ -61,8 +63,8 @@ public class MakeFeatures {
 					feat.close();
 					label.close();
 				}
-			} catch (Exception e) {
-				e.printStackTrace();
+			} catch (FileNotFoundException | PredictionException | TrainingException e) {
+				throw new RuntimeException(e);
 			}
 		});
 		System.out.println(datan);

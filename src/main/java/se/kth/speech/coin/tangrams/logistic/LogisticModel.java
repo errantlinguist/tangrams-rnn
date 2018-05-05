@@ -51,7 +51,7 @@ public class LogisticModel {
 	/**
 	 * Trains the word models using all data from a SessionSet
 	 */
-	public void train(SessionSet set) throws Exception {
+	public void train(SessionSet set) throws PredictionException, TrainingException {
 		
 		trainingSet = new RoundSet(set);
 		vocab = trainingSet.getVocabulary();
@@ -96,7 +96,7 @@ public class LogisticModel {
 	/**
 	 * Updates (trains) the models with the new round
 	 */
-	public void updateModel(Round round) throws Exception {
+	public void updateModel(Round round) throws PredictionException, TrainingException {
 		//System.out.println("UPDATING");
 		trainingSet.rounds.add(round);
 		round.weight = Parameters.UPDATE_WEIGHT; 
@@ -109,7 +109,7 @@ public class LogisticModel {
 	/**
 	 * Trains models for the specified words
 	 */
-	private void train(List<String> words) throws Exception {
+	private void train(List<String> words) throws PredictionException, TrainingException {
 
 		//System.out.println("Training " + words);
 		
@@ -164,7 +164,7 @@ public class LogisticModel {
 				
 	}
 		
-	private Logistic buildClassifier(String word, RoundSet trainingSet) throws Exception {
+	private Logistic buildClassifier(String word, RoundSet trainingSet) throws TrainingException {
 		Logistic logistic = new Logistic();
 		if (Parameters.USE_RIDGE)
 			logistic.setRidge(100);
@@ -201,9 +201,13 @@ public class LogisticModel {
 		}
 		
 		dataset.setClass(TARGET);
-		
-		logistic.buildClassifier(dataset);
-	
+
+		try {
+			logistic.buildClassifier(dataset);
+		} catch (Exception e) {
+			throw new TrainingException(String.format("A(n) %s occurred while training a model for the word \"%s\".", e.getClass().getSimpleName(),word), e);
+		}
+
 		return logistic;
 	}
 	
@@ -230,10 +234,14 @@ public class LogisticModel {
 		return instance;
 	}
 	
-	public double score(String word, Instance inst) throws Exception {
+	public double score(String word, Instance inst) throws PredictionException {
 		if (wordModels.containsKey(word)) {
 			Logistic model = wordModels.get(word);
-			return score(inst, model);
+			try {
+				return score(inst, model);
+			} catch (Exception e) {
+				throw new PredictionException(String.format("A(n) %s occurred while doing prediction using the model for the word \"%s\".", e.getClass().getSimpleName(),word), e);
+			}
 		} else {
 			return 0.5;
 		}
@@ -244,7 +252,7 @@ public class LogisticModel {
 		return dist[0];
 	}
 	
-	public double score(String word, Referent ref) throws Exception {
+	public double score(String word, Referent ref) throws PredictionException {
 		return score(word, toInstance(ref));
 	}
 
@@ -264,7 +272,7 @@ public class LogisticModel {
 	/**
 	 * Returns a ranking of the referents in a round
 	 */
-	public List<Referent> rank(Round round) throws Exception {
+	public List<Referent> rank(Round round) throws PredictionException {
 		final Map<Referent,Double> scores = new HashMap<>();
 		for (Referent ref : round.referents) {
 			Instance inst = toInstance(ref);
@@ -293,7 +301,7 @@ public class LogisticModel {
 	/**
 	 * Returns the rank of the target referent in a round
 	 */
-	public int targetRank(Round round) throws Exception {
+	public int targetRank(Round round) throws PredictionException {
 		int rank = 0;
 		for (Referent ref : rank(round)) {
 			rank++;
@@ -306,7 +314,7 @@ public class LogisticModel {
 	/**
 	 * Evaluates a SessionSet and returns the mean rank
 	 */
-	private Result eval(SessionSet set) throws Exception {
+	private Result eval(SessionSet set) throws PredictionException, TrainingException {
 		Result result = new Result();
 		storeModel();
 		for (Session session : set.sessions) {
@@ -330,20 +338,25 @@ public class LogisticModel {
 	public static Result crossValidate(SessionSet set) {
 		final Result result = new Result();
 		set.crossValidate((training, testing) -> {
-			try {
 				LogisticModel model = new LogisticModel();
+			try {
 				model.train(training);
-				Result resultR = model.eval(new SessionSet(testing));
-				System.out.println(testing.name + "\t" + resultR);
-				result.increment(resultR);
-			} catch (Exception e) {
-				e.printStackTrace();
+			} catch (PredictionException | TrainingException e) {
+				throw new RuntimeException(String.format("A(n) occurred during training in cross-validation.", e.getClass().getSimpleName()), e);
 			}
+			Result resultR = null;
+			try {
+				resultR = model.eval(new SessionSet(testing));
+			} catch (PredictionException | TrainingException e) {
+				throw new RuntimeException(String.format("A(n) occurred during evaluation in cross-validation.", e.getClass().getSimpleName()), e);
+			}
+			System.out.println(testing.name + "\t" + resultR);
+				result.increment(resultR);
 		});
 		return result;
 	}
 	
-	public static Result validate(SessionSet training, SessionSet testing) throws Exception {
+	public static Result validate(SessionSet training, SessionSet testing) throws PredictionException, TrainingException {
 		LogisticModel model = new LogisticModel();
 		model.train(training);
 		Result result = model.eval(testing);
@@ -357,12 +370,12 @@ public class LogisticModel {
 		System.out.println(t + "\t" + Parameters.getSetting() + "\t" + result);
 	}
 	
-	public static void run(SessionSet training, SessionSet testing) throws Exception {
+	public static void run(SessionSet training, SessionSet testing) throws PredictionException, TrainingException {
 		Result result = validate(training, testing);
 		System.out.println(Parameters.getSetting() + "\t" + result);
 	}
 
-	public double range(String word, List<Referent> referents) throws Exception {
+	public double range(String word, List<Referent> referents) throws PredictionException {
 		double max = Double.MIN_VALUE;
 		double min = Double.MAX_VALUE;
 		for (Referent ref : referents) {

@@ -2,13 +2,15 @@ package se.kth.speech.coin.tangrams.logistic;
 
 import java.awt.Color;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
 
 import se.kth.speech.coin.tangrams.data.*;
 
 public class TestDialog {
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws IOException, PredictionException, TrainingException {
 		//SessionSet set = new SessionSet(new File("C:/data/tangram"));
 		//set.crossValidate((training,testing) -> {
 		Parameters.WEIGHT_BY_FREQ = true;
@@ -28,10 +30,10 @@ public class TestDialog {
 				System.out.println(testing.name);
 				//LogisticModel model = new LogisticModel();
 				//model.train(training);
-				DialogPrinter dialogPrinter = new DialogPrinter() {
+				DialogPrinter<ClassifierException> dialogPrinter = new DialogPrinter<ClassifierException>() {
 
 					@Override
-					public void print(PrintWriter pw, Session session, Round round) throws Exception {
+					public void print(PrintWriter pw, Session session, Round round) throws ClassifierException {
 						for (Referent ref : round.referents) {
 							if (!ref.target)
 								//pw.println("<div>" + ref.shape);
@@ -65,20 +67,20 @@ public class TestDialog {
 				
 
 				//System.exit(0);
-			} catch (Exception e) {
-				e.printStackTrace();
+			} catch (FileNotFoundException | ClassifierException e) {
+				throw new RuntimeException(e);
 			}
 		}
 		//});
 	}
 	
-	public interface DialogPrinter {
+	public interface DialogPrinter<E extends Exception> {
 
-		void print(PrintWriter pw, Session session, Round round) throws Exception;
+		void print(PrintWriter pw, Session session, Round round) throws E;
 		
 	}
 	
-	public static void writeDialog(File outFile, Session session, DialogPrinter dialogPrinter) throws Exception {
+	public static <E extends Exception> void writeDialog(File outFile, Session session, DialogPrinter<E> dialogPrinter) throws FileNotFoundException, E {
 		PrintWriter pw = new PrintWriter(outFile);
 		pw.println("<table border=\"1\">");
 		int roundn = -1;

@@ -2,6 +2,7 @@ package se.kth.speech.coin.tangrams.logistic;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
@@ -9,7 +10,7 @@ import org.deeplearning4j.models.embeddings.wordvectors.WordVectors;
 
 public class TestWord2Vec {
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws IOException {
 		WordVectors wordVectors = WordVectorSerializer.loadTxtVectors(new File("C:/Dropbox/dev/Chatbot-RNN/word2vec/glove.6B.50d.txt"));
 		System.out.println("Ready");
 		String line;

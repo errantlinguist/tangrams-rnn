@@ -1,6 +1,7 @@
 package se.kth.speech.coin.tangrams.logistic;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
@@ -49,7 +50,7 @@ public class WordStats {
 		}
 	}
 	
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws IOException, PredictionException, TrainingException {
 		WordStats stats = new WordStats();
 		SessionSet set = new SessionSet(new File("C:/data/tangram"));
 		LogisticModel model = new LogisticModel();

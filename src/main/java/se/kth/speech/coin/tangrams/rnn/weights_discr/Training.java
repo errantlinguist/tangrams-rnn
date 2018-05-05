@@ -1,6 +1,7 @@
 package se.kth.speech.coin.tangrams.rnn.weights_discr;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.datavec.api.records.reader.SequenceRecordReader;
@@ -24,11 +25,11 @@ import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction;
 
 public class Training {
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws IOException, InterruptedException {
 		run(2478);
 	}
 	
-	public static void run(int nFiles) throws Exception {
+	public static void run(int nFiles) throws IOException, InterruptedException {
 
 		int lstmLayerSize = 60;		//Number of units in each GravesLSTM layer
 		int miniBatchSize = 32;		//Size of mini batch to use when  training (32)

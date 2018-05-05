@@ -19,7 +19,9 @@ import se.kth.speech.coin.tangrams.data.Session;
 import se.kth.speech.coin.tangrams.data.SessionSet;
 import se.kth.speech.coin.tangrams.data.Utterance;
 import se.kth.speech.coin.tangrams.logistic.LogisticModel;
+import se.kth.speech.coin.tangrams.logistic.PredictionException;
 import se.kth.speech.coin.tangrams.logistic.Result;
+import se.kth.speech.coin.tangrams.logistic.TrainingException;
 import se.kth.speech.coin.tangrams.rnn.WordEncoder;
 
 public class TestRank {
@@ -34,7 +36,7 @@ public class TestRank {
 			rnnModel = new RnnModel(net, encoder, this);
 		}
 		
-		public Map<Referent, Double> scores(Round round) throws Exception {
+		public Map<Referent, Double> scores(Round round) throws PredictionException {
 			INDArray rnnScores = rnnModel.score(round);
 			final Map<Referent,Double> scores = new HashMap<>();
 			
@@ -63,7 +65,7 @@ public class TestRank {
 	
 	}
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws IOException, PredictionException, TrainingException {
 		RnnLogisticModel rnnLogisticModel = new RnnLogisticModel();
 		rnnLogisticModel.train(new SessionSet(new File(MakeFeatures.dataDir, "training.txt")));
 

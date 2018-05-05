@@ -1,6 +1,7 @@
 package se.kth.speech.coin.tangrams.logistic;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,7 +19,7 @@ public class AnalyzeWord2Vec {
 	private LogisticModel model;
 	private WordVectors wordVectors;
 
-	public AnalyzeWord2Vec() throws Exception {
+	public AnalyzeWord2Vec() throws IOException, PredictionException, TrainingException {
 		Parameters.WEIGHT_BY_FREQ = true;
 		Parameters.WEIGHT_BY_POWER = true;
 		wordVectors = WordVectorSerializer.loadTxtVectors(new File("C:/Dropbox/dev/Chatbot-RNN/word2vec/glove.6B.50d.txt"));
@@ -57,7 +58,7 @@ public class AnalyzeWord2Vec {
 		return list.subList(1, 6);
 	}
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws PredictionException, IOException, TrainingException {
 		new AnalyzeWord2Vec();
 	}
 	

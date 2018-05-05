@@ -20,7 +20,7 @@ public class AnalyzeCategories {
 	public Map<String,Double> posMap = new HashMap<>();
 	private LogisticModel model;
 	
-	public AnalyzeCategories(LogisticModel model) throws Exception {
+	public AnalyzeCategories(LogisticModel model) throws PredictionException {
 		this.model = model;
 		for (String word : model.vocab.dict.keySet()) {
 			Referent ref = new Referent();
@@ -63,7 +63,7 @@ public class AnalyzeCategories {
 	}
 	
 	
-	public AnalyzeCategories(File file) throws Exception {
+	public AnalyzeCategories(File file) throws IOException {
 		BufferedReader br = new BufferedReader(new FileReader(file));
 		String line;
 		while ((line = br.readLine()) != null) {
