@@ -77,7 +77,7 @@ public class SessionReader {
 			if (cols[4].equals("nextturn.request")) {
 
 				Referent referent = new Referent(cols);
-				referent.mentioned = mentioned.getOrDefault(referent.id, 0);
+				referent.setMentioned(mentioned.getOrDefault(referent.id, 0));
 				round = result.getRound(referent.round);
 				if (round == null) {
 					//System.out.println("Cannot find round " + referent.round);

@@ -4,38 +4,38 @@ public final class ROCCurvePrediction {
 
 	private final int round;
 
-	private final int ref;
-
 	private final String word;
 
 	private final int nthWordOccurrence;
 
 	private final double probTarget;
 
-	private final boolean isTarget;
+	private final double probOthers;
 
-	private final int mentioned;
+	private final double targetMentioned;
 
-	ROCCurvePrediction(int round, int ref, int mentioned, String word, int nthWordOccurrence, double probTarget, boolean isTarget) {
+	private final boolean isInstructor;
+
+	ROCCurvePrediction(int round, final boolean isInstructor, String word, int nthWordOccurrence, double probTarget, double probOthers, double targetMentioned) {
 		this.round = round;
-		this.ref = ref;
-		this.mentioned = mentioned;
+		this.isInstructor = isInstructor;
 		this.word = word;
 		this.nthWordOccurrence = nthWordOccurrence;
 		this.probTarget = probTarget;
-		this.isTarget = isTarget;
+		this.probOthers = probOthers;
+		this.targetMentioned = targetMentioned;
 	}
 
-	public int getMentioned() {
-		return mentioned;
+	public boolean isInstructor() {
+		return isInstructor;
+	}
+
+	public double getTargetMentioned() {
+		return targetMentioned;
 	}
 
 	public int getRound() {
 		return round;
-	}
-
-	public int getRef() {
-		return ref;
 	}
 
 	public String getWord() {
@@ -50,7 +50,7 @@ public final class ROCCurvePrediction {
 		return probTarget;
 	}
 
-	public boolean isTarget() {
-		return isTarget;
+	public double getProbOthers() {
+		return probOthers;
 	}
 }

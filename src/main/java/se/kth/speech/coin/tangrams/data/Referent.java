@@ -4,19 +4,8 @@ import java.util.*;
 
 public class Referent {
 
-	public int id = 0;
+	public static Set<String> shapes = new HashSet<>((int) Math.ceil(DatasetConstants.EXPECTED_UNIQUE_SHAPE_COUNT / 0.75f));
 	public int round = 0;
-
-	private boolean target = false;
-
-	public boolean isTarget(){
-		return target;
-	}
-
-	public void setTarget(final boolean target) {
-		this.target = target;
-	}
-
 	public String shape = "wedge";
 	public float size = 0f;
 	public float red = 0f;
@@ -27,21 +16,13 @@ public class Referent {
 	public float posy = 0f;
 	public float midx = 0f;
 	public float midy = 0f;
-	
-	public int mentioned = 0;
-	
-	public static Set<String> shapes = new HashSet<>((int) Math.ceil(DatasetConstants.EXPECTED_UNIQUE_SHAPE_COUNT / 0.75f));
-	
-	public Referent() {	
+	int id = 0;
+	private boolean target = false;
+	private int mentioned = 0;
+
+	public Referent() {
 	}
-	
-	public void setPos(float x, float y) {
-		this.posx = x;
-		this.posy = y;
-		this.midx = 1f - (Math.abs(0.5f - posx) * 2f);
-		this.midy = 1f - (Math.abs(0.5f - posy) * 2f);
-	}
-	
+
 	public Referent(String[] cols) {
 		this.id = Integer.parseInt(cols[6]);
 		this.round = Integer.parseInt(cols[1]);
@@ -55,10 +36,33 @@ public class Referent {
 		this.hue = Float.parseFloat(cols[16]);
 		setPos(Float.parseFloat(cols[19]), Float.parseFloat(cols[20]));
 	}
-	
+
+	public boolean isTarget() {
+		return target;
+	}
+
+	public void setTarget(final boolean target) {
+		this.target = target;
+	}
+
+	public int getMentioned() {
+		return mentioned;
+	}
+
+	public void setMentioned(int mentioned) {
+		this.mentioned = mentioned;
+	}
+
+	public void setPos(float x, float y) {
+		this.posx = x;
+		this.posy = y;
+		this.midx = 1f - (Math.abs(0.5f - posx) * 2f);
+		this.midy = 1f - (Math.abs(0.5f - posy) * 2f);
+	}
+
 	@Override
 	public String toString() {
-		return String.format("%s R:%.2f G:%.2f B:%.2f size:%.2f", shape, red, green, blue, size) + " " + (target ? "*":"");
+		return String.format("%s R:%.2f G:%.2f B:%.2f size:%.2f", shape, red, green, blue, size) + " " + (target ? "*" : "");
 	}
 
 }

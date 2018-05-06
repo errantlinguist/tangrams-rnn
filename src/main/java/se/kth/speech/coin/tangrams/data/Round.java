@@ -1,6 +1,7 @@
 package se.kth.speech.coin.tangrams.data;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 
 public class Round {
@@ -47,6 +48,22 @@ public class Round {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Returns a list of words that have been used in this round
+	 */
+	public List<SpeakerToken> getSpeakerWords() {
+		List<SpeakerToken> list = new ArrayList<>();
+		for (Utterance utt : utts) {
+			if (Parameters.ONLY_GIVER && !utt.isGiver)
+				continue;
+			final String[] words = utt.refText;
+			final boolean isInstructor = utt.isGiver;
+			final Stream<SpeakerToken> tokens = Arrays.stream(words).map(token -> new SpeakerToken(token, isInstructor));
+			tokens.forEach(list::add);
+		}
+		return list;
 	}
 
 	/**
