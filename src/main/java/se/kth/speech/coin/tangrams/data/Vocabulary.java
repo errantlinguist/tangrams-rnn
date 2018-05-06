@@ -35,7 +35,7 @@ public class Vocabulary {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		for (String word : getWordsSortedByFreq()) {
-			sb.append(word + " " + dict.get(word) + "\n");
+			sb.append(word).append(" ").append(dict.get(word)).append("\n");
 		}
 		return sb.toString();
 	}
