@@ -28,7 +28,7 @@ public class Referent {
 	public float midx = 0f;
 	public float midy = 0f;
 	
-	public float mentioned = 0f;
+	public int mentioned = 0;
 	
 	public static Set<String> shapes = new HashSet<>((int) Math.ceil(DatasetConstants.EXPECTED_UNIQUE_SHAPE_COUNT / 0.75f));
 	

@@ -7,10 +7,14 @@ public class Session {
 
 	public final List<Round> rounds = new ArrayList<>();
 
-	public final  String name;
+	public final String name;
 
 	public Session(final String name) {
 		this.name = name;
+	}
+
+	public String getName() {
+		return name;
 	}
 	
 	public Round getRound(int n) {
