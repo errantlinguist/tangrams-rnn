@@ -48,14 +48,13 @@ public class AnalyzeWord2Vec {
 	}
 
 	private List<String> getClosest(String word) {
-		List<String> list = new ArrayList<>();
-		list.addAll(model.vocab.dict.keySet());
-		Collections.sort(list, new Comparator<String>() {
+		List<String> list = new ArrayList<>(model.vocab.dict.keySet());
+		list.sort(new Comparator<String>() {
 			@Override
 			public int compare(String arg0, String arg1) {
 				return wordVectors.similarity(arg0, word) < wordVectors.similarity(arg1, word) ? 1 : -1;
 			}
-			
+
 		});
 		return list.subList(1, 6);
 	}

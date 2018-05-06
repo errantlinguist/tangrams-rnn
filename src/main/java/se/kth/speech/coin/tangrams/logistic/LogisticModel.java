@@ -58,7 +58,7 @@ public class LogisticModel {
 		
 		atts = new ArrayList<>();
 		
-		atts.add(SHAPE = new Attribute("shape", new ArrayList<String>(Referent.shapes)));
+		atts.add(SHAPE = new Attribute("shape", new ArrayList<>(Referent.shapes)));
 		atts.add(SIZE = new Attribute("size"));
 		atts.add(RED = new Attribute("red"));
 		atts.add(GREEN = new Attribute("green"));
@@ -72,7 +72,7 @@ public class LogisticModel {
 		
 		//atts.add(MENTIONED = new Attribute("mentioned"));
 		
-		atts.add(TARGET = new Attribute("target", Arrays.asList(new String[] {"true", "false"})));
+		atts.add(TARGET = new Attribute("target", Arrays.asList("true", "false")));
 		
 		train(vocab.getWords());
 		//train(trainingSet.getBigramVocabulary().getWords());
@@ -358,8 +358,7 @@ public class LogisticModel {
 	public static Result validate(SessionSet training, SessionSet testing) throws PredictionException, TrainingException {
 		LogisticModel model = new LogisticModel();
 		model.train(training);
-		Result result = model.eval(testing);
-		return result;
+		return model.eval(testing);
 	}
 
 	public static void run(SessionSet set) {

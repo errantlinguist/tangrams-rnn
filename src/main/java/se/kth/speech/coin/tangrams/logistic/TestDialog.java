@@ -127,9 +127,7 @@ public class TestDialog {
 				}
 				roundn++;
 				final File sessionDir = new File(sessionScreenshotDir, session.name);
-				File[] fa = new File(sessionDir, "screenshots").listFiles((file) -> {
-					return file.getName().startsWith(filen);
-				});
+				File[] fa = new File(sessionDir, "screenshots").listFiles((file) -> file.getName().startsWith(filen));
 				if (fa.length > 0) {
 					int size = 10;
 					int left = (int) (round.target.posy * 200);

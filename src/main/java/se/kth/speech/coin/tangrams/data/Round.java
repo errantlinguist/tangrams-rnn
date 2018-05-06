@@ -62,17 +62,13 @@ public class Round {
 				words = utt.refText;
 			else
 				words = utt.fullText;
-			for (String word : words) {
-				list.add(word);
-			}
+			Collections.addAll(list, words);
 		}
 		return list;
 	}
 
 	public Collection<String> getUniqueWords() {
-		HashSet<String> words = new HashSet<String>();
-		words.addAll(getWords());
-		return words;
+		return new HashSet<>(getWords());
 	}
 
 	public String prettyDialog(boolean newline) {

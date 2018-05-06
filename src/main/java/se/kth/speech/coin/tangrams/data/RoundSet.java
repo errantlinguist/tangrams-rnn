@@ -30,9 +30,7 @@ public class RoundSet {
 		for (Round round : rounds) {
 			Set<String> words = new HashSet<>();
 			for (Utterance utt : round.utts) {
-				for (String word : utt.getNormalizedWords()) {
-					words.add(word);
-				}
+				words.addAll(utt.getNormalizedWords());
 			}
 			for (String word : words) {
 				vocab.add(word);
@@ -45,10 +43,7 @@ public class RoundSet {
 	public Vocabulary getVocabulary() {
 		Vocabulary vocab = new Vocabulary();
 		for (Round round : rounds) {
-			Set<String> words = new HashSet<>();
-			for (String word : round.getWords()) {
-				words.add(word);
-			}
+			Set<String> words = new HashSet<>(round.getWords());
 			for (String word : words) {
 				vocab.add(word);
 			}

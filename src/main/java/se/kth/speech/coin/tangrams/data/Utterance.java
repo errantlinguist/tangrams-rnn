@@ -47,7 +47,7 @@ public class Utterance {
 	public String getFullTextString() {
 		StringBuilder sb = new StringBuilder();
 		for (String word : fullText) {
-			sb.append(word + " ");
+			sb.append(word).append(" ");
 		}
 		return sb.toString().trim();
 	}

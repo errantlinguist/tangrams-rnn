@@ -55,10 +55,9 @@ public final class TokenSequenceSingletonFactory implements Function<String, Str
 	 */
 	@Override
 	public String toString() {
-		final StringBuilder builder = new StringBuilder(48 * (singletonInstances.size() + 1));
-		builder.append("TokenListSingletonFactory [singletonInstances=");
-		builder.append(singletonInstances);
-		builder.append("]");
-		return builder.toString();
+		String builder = "TokenListSingletonFactory [singletonInstances=" +
+				singletonInstances +
+				"]";
+		return builder;
 	}
 }

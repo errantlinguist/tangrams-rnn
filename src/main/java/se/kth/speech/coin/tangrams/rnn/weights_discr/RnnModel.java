@@ -36,8 +36,7 @@ public class RnnModel {
 				i++;
 			}
 		}
-		INDArray output = net.output(input);
-		return output;
+		return net.output(input);
 	}
 
 }
