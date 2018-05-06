@@ -69,6 +69,9 @@ public class TestRank {
 		if (args.length != 3) {
 			throw new IllegalArgumentException(String.format("Usage: %s <dataDir> <modelDir> <refLangMapFile>", TestRank.class.getName()));
 		}
+
+
+
 		final File dataDir = new File(args[0]);
 		LOGGER.info("Data dir: {}", dataDir);
 		final File modelDir = new File(args[1]);

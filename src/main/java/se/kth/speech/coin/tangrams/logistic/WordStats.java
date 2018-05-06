@@ -60,6 +60,9 @@ public class WordStats {
 		if (args.length != 2) {
 			throw new IllegalArgumentException(String.format("Usage: %s <sessionDir> <refLangMapFile>", WordStats.class.getName()));
 		}
+
+
+
 		final File sessionDir = new File(args[0]);
 		LOGGER.info("Reading sessions underneath \"{}\".", sessionDir);
 		WordStats stats = new WordStats();

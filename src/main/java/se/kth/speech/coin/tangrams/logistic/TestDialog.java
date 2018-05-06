@@ -23,6 +23,8 @@ public class TestDialog {
 		if (args.length != 5) {
 			throw new IllegalArgumentException(String.format("Usage: %s <trainingSetFile> <testingSetFile> <refLangMapFile> <sessionScreenshotDir> <outdir>", TestDialog.class.getName()));
 		}
+
+
 		Parameters.WEIGHT_BY_FREQ = true;
 		Parameters.WEIGHT_BY_POWER = true;
 		Parameters.UPDATE_MODEL = false;
@@ -68,7 +70,7 @@ public class TestDialog {
 							for (Utterance utt : round.utts) {
 								pw.println("<div>");
 								pw.println(utt.speaker + ": ");
-								String[] words = Parameters.ONLY_REFLANG ? utt.refText : utt.fullText;
+								String[] words = utt.refText;
 								for (String word : words) {
 									double score = model.score(word, ref);
 									double weight = Math.log10(model.vocab.getCount(word,Parameters.DISCOUNT));

@@ -57,11 +57,7 @@ public class Round {
 		for (Utterance utt : utts) {
 			if (Parameters.ONLY_GIVER && !utt.isGiver)
 				continue;
-			String[] words;
-			if (Parameters.ONLY_REFLANG) 
-				words = utt.refText;
-			else
-				words = utt.fullText;
+			final String[] words = utt.refText;
 			Collections.addAll(list, words);
 		}
 		return list;

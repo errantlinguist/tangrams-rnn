@@ -31,6 +31,9 @@ public class TestDialogWeights {
 		if (args.length != 5) {
 			throw new IllegalArgumentException(String.format("Usage: %s <dataDir> <featDir> <modelDir> <refLangMapFile> <sessionScreenshotDir>", TestDialogWeights.class.getName()));
 		}
+
+
+
 		final File dataDir = new File(args[0]);
 		LOGGER.info("Data dir: {}", dataDir);
 		final File featDir = new File(args[1]);

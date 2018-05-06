@@ -21,6 +21,11 @@ public class AnalyzeWords {
 		if (args.length != 4) {
 			throw new IllegalArgumentException(String.format("Usage: %s <trainingSetFile> <testingSetFile> <refLangMapFile> <outfile>", AnalyzeWords.class.getName()));
 		}
+
+
+		Parameters.WEIGHT_BY_FREQ = true;
+		Parameters.WEIGHT_BY_POWER = true;
+
 		final File trainingSetFile = new File(args[0]);
 		LOGGER.info("Reading training set file list at \"{}\".", trainingSetFile);
 		final File testingSetFile = new File(args[1]);
@@ -29,9 +34,6 @@ public class AnalyzeWords {
 		LOGGER.info("Reading referring-language map at \"{}\".", refLangMapFilePath);
 		final Map<List<String>, String[]> refLangMap = new UtteranceReferringTokenMapReader().apply(refLangMapFilePath);
 		final SessionReader sessionReader = new SessionReader(fullText -> refLangMap.get(Arrays.asList(fullText)));
-
-		Parameters.WEIGHT_BY_FREQ = true;
-		Parameters.WEIGHT_BY_POWER = true;
 
 		SessionSet testingSet = new SessionSet(testingSetFile, sessionReader);
 		LogisticModel model = new LogisticModel();

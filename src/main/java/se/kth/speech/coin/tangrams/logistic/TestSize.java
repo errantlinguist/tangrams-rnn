@@ -11,10 +11,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import se.kth.speech.coin.tangrams.data.Referent;
-import se.kth.speech.coin.tangrams.data.SessionReader;
-import se.kth.speech.coin.tangrams.data.SessionSet;
-import se.kth.speech.coin.tangrams.data.UtteranceReferringTokenMapReader;
+import se.kth.speech.coin.tangrams.data.*;
 
 public class TestSize {
 
@@ -24,6 +21,9 @@ public class TestSize {
 		if (args.length != 3) {
 			throw new IllegalArgumentException(String.format("Usage: %s <sessionDir> <refLangMapFile> <outfile>", TestSize.class.getName()));
 		}
+
+
+
 		final Path refLangMapFilePath = Paths.get(args[1]);
 		LOGGER.info("Reading referring-language map at \"{}\".", refLangMapFilePath);
 		final Map<List<String>, String[]> refLangMap = new UtteranceReferringTokenMapReader().apply(refLangMapFilePath);

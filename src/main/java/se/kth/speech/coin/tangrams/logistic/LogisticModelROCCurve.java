@@ -62,7 +62,7 @@ public class LogisticModelROCCurve {
 			throw new IllegalArgumentException(String.format("Usage: %s <dataDir> <refLangMapFile> <outfile>", LogisticModelROCCurve.class.getName()));
 		}
 
-		Parameters.ONLY_REFLANG = true;
+
 
 		final Path refLangMapFilePath = Paths.get(args[1]);
 		LOGGER.info("Reading referring-language map at \"{}\".", refLangMapFilePath);

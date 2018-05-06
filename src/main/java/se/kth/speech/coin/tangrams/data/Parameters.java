@@ -12,11 +12,6 @@ public class Parameters {
 	public static int DISCOUNT = 3;
 
 	/**
-	 * Only use referring language
-	 */
-	public static boolean ONLY_REFLANG = false;
-
-	/**
 	 * Only use language from the giver
 	 */
 	public static boolean ONLY_GIVER = false;
@@ -39,7 +34,7 @@ public class Parameters {
 	public static boolean WEIGHT_BY_POWER = false;
 
 	public static String getSetting() {
-		return DISCOUNT + "\t" + ONLY_REFLANG + "\t" + ONLY_GIVER + "\t" + UPDATE_MODEL + "\t" + UPDATE_WEIGHT;
+		return DISCOUNT + "\t" + ONLY_GIVER + "\t" + UPDATE_MODEL + "\t" + UPDATE_WEIGHT;
 	}
 	
 }

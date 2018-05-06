@@ -23,6 +23,11 @@ public class TestLogisticModel {
 		if (args.length != 3) {
 			throw new IllegalArgumentException(String.format("Usage: %s <trainingSetFile> <testingSetFile> <refLangMapFile>", TestLogisticModel.class.getName()));
 		}
+
+
+		Parameters.WEIGHT_BY_POWER = true;
+		Parameters.WEIGHT_BY_FREQ = true;
+
 		final Path refLangMapFilePath = Paths.get(args[2]);
 		LOGGER.info("Reading referring-language map at \"{}\".", refLangMapFilePath);
 		final Map<List<String>, String[]> refLangMap = new UtteranceReferringTokenMapReader().apply(refLangMapFilePath);
@@ -33,9 +38,6 @@ public class TestLogisticModel {
 		final File testingSetFile = new File(args[1]);
 		LOGGER.info("Reading testing set file list at \"{}\".", testingSetFile);
 		SessionSet testing = new SessionSet(testingSetFile, sessionReader);
-
-		Parameters.WEIGHT_BY_POWER = true;
-		Parameters.WEIGHT_BY_FREQ = true;
 		
 		LogisticModel.run(training, testing);	
 		

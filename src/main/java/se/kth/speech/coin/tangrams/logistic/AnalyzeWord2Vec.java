@@ -21,6 +21,7 @@ public class AnalyzeWord2Vec {
 	private WordVectors wordVectors;
 
 	public AnalyzeWord2Vec(File word2VecData, File trainingSetFile, SessionReader sessionReader, File outfile) throws IOException, PredictionException, TrainingException {
+
 		Parameters.WEIGHT_BY_FREQ = true;
 		Parameters.WEIGHT_BY_POWER = true;
 		wordVectors = WordVectorSerializer.loadTxtVectors(word2VecData);
@@ -65,6 +66,7 @@ public class AnalyzeWord2Vec {
 		if (args.length != 4) {
 			throw new IllegalArgumentException(String.format("Usage: %s <word2VecData> <trainingSetFile> <refLangMapFile> <outfile>", AnalyzeWord2Vec.class.getName()));
 		}
+
 		final File word2VecData = new File(args[0]);
 		LOGGER.info("Will read word2vec data at \"{}\".", word2VecData);
 		final File trainingSetFile = new File(args[1]);

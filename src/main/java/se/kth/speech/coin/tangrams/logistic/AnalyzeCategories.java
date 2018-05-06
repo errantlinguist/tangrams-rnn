@@ -85,15 +85,17 @@ public class AnalyzeCategories {
 		if (args.length != 3) {
 			throw new IllegalArgumentException(String.format("Usage: %s <trainingSetFile> <refLangMapFile> <outfile>", AnalyzeCategories.class.getName()));
 		}
+
+
+		Parameters.WEIGHT_BY_FREQ = true;
+		Parameters.WEIGHT_BY_POWER = true;
+
 		final File trainingSetFile = new File(args[0]);
 		LOGGER.info("Reading training set file list at \"{}\".", trainingSetFile);
 		final Path refLangMapFilePath = Paths.get(args[1]);
 		LOGGER.info("Reading referring-language map at \"{}\".", refLangMapFilePath);
 		final Map<List<String>, String[]> refLangMap = new UtteranceReferringTokenMapReader().apply(refLangMapFilePath);
 		final SessionReader sessionReader = new SessionReader(fullText -> refLangMap.get(Arrays.asList(fullText)));
-
-		Parameters.WEIGHT_BY_FREQ = true;
-		Parameters.WEIGHT_BY_POWER = true;
 
 		LogisticModel model = new LogisticModel();
 		model.train(new SessionSet(trainingSetFile, sessionReader));

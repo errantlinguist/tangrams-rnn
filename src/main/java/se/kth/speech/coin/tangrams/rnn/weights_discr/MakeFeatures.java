@@ -33,6 +33,11 @@ public class MakeFeatures {
 		if (args.length != 4) {
 			throw new IllegalArgumentException(String.format("Usage: %s <dataDir> <featDir> <modelDir> <refLangMapFile>", MakeFeatures.class.getName()));
 		}
+
+
+		Parameters.WEIGHT_BY_FREQ = true;
+		Parameters.WEIGHT_BY_POWER = false;
+
 		final File dataDir = new File(args[0]);
 		LOGGER.info("Data dir: {}", dataDir);
 		final File featDir = new File(args[1]);
@@ -47,9 +52,6 @@ public class MakeFeatures {
 		LOGGER.info("Reading referring-language map at \"{}\".", refLangMapFilePath);
 		final Map<List<String>, String[]> refLangMap = new UtteranceReferringTokenMapReader().apply(refLangMapFilePath);
 		final SessionReader sessionReader = new SessionReader(fullText -> refLangMap.get(Arrays.asList(fullText)));
-
-		Parameters.WEIGHT_BY_FREQ = true;
-		Parameters.WEIGHT_BY_POWER = false;
 
 		SessionSet set = new SessionSet(new File(dataDir, "training.txt"), sessionReader);
 		Vocabulary vocab = new RoundSet(set).getNormalizedVocabulary();
