@@ -261,6 +261,16 @@ public class LogisticModel {
 	public double freq(String word) {
 		return Math.log10(vocab.getCount(word,Parameters.DISCOUNT));
 	}
+
+	private double weightedScore(String word, Instance inst) throws PredictionException {
+		double score = score(word, inst);
+		if (Parameters.WEIGHT_BY_FREQ)
+			score *= Math.log10(vocab.getCount(word,Parameters.DISCOUNT));
+		if (Parameters.WEIGHT_BY_POWER)
+			score *= power.getOrDefault(word, 0.0);
+		//score *= predict.getOrDefault(word, 0.0);
+		return score;
+	}
 	
 	/**
 	 * Returns a ranking of the referents in a round
@@ -273,12 +283,7 @@ public class LogisticModel {
 			Instance inst = toInstance(ref);
 			Sum sum = new Sum();
 			for (String word : round.getWords()) {
-				double score = score(word, inst);
-				if (Parameters.WEIGHT_BY_FREQ)
-					score *= Math.log10(vocab.getCount(word, Parameters.DISCOUNT));
-				if (Parameters.WEIGHT_BY_POWER)
-					score *= power.getOrDefault(word, 0.0);
-				//score *= predict.getOrDefault(word, 0.0);
+				double score = weightedScore(word, inst);
 				sum.increment(score);
 			}
 			scores.put(ref, sum.getResult());
