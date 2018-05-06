@@ -14,6 +14,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -72,7 +73,9 @@ public class SessionReaderTest {
 		Assert.assertArrayEquals(expectedFirstUttTokens, session.rounds.get(0).utts.get(0).fullText);
 		final String[] expectedLastUttTokens = "yeah".split(" ");
 
-		final Round round17 = session.rounds.stream().filter(round -> round.n == 17).findFirst().get();
+		final Optional<Round> optRound17 = session.rounds.stream().filter(round -> round.n == 17).findFirst();
+		Assert.assertTrue(optRound17.isPresent());
+		final Round round17 = optRound17.get();
 		Assert.assertThat(round17.utts, IsCollectionWithSize.hasSize(6));
 		final String[] expectedRound6FirstUttTokens = "all right so it's the s- uh Batman hat uh pink one".split(" ");
 		Assert.assertArrayEquals(expectedRound6FirstUttTokens, round17.utts.get(0).fullText);
