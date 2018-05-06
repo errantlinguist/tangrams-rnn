@@ -167,7 +167,7 @@ public class LogisticModel {
 	private Logistic buildClassifier(String word, RoundSet trainingSet) throws TrainingException {
 		Logistic logistic = new Logistic();
 		if (Parameters.USE_RIDGE)
-			logistic.setRidge(100);
+			logistic.setRidge(Parameters.RIDGE);
 		Instances dataset = new Instances("Dataset", atts, 1000);
 		
 		/*
