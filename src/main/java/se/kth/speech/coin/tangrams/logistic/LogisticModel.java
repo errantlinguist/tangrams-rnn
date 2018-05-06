@@ -343,7 +343,7 @@ public class LogisticModel {
 			} catch (PredictionException | TrainingException e) {
 				throw new RuntimeException(String.format("A(n) %s occurred during training in cross-validation.", e.getClass().getSimpleName()), e);
 			}
-			Result resultR = null;
+			Result resultR;
 			try {
 				resultR = model.eval(new SessionSet(testing));
 			} catch (PredictionException | TrainingException e) {
