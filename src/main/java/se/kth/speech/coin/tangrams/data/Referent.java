@@ -6,7 +6,17 @@ public class Referent {
 
 	public int id = 0;
 	public int round = 0;
-	public boolean target = false;
+
+	private boolean target = false;
+
+	public boolean isTarget(){
+		return target;
+	}
+
+	public void setTarget(final boolean target) {
+		this.target = target;
+	}
+
 	public String shape = "wedge";
 	public float size = 0f;
 	public float red = 0f;

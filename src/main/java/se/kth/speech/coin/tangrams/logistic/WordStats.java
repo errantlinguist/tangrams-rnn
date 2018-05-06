@@ -76,7 +76,7 @@ public class WordStats {
 				if (vocab.has(word)) {
 					for (Referent ref : round.referents) {
 						double score = model.score(word, ref);
-						stats.add(round, word, score, ref.target);
+						stats.add(round, word, score, ref.isTarget());
 					}
 				}
 			}

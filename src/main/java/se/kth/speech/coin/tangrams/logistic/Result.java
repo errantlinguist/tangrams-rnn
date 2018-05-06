@@ -30,7 +30,7 @@ public class Result {
 		int rank = 0;
 		for (Referent ref : ranking) {
 			rank++;
-			if (ref.target)
+			if (ref.isTarget())
 				break;
 		}
 		increment(rank, rank == 1 ? 1d : 0d, 1d/rank);

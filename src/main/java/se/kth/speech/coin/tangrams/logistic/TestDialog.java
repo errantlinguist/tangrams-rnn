@@ -60,7 +60,7 @@ public class TestDialog {
 					@Override
 					public void print(PrintWriter pw, Session session, Round round) throws ClassifierException {
 						for (Referent ref : round.referents) {
-							if (!ref.target)
+							if (!ref.isTarget())
 								//pw.println("<div>" + ref.shape);
 								continue;
 							else

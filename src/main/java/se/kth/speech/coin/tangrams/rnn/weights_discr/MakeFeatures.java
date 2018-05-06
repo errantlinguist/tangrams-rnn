@@ -77,7 +77,7 @@ public class MakeFeatures {
 							feat.println();
 							Mean mean = new Mean();
 							for (Referent ref : round.referents) {
-								if (ref.target)
+								if (ref.isTarget())
 									continue;
 								mean.increment(logisticModel.score(word, ref));
 							}

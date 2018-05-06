@@ -83,7 +83,7 @@ public class SessionReader {
 					//System.out.println("Cannot find round " + referent.round);
 				} else {
 					round.referents.add(referent);
-					if (referent.target)
+					if (referent.isTarget())
 						round.target = referent;
 				}
 				mentioned.put(referent.id, mentioned.getOrDefault(referent.id, 0) + 1);

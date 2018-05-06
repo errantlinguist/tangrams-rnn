@@ -187,7 +187,7 @@ public class LogisticModel {
 			if (round.hasWord(word)) {
 				for (Referent ref : round.referents) {
 					Instance instance = toInstance(ref);
-					double totalWeight = round.weight * (ref.target ? 19 : 1);
+					double totalWeight = round.weight * (ref.isTarget() ? 19 : 1);
 					instance.setWeight(totalWeight);
 					dataset.add(instance);
 				}
@@ -217,7 +217,7 @@ public class LogisticModel {
 		instance.setValue(MIDX, ref.midx);
 		instance.setValue(MIDY, ref.midy);
 		//instance.setValue(MENTIONED, ref.mentioned);
-		instance.setValue(TARGET, ref.target ? "true" : "false");
+		instance.setValue(TARGET, ref.isTarget() ? "true" : "false");
 		return instance;
 	}
 
@@ -300,7 +300,7 @@ public class LogisticModel {
 		int rank = 0;
 		for (Referent ref : rank(round)) {
 			rank++;
-			if (ref.target)
+			if (ref.isTarget())
 				return rank;
 		}
 		return rank;
