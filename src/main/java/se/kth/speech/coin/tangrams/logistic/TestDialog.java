@@ -71,7 +71,7 @@ public class TestDialog {
 								String[] words = Parameters.ONLY_REFLANG ? utt.refText : utt.fullText;
 								for (String word : words) {
 									double score = model.score(word, ref);
-									double weight = Math.log10(model.vocab.getCount(word,3));
+									double weight = Math.log10(model.vocab.getCount(word,Parameters.DISCOUNT));
 									weight *= model.power.getOrDefault(word, 0.0);
 									//if (word.equals("the"))
 									//System.out.println("the: " + weight + " " + model.power.getOrDefault(word, 0.0) + " " + Math.log10(model.vocab.getCount(word,3)));

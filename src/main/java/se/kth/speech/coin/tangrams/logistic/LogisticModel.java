@@ -259,7 +259,7 @@ public class LogisticModel {
 	}
 	
 	public double freq(String word) {
-		return Math.log10(vocab.getCount(word,3));
+		return Math.log10(vocab.getCount(word,Parameters.DISCOUNT));
 	}
 	
 	/**
@@ -275,7 +275,7 @@ public class LogisticModel {
 			for (String word : round.getWords()) {
 				double score = score(word, inst);
 				if (Parameters.WEIGHT_BY_FREQ)
-					score *= Math.log10(vocab.getCount(word,3));
+					score *= Math.log10(vocab.getCount(word, Parameters.DISCOUNT));
 				if (Parameters.WEIGHT_BY_POWER)
 					score *= power.getOrDefault(word, 0.0);
 				//score *= predict.getOrDefault(word, 0.0);
