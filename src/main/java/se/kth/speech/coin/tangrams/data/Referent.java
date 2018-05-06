@@ -20,7 +20,7 @@ public class Referent {
 	
 	public float mentioned = 0f;
 	
-	public static Set<String> shapes = new HashSet<>();
+	public static Set<String> shapes = new HashSet<>((int) Math.ceil(DatasetConstants.EXPECTED_UNIQUE_SHAPE_COUNT / 0.75f));
 	
 	public Referent() {	
 	}

@@ -9,7 +9,7 @@ import java.util.*;
 
 public class Vocabulary {
 
-	public Map<String,Integer> dict = new HashMap<>();
+	public Map<String,Integer> dict = new HashMap<>((int) Math.ceil(DatasetConstants.EXPECTED_UNIQUE_WORD_COUNT / 0.75f));
 
 	public Vocabulary() {
 	}

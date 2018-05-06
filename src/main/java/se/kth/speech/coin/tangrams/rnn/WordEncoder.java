@@ -10,8 +10,8 @@ import se.kth.speech.coin.tangrams.data.*;
 
 public class WordEncoder {
 
-	private HashMap<String,Integer> indices = new HashMap<>();
-	private HashMap<Integer,String> words = new HashMap<>();
+	private HashMap<String,Integer> indices = new HashMap<>((int) Math.ceil(DatasetConstants.EXPECTED_UNIQUE_WORD_COUNT / 0.75f));
+	private HashMap<Integer,String> words = new HashMap<>((int) Math.ceil(DatasetConstants.EXPECTED_UNIQUE_WORD_COUNT / 0.75f));
 	private int size;
 	
 	// whether there should be an oov token (represented by 0)

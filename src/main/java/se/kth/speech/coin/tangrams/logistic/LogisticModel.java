@@ -5,19 +5,13 @@ import java.util.*;
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
 
-import se.kth.speech.coin.tangrams.data.Parameters;
-import se.kth.speech.coin.tangrams.data.Referent;
-import se.kth.speech.coin.tangrams.data.Round;
-import se.kth.speech.coin.tangrams.data.RoundSet;
-import se.kth.speech.coin.tangrams.data.Session;
-import se.kth.speech.coin.tangrams.data.SessionSet;
-import se.kth.speech.coin.tangrams.data.Vocabulary;
+import se.kth.speech.coin.tangrams.data.*;
 import weka.classifiers.functions.Logistic;
 import weka.core.*;
 
 public class LogisticModel {
 
-	public Map<String,Logistic> wordModels = new HashMap<>();
+	public Map<String,Logistic> wordModels = new HashMap<>((int) Math.ceil(DatasetConstants.EXPECTED_UNIQUE_WORD_COUNT / 0.75f));
 	
 	private Attribute SHAPE;
 	private Attribute SIZE;
@@ -38,9 +32,9 @@ public class LogisticModel {
 
 	protected Vocabulary vocab;
 	
-	protected Map<String,Double> power = new HashMap<>();
+	protected Map<String,Double> power = new HashMap<>((int) Math.ceil(DatasetConstants.EXPECTED_UNIQUE_WORD_COUNT / 0.75f));
 
-	//protected Map<String,Double> predict = new HashMap<>();
+	//protected Map<String,Double> predict = new HashMap<>((int) Math.ceil(DatasetConstants.EXPECTED_UNIQUE_WORD_COUNT / 0.75f));
 	
 	private LogisticModel storedModel;
 	
@@ -56,7 +50,7 @@ public class LogisticModel {
 		trainingSet = new RoundSet(set);
 		vocab = trainingSet.getVocabulary();
 		
-		atts = new ArrayList<>();
+		atts = new ArrayList<>(11);
 		
 		atts.add(SHAPE = new Attribute("shape", new ArrayList<>(Referent.shapes)));
 		atts.add(SIZE = new Attribute("size"));
@@ -272,8 +266,10 @@ public class LogisticModel {
 	 * Returns a ranking of the referents in a round
 	 */
 	public List<Referent> rank(Round round) throws PredictionException {
-		final Map<Referent,Double> scores = new HashMap<>();
-		for (Referent ref : round.referents) {
+		final Collection<Referent> referents = round.referents;
+		final float loadFactor = 0.75f;
+		final Map<Referent,Double> scores = new HashMap<>((int)Math.ceil(referents.size() / loadFactor), loadFactor);
+		for (Referent ref : referents) {
 			Instance inst = toInstance(ref);
 			Sum sum = new Sum();
 			for (String word : round.getWords()) {

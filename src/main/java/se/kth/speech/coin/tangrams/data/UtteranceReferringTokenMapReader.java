@@ -77,7 +77,7 @@ public final class UtteranceReferringTokenMapReader {
 	public Map<List<String>, String[]> apply(final Reader reader) throws IOException { // NO_UCD (use private)
 		final CSVParser parser = FORMAT.parse(reader);
 		final float loadFactor = 0.75f;
-		final Map<List<String>, String[]> result = new HashMap<>((int) Math.ceil(RESULT_MAP_EXPECTED_SIZE * loadFactor), loadFactor);
+		final Map<List<String>, String[]> result = new HashMap<>((int) Math.ceil(RESULT_MAP_EXPECTED_SIZE / loadFactor), loadFactor);
 		// final Object2ObjectOpenHashMap<List<String>, List<String>> result =
 		// new Object2ObjectOpenHashMap<>(
 		// DEFAULT_EXPECTED_UNIQUE_TOKEN_SEQ_COUNT);

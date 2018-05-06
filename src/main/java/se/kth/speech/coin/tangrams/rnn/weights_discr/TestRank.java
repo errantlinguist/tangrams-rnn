@@ -34,9 +34,11 @@ public class TestRank {
 		
 		public Map<Referent, Double> scores(Round round) throws PredictionException {
 			INDArray rnnScores = rnnModel.score(round);
-			final Map<Referent,Double> scores = new HashMap<>();
+			final Collection<Referent> referents = round.referents;
+			final float loadFactor = 0.75f;
+			final Map<Referent,Double> scores = new HashMap<>((int)Math.ceil(referents.size() / loadFactor), loadFactor);
 			
-			for (Referent ref : round.referents) {
+			for (Referent ref : referents) {
 				Mean mean = new Mean();
 				int wn = 0; 
 				for (Utterance utt : round.utts) {
