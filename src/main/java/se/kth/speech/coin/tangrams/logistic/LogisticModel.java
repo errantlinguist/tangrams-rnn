@@ -104,7 +104,7 @@ public class LogisticModel {
 	 * Trains models for the specified words
 	 */
 	private void train(List<String> words) throws PredictionException, TrainingException {
-
+		assert words.stream().distinct().count() == words.size();
 		//System.out.println("Training " + words);
 		
 		/*
