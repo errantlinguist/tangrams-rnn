@@ -10,6 +10,8 @@ import java.util.*;
 
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import se.kth.speech.coin.tangrams.data.*;
 
 public class AnalyzeCategories {
@@ -75,17 +77,28 @@ public class AnalyzeCategories {
 		}
 	}
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(AnalyzeCategories.class);
 
 	public static void main(String[] args) throws IOException, PredictionException, TrainingException {
+		if (args.length != 2) {
+			throw new IllegalArgumentException(String.format("Usage: %s <trainingSetFile> <outfile>", AnalyzeCategories.class.getName()));
+		}
+		final File trainingSetFile = new File(args[0]);
+		LOGGER.info("Reading training set file list at \"{}\".", trainingSetFile);
+
 		Parameters.WEIGHT_BY_FREQ = true;
 		Parameters.WEIGHT_BY_POWER = true;
+
 		LogisticModel model = new LogisticModel();
-		model.train(new SessionSet(new File("d:/data/tangram/training.txt")));
+		model.train(new SessionSet(trainingSetFile));
 		AnalyzeCategories cat = new AnalyzeCategories(model);
-		cat.save("word_categories.tsv");
+
+		final File outfile = new File(args[1]);
+		LOGGER.info("Writing results to \"{}\".", outfile);
+		cat.save(outfile);
 	}
 
-	private void save(String fn) throws FileNotFoundException {
+	private void save(File fn) throws FileNotFoundException {
 		PrintWriter pw = new PrintWriter(fn);
 		for (String word : model.vocab.getWords()) {
 			pw.printf("%s\t%.3f\t%.3f\t%.3f\t%.3f\n", word, shapeMap.get(word), colorMap.get(word), sizeMap.get(word), posMap.get(word));

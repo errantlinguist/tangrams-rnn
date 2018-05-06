@@ -4,6 +4,8 @@ import java.io.*;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import se.kth.speech.coin.tangrams.data.*;
 import se.kth.speech.coin.tangrams.logistic.LogisticModel;
 import se.kth.speech.coin.tangrams.logistic.PredictionException;
@@ -12,19 +14,32 @@ import se.kth.speech.coin.tangrams.rnn.WordEncoder;
 
 public class MakeFeatures {
 
-	public static String dataDir = "d:/data/tangram";
-	public static String featDir = "d:/data/tangrams-rnn-wd";
-	public static String modelDir = "rnn_weight_discr";
+	private static final Logger LOGGER = LoggerFactory.getLogger(MakeFeatures.class);
+
+//	public static String dataDir = "d:/data/tangram";
+//	public static String featDir = "d:/data/tangrams-rnn-wd";
+//	public static String modelDir = "rnn_weight_discr";
 	
 	public static int rnnVocabPrune = 20;
 	
 	static int datan = 0;
 
 	public static void main(String[] args) throws IOException, InterruptedException {
+		if (args.length != 3) {
+			throw new IllegalArgumentException(String.format("Usage: %s <dataDir> <featDir> <modelDir>", MakeFeatures.class.getName()));
+		}
+		final File dataDir = new File(args[0]);
+		LOGGER.info("Data dir: {}", dataDir);
+		final File featDir = new File(args[1]);
+		LOGGER.info("Feature dir: {}", featDir);
+		featDir.mkdirs();
+		final File modelDir = new File(args[2]);
+		LOGGER.info("Model dir: {}", modelDir);
+		modelDir.mkdirs();
+
 		Parameters.WEIGHT_BY_FREQ = true;
 		Parameters.WEIGHT_BY_POWER = false;
-		new File(featDir).mkdirs();
-		new File(modelDir).mkdirs();
+
 		SessionSet set = new SessionSet(new File(dataDir, "training.txt"));
 		Vocabulary vocab = new RoundSet(set).getNormalizedVocabulary();
 		vocab.prune(rnnVocabPrune);
@@ -68,7 +83,7 @@ public class MakeFeatures {
 			}
 		});
 		System.out.println(datan);
-		Training.run(datan);
+		Training.run(datan, featDir, modelDir);
 	}
 
 }

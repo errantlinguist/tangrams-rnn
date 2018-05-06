@@ -5,9 +5,13 @@ import java.io.IOException;
 import java.util.*;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import se.kth.speech.coin.tangrams.data.*;
 
 public class WordStats {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(WordStats.class);
 
 	private Map<String,List<Double>> targetScores = new HashMap<>();
 	private Map<String,List<Double>> offScores = new HashMap<>();
@@ -51,8 +55,13 @@ public class WordStats {
 	}
 	
 	public static void main(String[] args) throws IOException, PredictionException, TrainingException {
+		if (args.length != 1) {
+			throw new IllegalArgumentException(String.format("Usage: %s <sessionDir>", WordStats.class.getName()));
+		}
+		final File sessionDir = new File(args[0]);
+		LOGGER.info("Reading sessions underneath \"{}\".", sessionDir);
 		WordStats stats = new WordStats();
-		SessionSet set = new SessionSet(new File("C:/data/tangram"));
+		SessionSet set = new SessionSet(sessionDir);
 		LogisticModel model = new LogisticModel();
 		model.train(set);
 		Vocabulary vocab = model.getVocabulary();

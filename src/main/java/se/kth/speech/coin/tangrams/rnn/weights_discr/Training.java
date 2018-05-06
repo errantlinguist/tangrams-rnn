@@ -22,14 +22,27 @@ import org.nd4j.linalg.activations.Activation;
 import org.nd4j.linalg.dataset.DataSet;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Training {
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(Training.class);
+
 	public static void main(String[] args) throws IOException, InterruptedException {
-		run(2478);
+		if (args.length != 2) {
+			throw new IllegalArgumentException(String.format("Usage: %s <featDir> <modelDir>", Training.class.getName()));
+		}
+		final File featDir = new File(args[0]);
+		LOGGER.info("Feature dir: {}", featDir);
+		final File modelDir = new File(args[1]);
+		LOGGER.info("Model dir: {}", modelDir);
+
+		run(2478, featDir, modelDir);
 	}
 	
-	public static void run(int nFiles) throws IOException, InterruptedException {
+	public static void run(int nFiles, File featDir, File modelDir) throws IOException, InterruptedException {
+
 
 		int lstmLayerSize = 60;		//Number of units in each GravesLSTM layer
 		int miniBatchSize = 32;		//Size of mini batch to use when  training (32)
@@ -39,8 +52,8 @@ public class Training {
 		SequenceRecordReader featureReader = new CSVSequenceRecordReader(0, ";");
 		SequenceRecordReader labelReader = new CSVSequenceRecordReader(0, ";");
 
-		featureReader.initialize(new NumberedFileInputSplit(new File(MakeFeatures.featDir, "%df.csv").getAbsolutePath(), 1, nFiles));
-		labelReader.initialize(new NumberedFileInputSplit(new File(MakeFeatures.featDir, "%dl.csv").getAbsolutePath(), 1, nFiles));
+		featureReader.initialize(new NumberedFileInputSplit(new File(featDir, "%df.csv").getAbsolutePath(), 1, nFiles));
+		labelReader.initialize(new NumberedFileInputSplit(new File(featDir, "%dl.csv").getAbsolutePath(), 1, nFiles));
 
 		DataSetIterator iter = new SequenceRecordReaderDataSetIterator(featureReader, labelReader, miniBatchSize, -1, true, SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END);
 		
@@ -86,7 +99,7 @@ public class Training {
 		}
 		System.out.println("Total number of network parameters: " + totalNumParams);
 
-		PrintWriter trainingLog = new PrintWriter(MakeFeatures.modelDir + "/training.txt");
+		PrintWriter trainingLog = new PrintWriter(new File(modelDir, "training.txt"));
 		
 		int epoch;
 		for(epoch = 1; epoch <= numEpochs; epoch++ ){
@@ -107,7 +120,7 @@ public class Training {
 			iter.reset();
 			
 			if (epoch % 10 == 0)
-				ModelSerializer.writeModel(net, new File(MakeFeatures.modelDir + "/model-" + epoch + ".net"), true);
+				ModelSerializer.writeModel(net, new File(modelDir,"model-" + epoch + ".net"), true);
 
 		}
 		trainingLog.close();

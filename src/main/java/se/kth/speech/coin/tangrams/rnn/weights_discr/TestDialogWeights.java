@@ -8,6 +8,8 @@ import java.util.Locale;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.util.ModelSerializer;
 import org.nd4j.linalg.api.ndarray.INDArray;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import se.kth.speech.coin.tangrams.data.*;
 import se.kth.speech.coin.tangrams.logistic.LogisticModel;
 import se.kth.speech.coin.tangrams.logistic.PredictionException;
@@ -18,13 +20,28 @@ import se.kth.speech.coin.tangrams.rnn.WordEncoder;
 
 public class TestDialogWeights {
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestDialogWeights.class);
+
 	public static void main(String[] args) throws IOException, PredictionException, TrainingException {
-		MultiLayerNetwork net = ModelSerializer.restoreMultiLayerNetwork(new File(MakeFeatures.modelDir, "model-100.net"));
-		SessionSet testingSet = new SessionSet(new File(MakeFeatures.dataDir, "testing.txt"));
-		WordEncoder encoder = new WordEncoder(new File(MakeFeatures.modelDir, "words.txt"));
+		if (args.length != 4) {
+			throw new IllegalArgumentException(String.format("Usage: %s <dataDir> <featDir> <modelDir> <sessionScreenshotDir>", TestDialogWeights.class.getName()));
+		}
+		final File dataDir = new File(args[0]);
+		LOGGER.info("Data dir: {}", dataDir);
+		final File featDir = new File(args[1]);
+		LOGGER.info("Feature dir: {}", featDir);
+		final File modelDir = new File(args[2]);
+		LOGGER.info("Model dir: {}", modelDir);
+		final File sessionScreenshotDir = new File(args[3]);
+		LOGGER.info("Will look for session screenshots underneath \"{}\".", sessionScreenshotDir);
+
+
+		MultiLayerNetwork net = ModelSerializer.restoreMultiLayerNetwork(new File(modelDir, "model-100.net"));
+		SessionSet testingSet = new SessionSet(new File(dataDir, "testing.txt"));
+		WordEncoder encoder = new WordEncoder(new File(modelDir, "words.txt"));
 		LogisticModel logisticModel = new LogisticModel();
 		RnnModel rnnModel = new RnnModel(net, encoder, logisticModel);
-		logisticModel.train(new SessionSet(new File(MakeFeatures.dataDir, "training.txt")));
+		logisticModel.train(new SessionSet(new File(dataDir, "training.txt")));
 		DialogPrinter<PredictionException> dialogPrinter = new DialogPrinter<PredictionException>() {
 			@Override
 			public void print(PrintWriter pw, Session session, Round round) throws PredictionException {
@@ -50,7 +67,8 @@ public class TestDialogWeights {
 		};
 		for (Session session : testingSet.sessions) {
 			System.out.println(session.name);
-			TestDialog.writeDialog(new File(MakeFeatures.dataDir, session.name + "/rnn.html"), session, dialogPrinter);
+			final File sessionOutdir = new File(dataDir, session.name);
+			TestDialog.writeDialog(new File(sessionOutdir, "rnn.html"), session, dialogPrinter, sessionScreenshotDir);
 		}
 	}
 	

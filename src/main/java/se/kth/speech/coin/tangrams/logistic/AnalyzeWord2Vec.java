@@ -12,6 +12,8 @@ import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
 import org.deeplearning4j.models.embeddings.wordvectors.WordVectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import se.kth.speech.coin.tangrams.data.*;
 
 public class AnalyzeWord2Vec {
@@ -19,21 +21,22 @@ public class AnalyzeWord2Vec {
 	private LogisticModel model;
 	private WordVectors wordVectors;
 
-	public AnalyzeWord2Vec() throws IOException, PredictionException, TrainingException {
+	public AnalyzeWord2Vec(File word2VecData, File trainingSetFile, File outfile) throws IOException, PredictionException, TrainingException {
 		Parameters.WEIGHT_BY_FREQ = true;
 		Parameters.WEIGHT_BY_POWER = true;
-		wordVectors = WordVectorSerializer.loadTxtVectors(new File("C:/Dropbox/dev/Chatbot-RNN/word2vec/glove.6B.50d.txt"));
+		wordVectors = WordVectorSerializer.loadTxtVectors(word2VecData);
 		model = new LogisticModel();
-		model.train(new SessionSet(new File("C:/data/tangram/training.txt")));
+		model.train(new SessionSet(trainingSetFile));
 		for (String word : new ArrayList<>(model.vocab.dict.keySet())) {
 			if (!wordVectors.hasWord(word))
 				model.vocab.dict.remove(word);
 		}
-		PrintWriter pw = new PrintWriter("word_analysis.tsv");
-		//pw.println("word\tcount\tpower\tweight");
-		for (String word : model.vocab.dict.keySet()) {
-			List<String> closest = getClosest(word);
-			pw.println(word + "\t" + weight(word) + "\t" + closest + "\t" + avgWeight(closest)); 
+		try (PrintWriter pw = new PrintWriter(outfile)) {
+			//pw.println("word\tcount\tpower\tweight");
+			for (String word : model.vocab.dict.keySet()) {
+				List<String> closest = getClosest(word);
+				pw.println(word + "\t" + weight(word) + "\t" + closest + "\t" + avgWeight(closest));
+			}
 		}
 	}
 	
@@ -58,8 +61,19 @@ public class AnalyzeWord2Vec {
 		return list.subList(1, 6);
 	}
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(AnalyzeWord2Vec.class);
+
 	public static void main(String[] args) throws PredictionException, IOException, TrainingException {
-		new AnalyzeWord2Vec();
+		if (args.length != 3) {
+			throw new IllegalArgumentException(String.format("Usage: %s <word2VecData> <trainingSetFile> <outfile>", AnalyzeWord2Vec.class.getName()));
+		}
+		final File word2VecData = new File(args[0]);
+		LOGGER.info("Will read word2vec data at \"{}\".", word2VecData);
+		final File trainingSetFile = new File(args[1]);
+		LOGGER.info("Will read training set file list at \"{}\".", trainingSetFile);
+		final File outfile = new File(args[2]);
+		LOGGER.info("Will write results to \"{}\".", outfile);
+		new AnalyzeWord2Vec(word2VecData, trainingSetFile, outfile);
 	}
 	
 	private double weight(String word) {

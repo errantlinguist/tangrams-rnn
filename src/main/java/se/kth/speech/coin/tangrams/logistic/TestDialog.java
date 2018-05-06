@@ -1,26 +1,42 @@
 package se.kth.speech.coin.tangrams.logistic;
 
-import java.awt.Color;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import se.kth.speech.coin.tangrams.data.*;
+
+import java.awt.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import se.kth.speech.coin.tangrams.data.*;
-
 public class TestDialog {
 
-	public static void main(String[] args) throws IOException, PredictionException, TrainingException {
-		//SessionSet set = new SessionSet(new File("C:/data/tangram"));
-		//set.crossValidate((training,testing) -> {
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestDialog.class);
+
+	public static void main(String[] args) throws IOException, TrainingException, PredictionException {
+		if (args.length != 4) {
+			throw new IllegalArgumentException(String.format("Usage: %s <trainingSetFile> <testingSetFile> <sessionScreenshotDir> <outdir>", TestDialog.class.getName()));
+		}
 		Parameters.WEIGHT_BY_FREQ = true;
 		Parameters.WEIGHT_BY_POWER = true;
 		Parameters.UPDATE_MODEL = false;
 		Parameters.UPDATE_WEIGHT = 1;
-		SessionSet testingSet = new SessionSet(new File("C:/data/tangram/testing.txt"));
+
+		final File testingFile = new File(args[1]);
+		LOGGER.info("Reading testing set list at \"{}\".", testingFile);
+		SessionSet testingSet = new SessionSet(testingFile);
 		LogisticModel model = new LogisticModel();
-		model.train(new SessionSet(new File("C:/data/tangram/training.txt")));
+		final File trainingFile = new File(args[0]);
+		LOGGER.info("Reading training set list at \"{}\".", trainingFile);
+		model.train(new SessionSet(trainingFile));
 		model.storeModel();
+
+		final File sessionScreenshotDir = new File(args[2]);
+		LOGGER.info("Will look for session screenshots underneath \"{}\".", sessionScreenshotDir);
+
+		final File outdir = new File(args[3]);
+		LOGGER.info("Will write results underneath \"{}\".", outdir);
 		for (Session testing : testingSet.sessions) {
 
 			if (Parameters.UPDATE_MODEL) {
@@ -49,7 +65,7 @@ public class TestDialog {
 									double weight = Math.log10(model.vocab.getCount(word,3));
 									weight *= model.power.getOrDefault(word, 0.0);
 									//if (word.equals("the"))
-										//System.out.println("the: " + weight + " " + model.power.getOrDefault(word, 0.0) + " " + Math.log10(model.vocab.getCount(word,3)));
+									//System.out.println("the: " + weight + " " + model.power.getOrDefault(word, 0.0) + " " + Math.log10(model.vocab.getCount(word,3)));
 									pw.println("<span style=\"color:" + getHTMLColorString(score, weight) + "\" title=\"" + score + "\">" + word  + "</span> ");  // (" + weight + ") "
 								}
 								pw.println("</div>");
@@ -61,68 +77,72 @@ public class TestDialog {
 							model.updateModel(round);
 						}
 					}
-					
+
 				};
-				writeDialog(new File("C:/data/tangram/" + testing.name + "/dialog.html"), testing, dialogPrinter);
-				
+				final File sessionResultsDir = new File(outdir, testing.name);
+				sessionResultsDir.mkdirs();
+				final File dialogResultsFile = new File(sessionResultsDir, "dialog.html");
+				LOGGER.info("Writing dialog results for session \"{}\" to \"{}\".", testing.name, dialogResultsFile);
+				writeDialog(dialogResultsFile, testing, dialogPrinter, sessionScreenshotDir);
 
 				//System.exit(0);
-			} catch (FileNotFoundException | ClassifierException e) {
-				throw new RuntimeException(e);
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 		}
 		//});
 	}
-	
+
 	public interface DialogPrinter<E extends Exception> {
 
 		void print(PrintWriter pw, Session session, Round round) throws E;
-		
+
 	}
-	
-	public static <E extends Exception> void writeDialog(File outFile, Session session, DialogPrinter<E> dialogPrinter) throws FileNotFoundException, E {
-		PrintWriter pw = new PrintWriter(outFile);
-		pw.println("<table border=\"1\">");
-		int roundn = -1;
-		for (Round round : session.rounds) {
-			pw.println("<tr><td valign=\"top\">" + (round.n)  + "</td>");
-			pw.println("<td>");
-			dialogPrinter.print(pw, session, round);
-			pw.println("</td>");
-			pw.println("<td valign=\"top\">");
-			String filen;
-			if (roundn == -1) {
-				filen = "game-start-";
-			} else {
-				filen = "turn-" + roundn + "-";
+
+	public static <E extends Exception> void writeDialog(File outFile, Session session, DialogPrinter<E> dialogPrinter, File sessionScreenshotDir) throws FileNotFoundException, E {
+		try(PrintWriter pw = new PrintWriter(outFile)) {
+			pw.println("<table border=\"1\">");
+			int roundn = -1;
+			for (Round round : session.rounds) {
+				pw.println("<tr><td valign=\"top\">" + (round.n) + "</td>");
+				pw.println("<td>");
+				dialogPrinter.print(pw, session, round);
+				pw.println("</td>");
+				pw.println("<td valign=\"top\">");
+				String filen;
+				if (roundn == -1) {
+					filen = "game-start-";
+				} else {
+					filen = "turn-" + roundn + "-";
+				}
+				roundn++;
+				final File sessionDir = new File(sessionScreenshotDir, session.name);
+				File[] fa = new File(sessionDir, "screenshots").listFiles((file) -> {
+					return file.getName().startsWith(filen);
+				});
+				if (fa.length > 0) {
+					int size = 10;
+					int left = (int) (round.target.posy * 200);
+					int top = (int) (round.target.posx * 170) + size;
+					left -= size / 2;
+					top -= size / 2;
+					pw.println("<div style=\"border:1px solid red;position:relative;left:" + left + "px;top:" + top + "px;width:10px;height:10px\"></div>");
+					pw.println("<img width=\"200\" src=\"screenshots/" + fa[0].getName() + "\">");
+				}
+				pw.println("</td>");
+				//pw.println("<td>" + model.targetRank(round) + "</td>");
+				pw.println("</tr>");
 			}
-			roundn++;
-			File[] fa = new File("d:/data/tangram/" + session.name + "/screenshots").listFiles((file)->{
-				return file.getName().startsWith(filen);
-			});
-			if (fa.length > 0) {
-				int size = 10;
-				int left = (int)(round.target.posy*200); 
-				int top = (int)(round.target.posx*170) + size;
-				left -= size/2;
-				top -= size/2;
-				pw.println("<div style=\"border:1px solid red;position:relative;left:" + left + "px;top:" + top + "px;width:10px;height:10px\"></div>");
-				pw.println("<img width=\"200\" src=\"screenshots/" + fa[0].getName() + "\">");
-			}
-			pw.println("</td>");
-			//pw.println("<td>" + model.targetRank(round) + "</td>");
-			pw.println("</tr>");
+			pw.println("</table>");
 		}
-		pw.println("</table>");
-		pw.close();
 	}
-	
-	public static String getHTMLColorString(double score) {	
-	    return TestColor.getHTMLColorString(Color.getHSBColor((float)score * 0.32f, 1f, 1f));     
+
+	public static String getHTMLColorString(double score) {
+		return TestColor.getHTMLColorString(Color.getHSBColor((float)score * 0.32f, 1f, 1f));
 	}
-	
-	public static String getHTMLColorString(double score, double weight) {	
-	    return TestColor.getHTMLColorString(Color.getHSBColor((float)score * 0.32f, (float)weight, 1f));     
+
+	public static String getHTMLColorString(double score, double weight) {
+		return TestColor.getHTMLColorString(Color.getHSBColor((float)score * 0.32f, (float)weight, 1f));
 	}
-	
+
 }

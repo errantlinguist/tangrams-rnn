@@ -13,6 +13,8 @@ import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.util.ModelSerializer;
 import org.nd4j.linalg.api.ndarray.INDArray;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import se.kth.speech.coin.tangrams.data.Referent;
 import se.kth.speech.coin.tangrams.data.Round;
 import se.kth.speech.coin.tangrams.data.Session;
@@ -30,9 +32,9 @@ public class TestRank {
 
 		private RnnModel rnnModel;
 
-		public RnnLogisticModel() throws IOException {
-			MultiLayerNetwork net = ModelSerializer.restoreMultiLayerNetwork(new File(MakeFeatures.modelDir, "model-100.net"));
-			WordEncoder encoder = new WordEncoder(new File(MakeFeatures.modelDir, "words.txt"));
+		public RnnLogisticModel(final File modelDir) throws IOException {
+			MultiLayerNetwork net = ModelSerializer.restoreMultiLayerNetwork(new File(modelDir, "model-100.net"));
+			WordEncoder encoder = new WordEncoder(new File(modelDir, "words.txt"));
 			rnnModel = new RnnModel(net, encoder, this);
 		}
 		
@@ -65,12 +67,22 @@ public class TestRank {
 	
 	}
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestRank.class);
+
 	public static void main(String[] args) throws IOException, PredictionException, TrainingException {
-		RnnLogisticModel rnnLogisticModel = new RnnLogisticModel();
-		rnnLogisticModel.train(new SessionSet(new File(MakeFeatures.dataDir, "training.txt")));
+		if (args.length != 2) {
+			throw new IllegalArgumentException(String.format("Usage: %s <dataDir> <modelDir>", TestRank.class.getName()));
+		}
+		final File dataDir = new File(args[0]);
+		LOGGER.info("Data dir: {}", dataDir);
+		final File modelDir = new File(args[1]);
+		LOGGER.info("Model dir: {}", modelDir);
+
+		RnnLogisticModel rnnLogisticModel = new RnnLogisticModel(modelDir);
+		rnnLogisticModel.train(new SessionSet(new File(dataDir, "training.txt")));
 
 		Result roundMean = new Result();
-		SessionSet testingSet = new SessionSet(new File(MakeFeatures.dataDir, "testing.txt"));
+		SessionSet testingSet = new SessionSet(new File(dataDir, "testing.txt"));
 		for (Session session : testingSet.sessions) {
 			Result sessionMean = new Result();
 			for (Round round : session.rounds) {
