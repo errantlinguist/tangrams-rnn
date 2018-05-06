@@ -55,9 +55,8 @@ public final class TokenSequenceSingletonFactory implements Function<String, Str
 	 */
 	@Override
 	public String toString() {
-		String builder = "TokenListSingletonFactory [singletonInstances=" +
+		return "TokenListSingletonFactory [singletonInstances=" +
 				singletonInstances +
 				"]";
-		return builder;
 	}
 }
