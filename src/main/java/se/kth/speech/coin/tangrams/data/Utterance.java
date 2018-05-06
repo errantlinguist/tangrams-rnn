@@ -7,22 +7,33 @@ import java.util.stream.Collectors;
 
 public class Utterance {
 
-	public Integer round;
-	public String[] fullText;
-	public String[] refText;
-	public String speaker;
-	public boolean isGiver;
-
-	public Utterance(String line) {
-		String[] cols = line.split("\t");
-		round = Integer.parseInt(cols[0]);
-		fullText = cols[4].toLowerCase().split(" ");
-		refText = cols[5].toLowerCase().split(" ");
-		speaker = cols[1];
+	public int getRound(){
+		return round;
 	}
 
-	public void setRole(boolean AisGiver) {
-		isGiver = (AisGiver && speaker.equals("A")) || (!AisGiver && speaker.equals("B"));
+	private final int round;
+
+	public final String[] fullText;
+
+	public final String[] refText;
+
+	public final String speaker;
+
+	public final boolean isGiver;
+
+	public final float startTime;
+
+	public final float endTime;
+
+	public Utterance(final int round, float startTime, float endTime, final String speakerId, boolean isGiver, String[] fullText, String[] refText) {
+		this.round = round;
+		this.startTime = startTime;
+		this.endTime = endTime;
+		this.speaker = speakerId;
+		this.isGiver = isGiver;
+		this.fullText = fullText;
+		this.refText = refText;
+
 	}
 
 	public boolean isNegative() {

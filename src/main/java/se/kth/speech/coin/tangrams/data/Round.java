@@ -6,7 +6,7 @@ import java.util.*;
 public class Round {
 
 	public Session session;
-	public Integer n;
+	public int n = -2;
 	public List<Utterance> utts = new ArrayList<>();
 	public List<Referent> referents = new ArrayList<>();
 	public Referent target;

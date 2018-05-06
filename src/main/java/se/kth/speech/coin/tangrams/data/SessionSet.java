@@ -6,28 +6,33 @@ import java.util.*;
 import java.util.function.BiConsumer;
 
 public class SessionSet {
+
+	private static boolean isSessionDir(final File dir) {
+		return new File(dir, "events.tsv").exists();
+	}
 	
-	public List<Session> sessions = new ArrayList<>(); 
+	public List<Session> sessions = new ArrayList<>();
 	
-	public SessionSet(File dir) throws IOException {
+	public SessionSet(File dir, SessionReader sessionReader) throws IOException {
 		if (dir.isDirectory()) {
-			if (new File(dir, "events.tsv").exists()) {
-				sessions.add(new Session(dir));
+			if (isSessionDir(dir)) {
+				sessions.add(sessionReader.apply(dir));
 			} else {
 				for (File subdir : dir.listFiles()) {
-					if (subdir.isDirectory() && new File(subdir, "events.tsv").exists() && new File(subdir, "extracted-referring-tokens.tsv").exists()) {
+					if (subdir.isDirectory() && isSessionDir(subdir)) {
 						//System.out.println(subdir);
-						Session session = new Session(subdir);
+						Session session = sessionReader.apply(subdir);
 						sessions.add(session);
 					}
 				} 
 			}
 		} else {
-			for (String f : Files.readAllLines(dir.toPath())) {
+			final List<String> filePaths = Files.readAllLines(dir.toPath());
+			for (String f :filePaths) {
 				f = f.trim();
 				if (f.length() > 0) {
-				Session session = new Session(new File(dir.getParentFile(), f));
-				sessions.add(session);
+					Session session = sessionReader.apply(new File(f));
+					sessions.add(session);
 				}
 			}
 		}

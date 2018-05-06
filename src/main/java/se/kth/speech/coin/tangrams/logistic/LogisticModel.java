@@ -201,13 +201,12 @@ public class LogisticModel {
 		}
 		
 		dataset.setClass(TARGET);
-
 		try {
 			logistic.buildClassifier(dataset);
 		} catch (Exception e) {
-			throw new TrainingException(String.format("A(n) %s occurred while training a model for the word \"%s\".", e.getClass().getSimpleName(),word), e);
+			throw new TrainingException(e);
 		}
-
+	
 		return logistic;
 	}
 	
@@ -338,7 +337,7 @@ public class LogisticModel {
 	public static Result crossValidate(SessionSet set) {
 		final Result result = new Result();
 		set.crossValidate((training, testing) -> {
-				LogisticModel model = new LogisticModel();
+			LogisticModel model = new LogisticModel();
 			try {
 				model.train(training);
 			} catch (PredictionException | TrainingException e) {

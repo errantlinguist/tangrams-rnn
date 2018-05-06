@@ -1,6 +1,11 @@
 package se.kth.speech.coin.tangrams.rnn.weights_discr;
 
 import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 
@@ -25,22 +30,28 @@ public class MakeFeatures {
 	static int datan = 0;
 
 	public static void main(String[] args) throws IOException, InterruptedException {
-		if (args.length != 3) {
-			throw new IllegalArgumentException(String.format("Usage: %s <dataDir> <featDir> <modelDir>", MakeFeatures.class.getName()));
+		if (args.length != 4) {
+			throw new IllegalArgumentException(String.format("Usage: %s <dataDir> <featDir> <modelDir> <refLangMapFile>", MakeFeatures.class.getName()));
 		}
 		final File dataDir = new File(args[0]);
 		LOGGER.info("Data dir: {}", dataDir);
 		final File featDir = new File(args[1]);
 		LOGGER.info("Feature dir: {}", featDir);
+		//noinspection ResultOfMethodCallIgnored
 		featDir.mkdirs();
 		final File modelDir = new File(args[2]);
 		LOGGER.info("Model dir: {}", modelDir);
+		//noinspection ResultOfMethodCallIgnored
 		modelDir.mkdirs();
+		final Path refLangMapFilePath = Paths.get(args[3]);
+		LOGGER.info("Reading referring-language map at \"{}\".", refLangMapFilePath);
+		final Map<List<String>, String[]> refLangMap = new UtteranceReferringTokenMapReader().apply(refLangMapFilePath);
+		final SessionReader sessionReader = new SessionReader(fullText -> refLangMap.get(Arrays.asList(fullText)));
 
 		Parameters.WEIGHT_BY_FREQ = true;
 		Parameters.WEIGHT_BY_POWER = false;
 
-		SessionSet set = new SessionSet(new File(dataDir, "training.txt"));
+		SessionSet set = new SessionSet(new File(dataDir, "training.txt"), sessionReader);
 		Vocabulary vocab = new RoundSet(set).getNormalizedVocabulary();
 		vocab.prune(rnnVocabPrune);
 		System.out.println("Vocabulary size: " + vocab.getSize());

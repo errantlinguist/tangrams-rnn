@@ -3,10 +3,9 @@ package se.kth.speech.coin.tangrams.logistic;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
@@ -21,12 +20,12 @@ public class AnalyzeWord2Vec {
 	private LogisticModel model;
 	private WordVectors wordVectors;
 
-	public AnalyzeWord2Vec(File word2VecData, File trainingSetFile, File outfile) throws IOException, PredictionException, TrainingException {
+	public AnalyzeWord2Vec(File word2VecData, File trainingSetFile, SessionReader sessionReader, File outfile) throws IOException, PredictionException, TrainingException {
 		Parameters.WEIGHT_BY_FREQ = true;
 		Parameters.WEIGHT_BY_POWER = true;
 		wordVectors = WordVectorSerializer.loadTxtVectors(word2VecData);
 		model = new LogisticModel();
-		model.train(new SessionSet(trainingSetFile));
+		model.train(new SessionSet(trainingSetFile, sessionReader));
 		for (String word : new ArrayList<>(model.vocab.dict.keySet())) {
 			if (!wordVectors.hasWord(word))
 				model.vocab.dict.remove(word);
@@ -64,16 +63,20 @@ public class AnalyzeWord2Vec {
 	private static final Logger LOGGER = LoggerFactory.getLogger(AnalyzeWord2Vec.class);
 
 	public static void main(String[] args) throws PredictionException, IOException, TrainingException {
-		if (args.length != 3) {
-			throw new IllegalArgumentException(String.format("Usage: %s <word2VecData> <trainingSetFile> <outfile>", AnalyzeWord2Vec.class.getName()));
+		if (args.length != 4) {
+			throw new IllegalArgumentException(String.format("Usage: %s <word2VecData> <trainingSetFile> <refLangMapFile> <outfile>", AnalyzeWord2Vec.class.getName()));
 		}
 		final File word2VecData = new File(args[0]);
 		LOGGER.info("Will read word2vec data at \"{}\".", word2VecData);
 		final File trainingSetFile = new File(args[1]);
 		LOGGER.info("Will read training set file list at \"{}\".", trainingSetFile);
-		final File outfile = new File(args[2]);
+		final Path refLangMapFilePath = Paths.get(args[2]);
+		LOGGER.info("Reading referring-language map at \"{}\".", refLangMapFilePath);
+		final Map<List<String>, String[]> refLangMap = new UtteranceReferringTokenMapReader().apply(refLangMapFilePath);
+		final SessionReader sessionReader = new SessionReader(fullText -> refLangMap.get(Arrays.asList(fullText)));
+		final File outfile = new File(args[3]);
 		LOGGER.info("Will write results to \"{}\".", outfile);
-		new AnalyzeWord2Vec(word2VecData, trainingSetFile, outfile);
+		new AnalyzeWord2Vec(word2VecData, trainingSetFile, sessionReader, outfile);
 	}
 	
 	private double weight(String word) {

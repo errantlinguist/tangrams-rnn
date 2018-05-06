@@ -2,6 +2,8 @@ package se.kth.speech.coin.tangrams.logistic;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
@@ -55,13 +57,17 @@ public class WordStats {
 	}
 	
 	public static void main(String[] args) throws IOException, PredictionException, TrainingException {
-		if (args.length != 1) {
-			throw new IllegalArgumentException(String.format("Usage: %s <sessionDir>", WordStats.class.getName()));
+		if (args.length != 2) {
+			throw new IllegalArgumentException(String.format("Usage: %s <sessionDir> <refLangMapFile>", WordStats.class.getName()));
 		}
 		final File sessionDir = new File(args[0]);
 		LOGGER.info("Reading sessions underneath \"{}\".", sessionDir);
 		WordStats stats = new WordStats();
-		SessionSet set = new SessionSet(sessionDir);
+		final Path refLangMapFilePath = Paths.get(args[1]);
+		LOGGER.info("Reading referring-language map at \"{}\".", refLangMapFilePath);
+		final Map<List<String>, String[]> refLangMap = new UtteranceReferringTokenMapReader().apply(refLangMapFilePath);
+		final SessionReader sessionReader = new SessionReader(fullText -> refLangMap.get(Arrays.asList(fullText)));
+		SessionSet set = new SessionSet(sessionDir, sessionReader);
 		LogisticModel model = new LogisticModel();
 		model.train(set);
 		Vocabulary vocab = model.getVocabulary();

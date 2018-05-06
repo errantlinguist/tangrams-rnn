@@ -3,7 +3,12 @@ package se.kth.speech.coin.tangrams.rnn.weights_discr;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.util.ModelSerializer;
@@ -23,8 +28,8 @@ public class TestDialogWeights {
 	private static final Logger LOGGER = LoggerFactory.getLogger(TestDialogWeights.class);
 
 	public static void main(String[] args) throws IOException, PredictionException, TrainingException {
-		if (args.length != 4) {
-			throw new IllegalArgumentException(String.format("Usage: %s <dataDir> <featDir> <modelDir> <sessionScreenshotDir>", TestDialogWeights.class.getName()));
+		if (args.length != 5) {
+			throw new IllegalArgumentException(String.format("Usage: %s <dataDir> <featDir> <modelDir> <refLangMapFile> <sessionScreenshotDir>", TestDialogWeights.class.getName()));
 		}
 		final File dataDir = new File(args[0]);
 		LOGGER.info("Data dir: {}", dataDir);
@@ -32,16 +37,20 @@ public class TestDialogWeights {
 		LOGGER.info("Feature dir: {}", featDir);
 		final File modelDir = new File(args[2]);
 		LOGGER.info("Model dir: {}", modelDir);
-		final File sessionScreenshotDir = new File(args[3]);
+		final Path refLangMapFilePath = Paths.get(args[3]);
+		LOGGER.info("Reading referring-language map at \"{}\".", refLangMapFilePath);
+		final Map<List<String>, String[]> refLangMap = new UtteranceReferringTokenMapReader().apply(refLangMapFilePath);
+		final SessionReader sessionReader = new SessionReader(fullText -> refLangMap.get(Arrays.asList(fullText)));
+		final File sessionScreenshotDir = new File(args[4]);
 		LOGGER.info("Will look for session screenshots underneath \"{}\".", sessionScreenshotDir);
 
 
 		MultiLayerNetwork net = ModelSerializer.restoreMultiLayerNetwork(new File(modelDir, "model-100.net"));
-		SessionSet testingSet = new SessionSet(new File(dataDir, "testing.txt"));
+		SessionSet testingSet = new SessionSet(new File(dataDir, "testing.txt"), sessionReader);
 		WordEncoder encoder = new WordEncoder(new File(modelDir, "words.txt"));
 		LogisticModel logisticModel = new LogisticModel();
 		RnnModel rnnModel = new RnnModel(net, encoder, logisticModel);
-		logisticModel.train(new SessionSet(new File(dataDir, "training.txt")));
+		logisticModel.train(new SessionSet(new File(dataDir, "training.txt"), sessionReader));
 		DialogPrinter<PredictionException> dialogPrinter = new DialogPrinter<PredictionException>() {
 			@Override
 			public void print(PrintWriter pw, Session session, Round round) throws PredictionException {

@@ -9,33 +9,42 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 public class TestDialog {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(TestDialog.class);
 
 	public static void main(String[] args) throws IOException, TrainingException, PredictionException {
-		if (args.length != 4) {
-			throw new IllegalArgumentException(String.format("Usage: %s <trainingSetFile> <testingSetFile> <sessionScreenshotDir> <outdir>", TestDialog.class.getName()));
+		if (args.length != 5) {
+			throw new IllegalArgumentException(String.format("Usage: %s <trainingSetFile> <testingSetFile> <refLangMapFile> <sessionScreenshotDir> <outdir>", TestDialog.class.getName()));
 		}
 		Parameters.WEIGHT_BY_FREQ = true;
 		Parameters.WEIGHT_BY_POWER = true;
 		Parameters.UPDATE_MODEL = false;
 		Parameters.UPDATE_WEIGHT = 1;
 
+		final Path refLangMapFilePath = Paths.get(args[2]);
+		LOGGER.info("Reading referring-language map at \"{}\".", refLangMapFilePath);
+		final Map<List<String>, String[]> refLangMap = new UtteranceReferringTokenMapReader().apply(refLangMapFilePath);
+		final SessionReader sessionReader = new SessionReader(fullText -> refLangMap.get(Arrays.asList(fullText)));
 		final File testingFile = new File(args[1]);
 		LOGGER.info("Reading testing set list at \"{}\".", testingFile);
-		SessionSet testingSet = new SessionSet(testingFile);
+		SessionSet testingSet = new SessionSet(testingFile, sessionReader);
 		LogisticModel model = new LogisticModel();
 		final File trainingFile = new File(args[0]);
 		LOGGER.info("Reading training set list at \"{}\".", trainingFile);
-		model.train(new SessionSet(trainingFile));
+		model.train(new SessionSet(trainingFile, sessionReader));
 		model.storeModel();
 
-		final File sessionScreenshotDir = new File(args[2]);
+		final File sessionScreenshotDir = new File(args[3]);
 		LOGGER.info("Will look for session screenshots underneath \"{}\".", sessionScreenshotDir);
 
-		final File outdir = new File(args[3]);
+		final File outdir = new File(args[4]);
 		LOGGER.info("Will write results underneath \"{}\".", outdir);
 		for (Session testing : testingSet.sessions) {
 
@@ -80,6 +89,7 @@ public class TestDialog {
 
 				};
 				final File sessionResultsDir = new File(outdir, testing.name);
+				//noinspection ResultOfMethodCallIgnored
 				sessionResultsDir.mkdirs();
 				final File dialogResultsFile = new File(sessionResultsDir, "dialog.html");
 				LOGGER.info("Writing dialog results for session \"{}\" to \"{}\".", testing.name, dialogResultsFile);
@@ -136,13 +146,13 @@ public class TestDialog {
 			pw.println("</table>");
 		}
 	}
-
-	public static String getHTMLColorString(double score) {
-		return TestColor.getHTMLColorString(Color.getHSBColor((float)score * 0.32f, 1f, 1f));
+	
+	public static String getHTMLColorString(double score) {	
+	    return TestColor.getHTMLColorString(Color.getHSBColor((float)score * 0.32f, 1f, 1f));     
 	}
-
-	public static String getHTMLColorString(double score, double weight) {
-		return TestColor.getHTMLColorString(Color.getHSBColor((float)score * 0.32f, (float)weight, 1f));
+	
+	public static String getHTMLColorString(double score, double weight) {	
+	    return TestColor.getHTMLColorString(Color.getHSBColor((float)score * 0.32f, (float)weight, 1f));     
 	}
-
+	
 }

@@ -2,11 +2,9 @@ package se.kth.speech.coin.tangrams.rnn.weights_discr;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
@@ -15,11 +13,7 @@ import org.nd4j.linalg.api.ndarray.INDArray;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import se.kth.speech.coin.tangrams.data.Referent;
-import se.kth.speech.coin.tangrams.data.Round;
-import se.kth.speech.coin.tangrams.data.Session;
-import se.kth.speech.coin.tangrams.data.SessionSet;
-import se.kth.speech.coin.tangrams.data.Utterance;
+import se.kth.speech.coin.tangrams.data.*;
 import se.kth.speech.coin.tangrams.logistic.LogisticModel;
 import se.kth.speech.coin.tangrams.logistic.PredictionException;
 import se.kth.speech.coin.tangrams.logistic.Result;
@@ -70,19 +64,23 @@ public class TestRank {
 	private static final Logger LOGGER = LoggerFactory.getLogger(TestRank.class);
 
 	public static void main(String[] args) throws IOException, PredictionException, TrainingException {
-		if (args.length != 2) {
-			throw new IllegalArgumentException(String.format("Usage: %s <dataDir> <modelDir>", TestRank.class.getName()));
+		if (args.length != 3) {
+			throw new IllegalArgumentException(String.format("Usage: %s <dataDir> <modelDir> <refLangMapFile>", TestRank.class.getName()));
 		}
 		final File dataDir = new File(args[0]);
 		LOGGER.info("Data dir: {}", dataDir);
 		final File modelDir = new File(args[1]);
 		LOGGER.info("Model dir: {}", modelDir);
+		final Path refLangMapFilePath = Paths.get(args[2]);
+		LOGGER.info("Reading referring-language map at \"{}\".", refLangMapFilePath);
+		final Map<List<String>, String[]> refLangMap = new UtteranceReferringTokenMapReader().apply(refLangMapFilePath);
+		final SessionReader sessionReader = new SessionReader(fullText -> refLangMap.get(Arrays.asList(fullText)));
 
 		RnnLogisticModel rnnLogisticModel = new RnnLogisticModel(modelDir);
-		rnnLogisticModel.train(new SessionSet(new File(dataDir, "training.txt")));
+		rnnLogisticModel.train(new SessionSet(new File(dataDir, "training.txt"), sessionReader));
 
 		Result roundMean = new Result();
-		SessionSet testingSet = new SessionSet(new File(dataDir, "testing.txt"));
+		SessionSet testingSet = new SessionSet(new File(dataDir, "testing.txt"), sessionReader);
 		for (Session session : testingSet.sessions) {
 			Result sessionMean = new Result();
 			for (Round round : session.rounds) {
