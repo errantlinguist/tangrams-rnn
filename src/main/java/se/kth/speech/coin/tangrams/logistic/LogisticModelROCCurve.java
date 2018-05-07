@@ -2,6 +2,7 @@ package se.kth.speech.coin.tangrams.logistic;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +63,6 @@ public class LogisticModelROCCurve {
 		if (args.length != 3) {
 			throw new IllegalArgumentException(String.format("Usage: %s <dataDir> <refLangMapFile> <outfile>", LogisticModelROCCurve.class.getName()));
 		}
-
 
 
 		final Path refLangMapFilePath = Paths.get(args[1]);
@@ -328,22 +328,48 @@ public class LogisticModelROCCurve {
 		return score;
 	}
 
-	private double meanScore(Instance[] posRefInsts, Logistic model) throws Exception {
-		double sum = 0.0;
-		for (Instance inst : posRefInsts) {
-			sum += score(inst, model);
+	private static class ReferentInstance {
+
+		private final Instance inst;
+
+		private final boolean isTarget;
+
+		private ReferentInstance(Instance inst, boolean isTarget) {
+			this.inst = inst;
+			this.isTarget = isTarget;
 		}
-		return sum / posRefInsts.length;
+	}
+
+	/**
+	 * Returns the rank of the target referent in a round
+	 */
+	public static int targetRank(List<ReferentInstance> refInsts) {
+		int rank = 0;
+		for (ReferentInstance refInst : refInsts) {
+			rank++;
+			if (refInst.isTarget)
+				return rank;
+		}
+		return rank;
+	}
+
+	/**
+	 * Returns the rank of the target referent in a round
+	 */
+	public static int targetRank(final Map<ReferentInstance, Double> scores) {
+		final Comparator<Map.Entry<ReferentInstance, Double>> scoreComparator = Comparator.comparing(entry -> -entry.getValue());
+		final List<ReferentInstance> sortedRefInsts = scores.entrySet().stream().sorted(scoreComparator).map(Map.Entry::getKey).collect(Collectors.toList());
+		return targetRank(sortedRefInsts);
 	}
 
 	private List<ROCCurvePrediction> predict(Round round, final Map<String, Integer> wordOccurrences) throws PredictionException {
-		final List<Referent> posRefs = Arrays.asList(round.referents.stream().filter(Referent::isTarget).toArray(Referent[]::new));
-		final Instance[] posInsts = posRefs.stream().map(this::toInstance).toArray(Instance[]::new);
-		final Instance[] negInsts = round.referents.stream().filter(ref -> !ref.isTarget()).map(this::toInstance).toArray(Instance[]::new);
-		final double meanTargetMentions = posRefs.stream().mapToInt(Referent::getMentioned).average().orElse(0.0);
+		//final List<Referent> posRefs = Arrays.asList(round.referents.stream().filter(Referent::isTarget).toArray(Referent[]::new));
+		final ReferentInstance[] refInsts = round.referents.stream().map(ref -> new ReferentInstance(toInstance(ref), ref.isTarget())).toArray(ReferentInstance[]::new);
+		//final ReferentInstance[] negInsts = round.referents.stream().filter(ref -> !ref.isTarget()).map(this::toInstance).toArray(Instance[]::new);
+		final double meanTargetMentions = round.referents.stream().mapToInt(Referent::getMentioned).average().orElse(0.0);
 
 		final Collection<SpeakerToken> speakerTokens = round.getSpeakerWords();
-		List<ROCCurvePrediction> result = new ArrayList<>(speakerTokens.size());
+		final List<ROCCurvePrediction> result = new ArrayList<>(speakerTokens.size());
 		for (final SpeakerToken speakerToken : speakerTokens) {
 			final String word = speakerToken.getToken();
 			final boolean isInstructor = speakerToken.isInstructor();
@@ -357,15 +383,27 @@ public class LogisticModelROCCurve {
 						newCount = oldCount + 1;
 					}
 					return newCount;
-				} );
+				});
 
-				try {
-					final double posScore = meanScore(posInsts, model);
-					final double negScore = meanScore(negInsts, model);
-					result.add(new ROCCurvePrediction(round.n, isInstructor, word, wordOccurrence, posScore, negScore, meanTargetMentions));
-				} catch (Exception e) {
-					throw new PredictionException(String.format("A(n) %s occurred while doing prediction using the model for the word \"%s\".", e.getClass().getSimpleName(),word), e);
+				final Map<ReferentInstance, Double> scores = new HashMap<>((int) Math.ceil(refInsts.length / 0.75f));
+				final Mean meanPosScore = new Mean();
+				final Mean meanNegScore = new Mean();
+				for (final ReferentInstance refInst : refInsts) {
+					final double score;
+					try {
+						score = score(refInst.inst, model);
+					} catch (Exception e) {
+						throw new PredictionException(String.format("A(n) %s occurred while doing prediction using the model for the word \"%s\".", e.getClass().getSimpleName(), word), e);
+					}
+					scores.put(refInst, score);
+					if (refInst.isTarget) {
+						meanPosScore.increment(score);
+					} else {
+						meanNegScore.increment(score);
+					}
 				}
+				final int rank = targetRank(scores);
+				result.add(new ROCCurvePrediction(round.n, isInstructor, word, wordOccurrence, meanPosScore.getResult(), meanNegScore.getResult(), meanTargetMentions, rank));
 			}
 		}
 		return result;
@@ -416,7 +454,7 @@ public class LogisticModelROCCurve {
 					final String sessionName = cvResult.getKey();
 					final List<ROCCurvePrediction> preds = cvResult.getValue();
 					for (ROCCurvePrediction pred : preds) {
-						csvPrinter.printRecord(callNo, sessionName, pred.getRound(), pred.isInstructor(), pred.getWord(), pred.getNthWordOccurrence(), pred.getTargetMentioned(), pred.getProbTarget(), pred.getProbOthers());
+						csvPrinter.printRecord(callNo, sessionName, pred.getRound(), pred.isInstructor(), pred.getWord(), pred.getNthWordOccurrence(), pred.getTargetMentioned(), pred.getProbTarget(), pred.getProbOthers(), pred.getRank());
 					}
 				}
 			} catch (IOException e) {
@@ -437,7 +475,7 @@ public class LogisticModelROCCurve {
 		}
 
 		private CSVPrinter openFileInitial() throws IOException {
-			return FORMAT.withHeader("CV_ITER", "EVAL_SESSION", "ROUND", "IS_INSTRUCTOR", "WORD", "WORD_OCCURRENCE", "MENTIONED", "PROB_TARGET", "PROB_OTHERS").print(Files.newBufferedWriter(outfile, StandardOpenOption.CREATE));
+			return FORMAT.withHeader("CV_ITER", "EVAL_SESSION", "ROUND", "IS_INSTRUCTOR", "WORD", "WORD_OCCURRENCE", "MENTIONED", "PROB_TARGET", "PROB_OTHERS", "RANK").print(Files.newBufferedWriter(outfile, StandardOpenOption.CREATE));
 		}
 
 		private CSVPrinter openFileAppending() throws IOException {

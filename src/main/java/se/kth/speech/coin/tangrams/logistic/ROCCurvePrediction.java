@@ -13,10 +13,10 @@ public final class ROCCurvePrediction {
 	private final double probOthers;
 
 	private final double targetMentioned;
-
 	private final boolean isInstructor;
+	private final int rank;
 
-	ROCCurvePrediction(int round, final boolean isInstructor, String word, int nthWordOccurrence, double probTarget, double probOthers, double targetMentioned) {
+	ROCCurvePrediction(int round, final boolean isInstructor, String word, int nthWordOccurrence, double probTarget, double probOthers, double targetMentioned, int rank) {
 		this.round = round;
 		this.isInstructor = isInstructor;
 		this.word = word;
@@ -24,6 +24,11 @@ public final class ROCCurvePrediction {
 		this.probTarget = probTarget;
 		this.probOthers = probOthers;
 		this.targetMentioned = targetMentioned;
+		this.rank = rank;
+	}
+
+	public int getRank() {
+		return rank;
 	}
 
 	public boolean isInstructor() {
