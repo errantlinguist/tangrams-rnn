@@ -1,3 +1,14 @@
+### PROJECT-SPECIFIC
+
+# Ignore all Eclipse project files because importing via Maven is more consistent
+.classpath
+.project
+# Ignore all JetBrains project files because importing via Maven is more consistent
+.idea/
+*.iml
+
+
+### https://github.com/github/gitignore
 ## JAVA <https://github.com/github/gitignore/blob/master/Java.gitignore>
 # Compiled class file
 *.class
