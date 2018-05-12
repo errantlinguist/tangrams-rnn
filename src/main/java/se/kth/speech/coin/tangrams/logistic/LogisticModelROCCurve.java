@@ -10,7 +10,6 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,11 +56,11 @@ public class LogisticModelROCCurve {
 
 		private final Instance inst;
 
-		private final boolean isTarget;
+		private final Referent ref;
 
-		private ReferentInstance(final Instance inst, final boolean isTarget) {
+		private ReferentInstance(final Referent ref, final Instance inst) {
 			this.inst = inst;
-			this.isTarget = isTarget;
+			this.ref = ref;
 		}
 	}
 
@@ -90,8 +89,8 @@ public class LogisticModelROCCurve {
 					final List<ROCCurvePrediction> preds = cvResult.getValue();
 					for (final ROCCurvePrediction pred : preds) {
 						csvPrinter.printRecord(callNo, sessionName, pred.getRound(), pred.isInstructor(),
-								pred.getWord(), pred.getNthWordOccurrence(), pred.getTargetMentioned(),
-								pred.getProbTarget(), pred.getProbOthers(), pred.getRank(), pred.getTruePositiveCount(), pred.getFalsePositiveCount());
+								pred.getWord(), pred.getNthWordOccurrence(), pred.getMentioned(), pred.getProbTrue(),
+								pred.isTarget());
 					}
 				}
 			} catch (final IOException e) {
@@ -118,7 +117,7 @@ public class LogisticModelROCCurve {
 		private CSVPrinter openFileInitial() throws IOException {
 			return FORMAT
 					.withHeader("CV_ITER", "EVAL_SESSION", "ROUND", "IS_INSTRUCTOR", "WORD", "WORD_OCCURRENCE",
-							"MENTIONED", "PROB_TARGET", "PROB_OTHERS", "RANK", "TRUE_POSITIVE_COUNT", "FALSE_POSITIVE_COUNT")
+							"MENTIONED", "PROB_TRUE", "IS_TARGET")
 					.print(Files.newBufferedWriter(outfile, StandardOpenOption.CREATE));
 		}
 	}
@@ -170,31 +169,6 @@ public class LogisticModelROCCurve {
 			final ResultWriter writer = new ResultWriter(Files.createFile(outfile));
 			LogisticModelROCCurve.crossValidate(new SessionSet(dataDir, sessionReader), writer);
 		}
-	}
-
-	/**
-	 * Returns the rank of the target referent in a round
-	 */
-	public static int targetRank(final List<ReferentInstance> refInsts) {
-		int rank = 0;
-		for (final ReferentInstance refInst : refInsts) {
-			rank++;
-			if (refInst.isTarget) {
-				return rank;
-			}
-		}
-		return rank;
-	}
-
-	/**
-	 * Returns the rank of the target referent in a round
-	 */
-	public static int targetRank(final Map<ReferentInstance, Double> scores) {
-		final Comparator<Map.Entry<ReferentInstance, Double>> scoreComparator = Comparator
-				.comparing(entry -> -entry.getValue());
-		final List<ReferentInstance> sortedRefInsts = scores.entrySet().stream().sorted(scoreComparator)
-				.map(Map.Entry::getKey).collect(Collectors.toList());
-		return targetRank(sortedRefInsts);
 	}
 
 	private static double score(final Instance inst, final Logistic model) throws Exception {
@@ -412,11 +386,9 @@ public class LogisticModelROCCurve {
 		// final List<Referent> posRefs =
 		// Arrays.asList(round.referents.stream().filter(Referent::isTarget).toArray(Referent[]::new));
 		final ReferentInstance[] refInsts = round.referents.stream()
-				.map(ref -> new ReferentInstance(toInstance(ref), ref.isTarget())).toArray(ReferentInstance[]::new);
+				.map(ref -> new ReferentInstance(ref, toInstance(ref))).toArray(ReferentInstance[]::new);
 		// final ReferentInstance[] negInsts = round.referents.stream().filter(ref ->
 		// !ref.isTarget()).map(this::toInstance).toArray(Instance[]::new);
-		final double meanTargetMentions = round.referents.stream().mapToInt(Referent::getMentioned).average()
-				.orElse(0.0);
 
 		final Collection<SpeakerToken> speakerTokens = round.getSpeakerWords();
 		final List<ROCCurvePrediction> result = new ArrayList<>(speakerTokens.size());
@@ -447,18 +419,17 @@ public class LogisticModelROCCurve {
 								"A(n) %s occurred while doing prediction using the model for the word \"%s\".",
 								e.getClass().getSimpleName(), word), e);
 					}
+
+					result.add(new ROCCurvePrediction(round.n, isInstructor, word, wordOccurrence, score,
+							refInst.ref.isTarget(), refInst.ref.getMentioned()));
+
 					scores.put(refInst, score);
-					if (refInst.isTarget) {
+					if (refInst.ref.isTarget()) {
 						meanPosScore.increment(score);
 					} else {
 						meanNegScore.increment(score);
 					}
 				}
-				final int rank = targetRank(scores);
-				final int truePositiveCount = scores.size() - rank;
-				final int falsePositiveCount = rank - 1;
-				result.add(new ROCCurvePrediction(round.n, isInstructor, word, wordOccurrence, meanPosScore.getResult(),
-						meanNegScore.getResult(), meanTargetMentions, rank, truePositiveCount, falsePositiveCount));
 			}
 		}
 		return result;
